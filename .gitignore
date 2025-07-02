@@ -1,0 +1,24 @@
+/.idea
+/.vscode
+/vendor/
+
+# Storage - keep structure but ignore contents
+/storage/app/*
+!/storage/app/public/
+/storage/framework/cache/*
+!/storage/framework/cache/.gitkeep
+/storage/framework/sessions/*
+!/storage/framework/sessions/.gitkeep
+/storage/framework/testing/*
+!/storage/framework/testing/.gitkeep
+/storage/framework/views/*
+!/storage/framework/views/.gitkeep
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/debugbar/*
+/erpgo-desktop-app/
+
+# Other Laravel ignores
+.phpunit.result.cache
+/public/hot
+/public/storage
