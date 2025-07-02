@@ -1,0 +1,4 @@
+# Create .gitkeep files to maintain folder structure
+touch storage/framework/.gitkeep
+touch storage/logs/.gitkeep
+touch storage/app/.gitkeep
