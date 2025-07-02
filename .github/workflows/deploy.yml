@@ -1,0 +1,23 @@
+name: Laravel Deployment Workflow
+on:
+  push:
+    branches: [ main, master ]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy via Rsync
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          rsync -avz \
+            --exclude '.git*' \
+            --exclude 'node_modules/' \
+            --exclude 'vendor/' \
+            --exclude 'storage/*.log' \
+            -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
+            ./ \
+            root@s1.juvo.app:/var/www/fastuser/data/www/one.juvo.app/
