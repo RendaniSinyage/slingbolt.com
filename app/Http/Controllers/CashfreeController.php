@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
@@ -256,6 +257,12 @@ class CashfreeController extends Controller
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
 
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','cashfree')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Cashfree.'));
+        }
+        
         $this->invoiceData = $invoice;
 
         try {
@@ -367,12 +374,12 @@ class CashfreeController extends Controller
             try {
 
                 if ($info->payment_status == "SUCCESS") {
-
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','cashfree')->first();
                     $invoice_payment                 = new InvoicePayment();
                     $invoice_payment->invoice_id     = $request->invoice_id;
                     $invoice_payment->date           = Date('Y-m-d');
                     $invoice_payment->amount         = $request->has('amount') ? $request->amount : 0;
-                    $invoice_payment->account_id         = 0;
+                    $invoice_payment->account_id         = $account->id;
                     $invoice_payment->payment_method         = 0;
                     $invoice_payment->order_id      =$orderID;
                     $invoice_payment->payment_type   = 'Cashfree';
@@ -399,7 +406,13 @@ class CashfreeController extends Controller
                     }
 
 
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'cashfree');                        
 
+                    //for customer balance update
+                    Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
+                    
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);
                     $customer = Customer::find($invoice->customer_id);
@@ -442,10 +455,6 @@ class CashfreeController extends Controller
                         }
                     }
 
-
-
-                   //for customer balance update
-                    Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
 
                     $request->session()->forget('invoice_data');
 

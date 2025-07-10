@@ -217,7 +217,7 @@
 
                             <div class="card-header d-flex align-items-center justify-content-between gap-3">
                                 <h4 class="mb-0">{{ $stage->title }}</h4>
-                                <span class="f-w-600">{{ count($applications) }}</span>
+                                <span class="f-w-600 count">{{ count($applications) }}</span>
                             </div>
 
                             <div class="sales-item-wrp kanban-box" id="task-list-{{ $stage->id }}"

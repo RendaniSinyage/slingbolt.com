@@ -114,7 +114,7 @@
                                     <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12 col-12">
                                         <div class="btn-box">
                                             {{ Form::label('type', __('Category'), ['class' => 'form-label']) }}
-                                            {{ Form::select('type', $types, isset($_GET['type']) ? $_GET['type'] : '', ['class' => 'form-control select', 'placeholder' => __('Select Category')]) }}
+                                            {{ Form::select('type', $types, isset($filter['type']) ? strtolower($filter['type']) : '', ['class' => 'form-control select', 'placeholder' => __('Select Category')]) }}
                                         </div>
                                     </div>
 

@@ -16,32 +16,36 @@
                             </h5>
                         </div>
                         <div class="dropdown">
-                            <button class="btn p-0 border-0 text-muted" data-bs-toggle="dropdown"
-                                aria-expanded="false">
-                                <i class="ti ti-dots-vertical"></i>
-                            </button>
-                            <ul class="dropdown-menu icon-dropdown dropdown-menu-end">
-                                @can('create project')
-                                    <li><a class="dropdown-item" data-ajax-popup="true" data-size="md"
-                                            data-title="{{ __('Duplicate Project') }}"
-                                            data-url="{{ route('project.copy', [$project->id]) }}">
-                                            <i class="ti ti-copy"></i> {{ __('Duplicate') }}</a></li>
-                                @endcan
-                                @can('edit project')
-                                    <li><a class="dropdown-item" href="#!" data-size="lg"
-                                            data-url="{{ route('projects.edit', $project->id) }}"
-                                            data-ajax-popup="true">
-                                            <i class="ti ti-pencil"></i> {{ __('Edit') }}</a></li>
-                                @endcan
-                                @can('delete project')
-                                    <li>
-                                        {!! Form::open(['method' => 'DELETE', 'route' => ['projects.destroy', $project->id]]) !!}
-                                        <a href="#!" class="dropdown-item text-danger bs-pass-para">
-                                            <i class="ti ti-trash"></i> {{ __('Delete') }}</a>
-                                        {!! Form::close() !!}
-                                    </li>
-                                @endcan
-                            </ul>
+                            @if (Gate::check('create project') ||
+                                Gate::check('edit project') ||
+                                Gate::check('delete project'))
+                                <button class="btn p-0 border-0 text-muted" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
+                                    <i class="ti ti-dots-vertical"></i>
+                                </button>
+                                <ul class="dropdown-menu icon-dropdown dropdown-menu-end">
+                                    @can('create project')
+                                        <li><a class="dropdown-item" data-ajax-popup="true" data-size="md"
+                                                data-title="{{ __('Duplicate Project') }}"
+                                                data-url="{{ route('project.copy', [$project->id]) }}">
+                                                <i class="ti ti-copy"></i> {{ __('Duplicate') }}</a></li>
+                                    @endcan
+                                    @can('edit project')
+                                        <li><a class="dropdown-item" href="#!" data-size="lg"
+                                                data-url="{{ route('projects.edit', $project->id) }}"
+                                                data-ajax-popup="true" data-title="{{ __('Edit Project') }}">
+                                                <i class="ti ti-pencil"></i> {{ __('Edit') }}</a></li>
+                                    @endcan
+                                    @can('delete project')
+                                        <li>
+                                            {!! Form::open(['method' => 'DELETE', 'route' => ['projects.destroy', $project->id]]) !!}
+                                            <a href="#!" class="dropdown-item text-danger bs-pass-para">
+                                                <i class="ti ti-trash"></i> {{ __('Delete') }}</a>
+                                            {!! Form::close() !!}
+                                        </li>
+                                    @endcan
+                                </ul>
+                            @endif
                         </div>
                     </div>
                     <div class="card-body p-3">

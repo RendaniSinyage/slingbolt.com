@@ -459,6 +459,15 @@
     <li class="breadcrumb-item">{{ __('Task') }}</li>
 @endsection
 @section('action-btn')
+    <div class="d-flex">
+        @can('create project task')
+            <a href="#" data-size="lg" data-url="{{ route('projects.tasks.create', $project->id) }}"
+                data-ajax-popup="true" data-bs-toggle="tooltip"
+                title="{{ __('Create Task') }}" class="btn btn-sm btn-primary">
+                <i class="ti ti-plus"></i>
+            </a>
+        @endcan
+    </div>
 @endsection
 
 @section('content')
@@ -472,14 +481,7 @@
                         <div class="crm-sales-card mb-4">
                             <div class="card-header d-flex align-items-center justify-content-between gap-3">
                                 <h4 class="mb-0">{{ $stage->name }}</h4>
-                                @can('create project task')
-                                    <a href="#" data-size="lg"
-                                        data-url="{{ route('projects.tasks.create', [$project->id, $stage->id]) }}"
-                                        data-ajax-popup="true" data-bs-toggle="tooltip"
-                                        title="{{ __('Add Task in ') . $stage->name }}" class="btn btn-sm btn-light-primary">
-                                        <i class="ti ti-plus"></i>
-                                    </a>
-                                @endcan
+                                <span class="f-w-600 count">{{ count($tasks) }}</span>
                             </div>
                             <div class="sales-item-wrp kanban-box" id="task-list-{{ $stage->id }}"
                                 data-status="{{ $stage->id }}">
@@ -544,13 +546,13 @@
                                                     <i class="f-16 ti ti-file"></i>
                                                     {{ count($taskDetail->taskFiles) }}
                                                 </li>
-                                                <li class="d-inline-flex align-items-center gap-1 p-1 px-2 border rounded-1"
-                                                    data-bs-toggle="tooltip" title="{{ __('Task Progress') }}">
-                                                    @if (str_replace('%', '', $taskDetail->taskProgress($taskDetail)['percentage']) > 0)
+                                                @if (str_replace('%', '', $taskDetail->taskProgress($taskDetail)['percentage']) > 0)
+                                                    <li class="d-inline-flex align-items-center gap-1 p-1 px-2 border rounded-1"
+                                                        data-bs-toggle="tooltip" title="{{ __('Task Progress') }}">
                                                         <span
                                                             class="text-md">{{ $taskDetail->taskProgress($taskDetail)['percentage'] }}</span>
-                                                    @endif
-                                                </li>
+                                                    </li>
+                                                @endif
                                             </ul>
                                             @if (!empty($taskDetail->end_date) && $taskDetail->end_date != '0000-00-00')
                                                 <span data-bs-toggle="tooltip" title="{{ __('End Date') }}"

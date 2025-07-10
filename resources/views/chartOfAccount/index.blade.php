@@ -187,35 +187,43 @@
                                                     </a>
                                                 </div>
 
-                                                @can('edit chart of account')
+                                                @if($account->name != 'Accounts Receivable' && $account->name != 'Accounts Payable')
+                                                    @can('edit chart of account')
+                                                        <div class="action-btn me-2">
+                                                            <a href="#" class="mx-3 btn btn-sm align-items-center bg-info"
+                                                                data-url="{{ route('chart-of-account.edit', $account->id) }}"
+                                                                data-ajax-popup="true" data-title="{{ __('Edit Account') }}"
+                                                                data-bs-toggle="tooltip" title="{{ __('Edit') }}"
+                                                                data-original-title="{{ __('Edit') }}">
+                                                                <i class="ti ti-pencil text-white"></i>
+                                                            </a>
+                                                        </div>
+                                                    @endcan
+                                                    @can('delete chart of account')
+                                                        <div class="action-btn ">
+                                                            {!! Form::open([
+                                                                'method' => 'DELETE',
+                                                                'route' => ['chart-of-account.destroy', $account->id],
+                                                                'id' => 'delete-form-' . $account->id,
+                                                            ]) !!}
+                                                            <a href="#"
+                                                                class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
+                                                                data-bs-toggle="tooltip" title="{{ __('Delete') }}"
+                                                                data-original-title="{{ __('Delete') }}"
+                                                                data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
+                                                                data-confirm-yes="document.getElementById('delete-form-{{ $account->id }}').submit();">
+                                                                <i class="ti ti-trash text-white"></i>
+                                                            </a>
+                                                            {!! Form::close() !!}
+                                                        </div>
+                                                    @endcan
+                                                @else
                                                     <div class="action-btn me-2">
-                                                        <a href="#" class="mx-3 btn btn-sm align-items-center bg-info"
-                                                            data-url="{{ route('chart-of-account.edit', $account->id) }}"
-                                                            data-ajax-popup="true" data-title="{{ __('Edit Account') }}"
-                                                            data-bs-toggle="tooltip" title="{{ __('Edit') }}"
-                                                            data-original-title="{{ __('Edit') }}">
-                                                            <i class="ti ti-pencil text-white"></i>
-                                                        </a>
+                                                            <a href="#" class="bg-black mx-3 btn btn-sm align-items-center">
+                                                                <i class="ti ti-lock text-white"></i>
+                                                            </a>
                                                     </div>
-                                                @endcan
-                                                @can('delete chart of account')
-                                                    <div class="action-btn ">
-                                                        {!! Form::open([
-                                                            'method' => 'DELETE',
-                                                            'route' => ['chart-of-account.destroy', $account->id],
-                                                            'id' => 'delete-form-' . $account->id,
-                                                        ]) !!}
-                                                        <a href="#"
-                                                            class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
-                                                            data-bs-toggle="tooltip" title="{{ __('Delete') }}"
-                                                            data-original-title="{{ __('Delete') }}"
-                                                            data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
-                                                            data-confirm-yes="document.getElementById('delete-form-{{ $account->id }}').submit();">
-                                                            <i class="ti ti-trash text-white"></i>
-                                                        </a>
-                                                        {!! Form::close() !!}
-                                                    </div>
-                                                @endcan
+                                                @endif 
                                             </td>
                                         </tr>
                                     @endforeach

@@ -511,7 +511,7 @@
                     </ul>
                 @else
                     <div class="text-center">
-                        No Tasks Available.!
+                        {{ __('No Tasks Available.!') }}
                     </div>
                     @endif
                 </div>

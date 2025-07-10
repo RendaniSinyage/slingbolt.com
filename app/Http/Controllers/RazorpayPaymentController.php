@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -226,6 +227,13 @@ class RazorpayPaymentController extends Controller
     {
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+        
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','razorpay')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Razorpay.'));
+        }
+
         $user      = User::find($invoice->created_by);
         $settings=Utility::settingsById($invoice->created_by);
         if($invoice)
@@ -279,12 +287,14 @@ class RazorpayPaymentController extends Controller
                 // check that payment is authorized by razorpay or not
                 if($response->status == 'authorized')
                 {
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','razorpay')->first();
                     $payments = InvoicePayment::create(
                         [
 
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $request->amount,
+                            'account_id' => $account->id,
                             'payment_method' => 1,
                             'order_id' => $orderID,
                             'payment_type' => __('Razorpay'),
@@ -305,8 +315,12 @@ class RazorpayPaymentController extends Controller
                         Invoice::change_status($invoice->id, 3);
                     }
 
+                    Utility::addOnlinePaymentData($payments , $invoice , 'razorpay');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

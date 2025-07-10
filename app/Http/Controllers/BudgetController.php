@@ -188,8 +188,8 @@ class BudgetController extends Controller
 
             $id                    = Crypt::decrypt($ids);
             $budget                = Budget::find($id);
-            $budget['income_data'] = json_decode($budget->income_data, true);
-            $budgetTotalArrs       = !empty ($budget['income_data']) ? (array_values($budget['income_data']))  : [] ;
+            $budget['income_data'] = json_decode($budget->income_data, true) ?? [];
+            $budgetTotalArrs       = is_array($budget['income_data']) ? array_values($budget['income_data']) : [];
 
 
             $budgetTotal = array();
@@ -413,7 +413,7 @@ class BudgetController extends Controller
                         $bills->where('category_id', $expense->id);
                         $bills->whereRAW('YEAR(send_date) =?', [$year]);
                         $bills->whereRAW('MONTH(send_date) =?', [$i]);
-                        $bills = $bills->with(['items','accounts'])->get();
+                        $bills = $bills->with(['items'])->get();
 
                         $billAmount = 0;
                         foreach($bills as $bill)
@@ -707,7 +707,7 @@ class BudgetController extends Controller
 
     public function yearList()
     {
-        $starting_year = date('Y', strtotime('-5 year'));
+        $starting_year = date('Y', strtotime('+5 year'));
         $ending_year   = date('Y');
 
         foreach(range($ending_year, $starting_year) as $year)

@@ -22,12 +22,16 @@
                 {{Form::email('email',null,array('class'=>'form-control','required'=>'required' , 'placeholder' => __('Enter email')))}}
             </div>
         </div>
-
-
         <div class="col-lg-4 col-md-4 col-sm-6">
             <div class="form-group">
                 {{Form::label('tax_number',__('Tax Number'),['class'=>'form-label'])}}
                 {{Form::text('tax_number',null,array('class'=>'form-control' , 'placeholder'=>__('Enter Tax Number')))}}
+            </div>
+        </div>
+        <div class="col-lg-4 col-md-4 col-sm-6">
+            <div class="form-group">
+                {{Form::label('balance',__('Balance'),['class'=>'form-label'])}}
+                {{Form::number('balance',null,array('class'=>'form-control' , 'placeholder' => __('Enter Balance')))}}
             </div>
         </div>
         @if(!$customFields->isEmpty())

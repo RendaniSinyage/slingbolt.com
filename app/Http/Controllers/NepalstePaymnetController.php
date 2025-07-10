@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use Illuminate\Http\Request;
 use App\Models\Utility;
 use App\Models\Plan;
@@ -200,6 +201,13 @@ class NepalstePaymnetController extends Controller
 
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','nepalste')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Nepalste.'));
+        }
+        
         $user = User::where('id', $invoice->created_by)->first();
         $get_amount = $request->amount;
         $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
@@ -262,12 +270,12 @@ class NepalstePaymnetController extends Controller
 
         $payment_setting = Utility::getCompanyPaymentSetting($user->id);
         $get_amount = $request->get_amount;
-
+            $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','nepalste')->first();
             $invoice_payment                 = new InvoicePayment();
             $invoice_payment->invoice_id     = $invoice->id;
             $invoice_payment->date           = Date('Y-m-d');
             $invoice_payment->amount         = $get_amount;
-            $invoice_payment->account_id     = 0;
+            $invoice_payment->account_id     = $account->id;
             $invoice_payment->payment_method = 0;
             $invoice_payment->order_id       = $orderID;
             $invoice_payment->payment_type   = 'Nepalste';
@@ -292,8 +300,12 @@ class NepalstePaymnetController extends Controller
                 $invoice->save();
             }
 
+            Utility::addOnlinePaymentData($invoice_payment , $invoice , 'nepalste');                        
+
             //for customer balance update
             Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+            //for bank balance update
+            Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
             //For Notification
             $setting  = Utility::settingsById($invoice->created_by);

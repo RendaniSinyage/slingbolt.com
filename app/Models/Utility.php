@@ -19,6 +19,7 @@ use App\Models\ReferralTransaction;
 use App\Models\ReferralSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
+use App\Models\AddTransactionLine;
 
 class Utility extends Model
 {
@@ -54,14 +55,15 @@ class Utility extends Model
 
     public static function getSettingById($id)
     {
-        if (self::$getsettingsid == null) {
+        
+        // if (self::$getsettingsid == null) {
             $data = DB::table('settings');
             $data = $data->where('created_by', '=', $id)->get();
             if (count($data) == 0) {
                 $data = DB::table('settings')->where('created_by', '=', 1)->get();
             }
             self::$getsettingsid = $data;
-        }
+        // }
         return self::$getsettingsid;
     }
 
@@ -79,8 +81,8 @@ class Utility extends Model
         }
 
         $settings = [
-            "site_currency" => "ZAR",
-            "site_currency_symbol" => "R",
+            "site_currency" => "USD",
+            "site_currency_symbol" => "$",
             "site_currency_symbol_position" => "pre",
             "site_date_format" => "M j, Y",
             "site_time_format" => "g:i A",
@@ -92,7 +94,7 @@ class Utility extends Model
             "company_zipcode" => "",
             "company_country" => "",
             "company_telephone" => "",
-            "invoice_prefix" => "#INV",
+            "invoice_prefix" => "#INVO",
             "journal_prefix" => "#JUR",
             "invoice_color" => "ffffff",
             "proposal_prefix" => "#PROP",
@@ -101,7 +103,7 @@ class Utility extends Model
             "expense_prefix" => "#EXP",
             "bill_color" => "ffffff",
             "customer_prefix" => "#CUST",
-            "vender_prefix" => "#SUP",
+            "vender_prefix" => "#VEND",
             "footer_title" => "",
             "footer_notes" => "",
             "invoice_template" => "template1",
@@ -125,10 +127,10 @@ class Utility extends Model
             "tax_type" => "",
             "shipping_display" => "on",
             "display_landing_page" => "",
-            "employee_prefix" => "#EMP00",
+            "employee_prefix" => "#EMP",
             'leave_status' => '1',
             "bug_prefix" => "#ISSUE",
-            'title_text' => 'JuvoONE',
+            'title_text' => 'ErpGo Saas',
             'footer_text' => '',
             "company_start_time" => "09:00",
             "company_end_time" => "18:00",
@@ -300,8 +302,8 @@ class Utility extends Model
         $data = Utility::getSettingById($user_id);
 
         $settings = [
-            "site_currency" => "ZAR",
-            "site_currency_symbol" => "R",
+            "site_currency" => "USD",
+            "site_currency_symbol" => "$",
             "site_currency_symbol_position" => "pre",
             "site_date_format" => "M j, Y",
             "site_time_format" => "g:i A",
@@ -312,7 +314,7 @@ class Utility extends Model
             "company_zipcode" => "",
             "company_country" => "",
             "company_telephone" => "",
-            "invoice_prefix" => "#INV",
+            "invoice_prefix" => "#INVO",
             "invoice_color" => "ffffff",
             "proposal_prefix" => "#PROP",
             "proposal_color" => "ffffff",
@@ -320,7 +322,7 @@ class Utility extends Model
             "expense_prefix" => "#EXP",
             "bill_color" => "ffffff",
             "customer_prefix" => "#CUST",
-            "vender_prefix" => "#SUP",
+            "vender_prefix" => "#VEND",
             "footer_title" => "",
             "footer_notes" => "",
             "invoice_template" => "template1",
@@ -345,10 +347,11 @@ class Utility extends Model
             "shipping_display" => "on",
             "journal_prefix" => "#JUR",
             "display_landing_page" => "",
-            "employee_prefix" => "#EMP00",
+            "employee_prefix" => "#EMP",
+            "contract_prefix" => "#CON",
             'leave_status' => '1',
             "bug_prefix" => "#ISSUE",
-            'title_text' => 'JuvoONE',
+            'title_text' => 'ErpGo Saas',
             'footer_text' => '',
             "company_start_time" => "09:00",
             "company_end_time" => "18:00",
@@ -611,17 +614,17 @@ class Utility extends Model
             '000',
         ];
         $arr['templates'] = [
-         "template1" => "Tshwane",
-         "template2" => "Lagos",
-         "template3" => "Cape Town",
-         "template4" => "Cairo",
-         "template5" => "Johannesburg",
-         "template6" => "Nairobi",
-         "template7" => "Durban",
-         "template8" => "Casablanca",
-         "template9" => "Accra",
-         "template10" => "Addis Ababa",
-];
+            "template1" => "New York",
+            "template2" => "Toronto",
+            "template3" => "Rio",
+            "template4" => "London",
+            "template5" => "Istanbul",
+            "template6" => "Mumbai",
+            "template7" => "Hong Kong",
+            "template8" => "Tokyo",
+            "template9" => "Sydney",
+            "template10" => "Paris",
+        ];
 
         return $arr;
     }
@@ -842,12 +845,12 @@ class Utility extends Model
         if (!empty($user)) {
             if ($type == 'credit') {
                 $oldBalance = $user->balance;
-                $userBalance = $oldBalance - $amount;
+                $userBalance = $oldBalance + $amount;
                 $user->balance = $userBalance;
                 $user->save();
             } elseif ($type == 'debit') {
                 $oldBalance = $user->balance;
-                $userBalance = $oldBalance + $amount;
+                $userBalance = $oldBalance - $amount;
                 $user->balance = $userBalance;
                 $user->save();
             }
@@ -962,15 +965,17 @@ class Utility extends Model
 
     public static $chartOfAccountSubType = array(
         "assets" => array(
-            '1' => 'Current Asset',
-            '2' => 'Inventory Asset',
-            '3' => 'Non-current Asset',
+            '1' => 'Accounts Receivable',
+            '2' => 'Current Asset',
+            '3' => 'Inventory Asset',
+            '4' => 'Non-current Asset',
         ),
         "liabilities" => array(
-            '1' => 'Current Liabilities',
-            '2' => 'Long Term Liabilities',
-            '3' => 'Share Capital',
-            '4' => 'Retained Earnings',
+            '1' => 'Accounts Payable',
+            '2' => 'Current Liabilities',
+            '3' => 'Long Term Liabilities',
+            '4' => 'Share Capital',
+            '5' => 'Retained Earnings',
         ),
         "equity" => array(
             '1' => 'Owners Equity',
@@ -1016,30 +1021,29 @@ class Utility extends Model
     }
 
     public static $chartOfAccount = array(
-
+        [
+            'code' => '1050',
+            'name' => 'Accounts Receivable',
+            'type' => 1,
+            'sub_type' => 1,
+        ],
         [
             'code' => '1060',
             'name' => 'Checking Account',
             'type' => 1,
-            'sub_type' => 1,
+            'sub_type' => 2,
         ],
         [
             'code' => '1065',
             'name' => 'Petty Cash',
             'type' => 1,
-            'sub_type' => 1,
-        ],
-        [
-            'code' => '1200',
-            'name' => 'Account Receivables',
-            'type' => 1,
-            'sub_type' => 1,
+            'sub_type' => 2,
         ],
         [
             'code' => '1205',
             'name' => 'Allowance for doubtful accounts',
             'type' => 1,
-            'sub_type' => 1,
+            'sub_type' => 2,
         ],
         [
             'code' => '1510',
@@ -1051,647 +1055,652 @@ class Utility extends Model
             'code' => '1520',
             'name' => 'Stock of Raw Materials',
             'type' => 1,
-            'sub_type' => 2,
+            'sub_type' => 3,
         ],
         [
             'code' => '1530',
             'name' => 'Stock of Work In Progress',
             'type' => 1,
-            'sub_type' => 2,
+            'sub_type' => 3,
         ],
         [
             'code' => '1540',
             'name' => 'Stock of Finished Goods',
             'type' => 1,
-            'sub_type' => 2,
+            'sub_type' => 3,
         ],
         [
             'code' => '1550',
             'name' => 'Goods Received Clearing account',
             'type' => 1,
-            'sub_type' => 2,
+            'sub_type' => 3,
         ],
         [
             'code' => '1810',
             'name' => 'Land and Buildings',
             'type' => 1,
-            'sub_type' => 3,
+            'sub_type' => 4,
         ],
         [
             'code' => '1820',
             'name' => 'Office Furniture and Equipement',
             'type' => 1,
-            'sub_type' => 3,
+            'sub_type' => 4,
         ],
         [
             'code' => '1825',
             'name' => 'Accum.depreciation-Furn. and Equip',
             'type' => 1,
-            'sub_type' => 3,
+            'sub_type' => 4,
         ],
         [
             'code' => '1840',
             'name' => 'Motor Vehicle',
             'type' => 1,
-            'sub_type' => 3,
+            'sub_type' => 4,
         ],
         [
             'code' => '1845',
             'name' => 'Accum.depreciation-Motor Vehicle',
             'type' => 1,
-            'sub_type' => 3,
+            'sub_type' => 4,
         ],
         [
             'code' => '2100',
-            'name' => 'Account Payable',
+            'name' => 'Accounts Payable',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 5,
         ],
         [
             'code' => '2105',
             'name' => 'Deferred Income',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2110',
             'name' => 'Accrued Income Tax-Central',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2120',
             'name' => 'Income Tax Payable',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2130',
             'name' => 'Accrued Franchise Tax',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2140',
             'name' => 'Vat Provision',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2145',
             'name' => 'Purchase Tax',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ], [
             'code' => '2150',
             'name' => 'VAT Pay / Refund',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2151',
             'name' => 'Zero Rated',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2152',
             'name' => 'Capital import',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2153',
             'name' => 'Standard Import',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2154',
             'name' => 'Capital Standard',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2155',
             'name' => 'Vat Exempt',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2160',
             'name' => 'Accrued Use Tax Payable',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2210',
             'name' => 'Accrued Wages',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2220',
             'name' => 'Accrued Comp Time',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2230',
             'name' => 'Accrued Holiday Pay',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2240',
             'name' => 'Accrued Vacation Pay',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2310',
             'name' => 'Accr. Benefits - Central Provident Fund',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ], [
             'code' => '2320',
             'name' => 'Accr. Benefits - Stock Purchase',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2330',
             'name' => 'Accr. Benefits - Med, Den',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2340',
             'name' => 'Accr. Benefits - Payroll Taxes',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2350',
             'name' => 'Accr. Benefits - Credit Union',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2360',
             'name' => 'Accr. Benefits - Savings Bond',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2370',
             'name' => 'Accr. Benefits - Group Insurance',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2380',
             'name' => 'Accr. Benefits - Charity Cont.',
             'type' => 2,
-            'sub_type' => 4,
+            'sub_type' => 6,
         ],
         [
             'code' => '2620',
             'name' => 'Bank Loans',
             'type' => 2,
-            'sub_type' => 5,
+            'sub_type' => 7,
         ],
         [
             'code' => '2680',
             'name' => 'Loans from Shareholders',
             'type' => 2,
-            'sub_type' => 5,
+            'sub_type' => 7,
         ],
         [
             'code' => '3350',
             'name' => 'Common Shares',
             'type' => 2,
-            'sub_type' => 6,
+            'sub_type' => 8,
         ],
         [
             'code' => '3590',
             'name' => 'Reserves and Surplus',
             'type' => 2,
-            'sub_type' => 7,
+            'sub_type' => 9,
         ],
         [
             'code' => '3595',
             'name' => 'Owners Drawings',
             'type' => 2,
-            'sub_type' => 7,
+            'sub_type' => 9,
         ],
         [
             'code' => '3020',
             'name' => 'Opening Balances and adjustments',
             'type' => 3,
-            'sub_type' => 8,
+            'sub_type' => 10,
         ],
         [
             'code' => '3025',
             'name' => 'Owners Contribution',
             'type' => 3,
-            'sub_type' => 8,
+            'sub_type' => 10,
         ],
         [
             'code' => '3030',
             'name' => 'Profit and Loss ( current Year)',
             'type' => 3,
-            'sub_type' => 8,
+            'sub_type' => 10,
         ],
         [
             'code' => '3035',
             'name' => 'Retained income',
             'type' => 3,
-            'sub_type' => 8,
+            'sub_type' => 10,
         ],
         [
             'code' => '4010',
             'name' => 'Sales Income',
             'type' => 4,
-            'sub_type' => 9,
+            'sub_type' => 11,
         ],
         [
             'code' => '4020',
             'name' => 'Service Income',
             'type' => 4,
-            'sub_type' => 9,
+            'sub_type' => 11,
         ],
         [
             'code' => '4430',
             'name' => 'Shipping and Handling',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '4435',
             'name' => 'Sundry Income',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '4440',
             'name' => 'Interest Received',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '4450',
             'name' => 'Foreign Exchange Gain',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '4500',
             'name' => 'Unallocated Income',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '4510',
             'name' => 'Discounts Received',
             'type' => 4,
-            'sub_type' => 10,
+            'sub_type' => 12,
         ],
         [
             'code' => '5005',
             'name' => 'Cost of Sales- On Services',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5010',
             'name' => 'Cost of Sales - Purchases',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5015',
             'name' => 'Operating Costs',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5020',
             'name' => 'Material Usage Varaiance',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5025',
             'name' => 'Breakage and Replacement Costs',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5030',
             'name' => 'Consumable Materials',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5035',
             'name' => 'Sub-contractor Costs',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5040',
             'name' => 'Purchase Price Variance',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5045',
             'name' => 'Direct Labour - COS',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5050',
             'name' => 'Purchases of Materials',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5060',
             'name' => 'Discounts Received',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5100',
             'name' => 'Freight Costs',
             'type' => 5,
-            'sub_type' => 11,
+            'sub_type' => 13,
         ],
         [
             'code' => '5410',
             'name' => 'Salaries and Wages',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5415',
             'name' => 'Directors Fees & Remuneration',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5420',
             'name' => 'Wages - Overtime',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5425',
             'name' => 'Members Salaries',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5430',
             'name' => 'UIF Payments',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5440',
             'name' => 'Payroll Taxes',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5450',
             'name' => 'Workers Compensation ( Coida )',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5460',
             'name' => 'Normal Taxation Paid',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5470',
             'name' => 'General Benefits',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5510',
             'name' => 'Provisional Tax Paid',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5520',
             'name' => 'Inc Tax Exp - State',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5530',
             'name' => 'Taxes - Real Estate',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5540',
             'name' => 'Taxes - Personal Property',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5550',
             'name' => 'Taxes - Franchise',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5560',
             'name' => 'Taxes - Foreign Withholding',
             'type' => 6,
-            'sub_type' => 12,
+            'sub_type' => 14,
         ],
         [
             'code' => '5610',
             'name' => 'Accounting Fees',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5615',
             'name' => 'Advertising and Promotions',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5620',
             'name' => 'Bad Debts',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5625',
             'name' => 'Courier and Postage',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5660',
             'name' => 'Depreciation Expense',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5685',
             'name' => 'Insurance Expense',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5690',
             'name' => 'Bank Charges',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5695',
             'name' => 'Interest Paid',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5700',
             'name' => 'Office Expenses - Consumables',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5705',
             'name' => 'Printing and Stationary',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5710',
             'name' => 'Security Expenses',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5715',
             'name' => 'Subscription - Membership Fees',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5755',
             'name' => 'Electricity, Gas and Water',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5760',
             'name' => 'Rent Paid',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5765',
             'name' => 'Repairs and Maintenance',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5770',
             'name' => 'Motor Vehicle Expenses',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5771',
             'name' => 'Petrol and Oil',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5775',
             'name' => 'Equipment Hire - Rental',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5780',
             'name' => 'Telephone and Internet',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5785',
             'name' => 'Travel and Accommodation',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5786',
             'name' => 'Meals and Entertainment',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5787',
             'name' => 'Staff Training',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5790',
             'name' => 'Utilities',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5791',
             'name' => 'Computer Expenses',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5795',
             'name' => 'Registrations',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5800',
             'name' => 'Licenses',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '5810',
             'name' => 'Foreign Exchange Loss',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
         [
             'code' => '9990',
             'name' => 'Profit and Loss',
             'type' => 6,
-            'sub_type' => 13,
+            'sub_type' => 15,
         ],
 
     );
 
     public static $chartOfAccount1 = array(
-
+        [
+            'code' => '1050',
+            'name' => 'Accounts Receivable',
+            'type' => 'Assets',
+            'sub_type' => 'Accounts Receivable',
+        ],
         [
             'code' => '1060',
             'name' => 'Checking Account',
@@ -1701,12 +1710,6 @@ class Utility extends Model
         [
             'code' => '1065',
             'name' => 'Petty Cash',
-            'type' => 'Assets',
-            'sub_type' => 'Current Asset',
-        ],
-        [
-            'code' => '1200',
-            'name' => 'Account Receivables',
             'type' => 'Assets',
             'sub_type' => 'Current Asset',
         ],
@@ -1778,9 +1781,9 @@ class Utility extends Model
         ],
         [
             'code' => '2100',
-            'name' => 'Account Payable',
+            'name' => 'Accounts Payable',
             'type' => 'Liabilities',
-            'sub_type' => 'Current Liabilities',
+            'sub_type' => 'Accounts Payable',
         ],
         [
             'code' => '2105',
@@ -2373,18 +2376,22 @@ class Utility extends Model
         foreach ($chartOfAccounts as $account) {
 
             $type = ChartOfAccountType::where('created_by', $user)->where('name', $account['type'])->first();
-            $sub_type = ChartOfAccountSubType::where('type', $type->id)->where('name', $account['sub_type'])->first();
+            $sub_type = ChartOfAccountSubType::where('type', $type->id)->where('name', $account['sub_type'])->where('created_by' , $user)->first();
 
-            ChartOfAccount::create(
-                [
-                    'code' => $account['code'],
-                    'name' => $account['name'],
-                    'type' => $type->id,
-                    'sub_type' => $sub_type->id,
-                    'is_enabled' => 1,
-                    'created_by' => $user,
-                ]
-            );
+            $account_name = ChartOfAccount::where('type', $type->id)->where('name', $account['name'])->where('created_by' , $user)->first();
+
+            if(empty($account_name)) {
+                ChartOfAccount::create(
+                    [
+                        'code' => $account['code'],
+                        'name' => $account['name'],
+                        'type' => $type->id,
+                        'sub_type' => $sub_type->id,
+                        'is_enabled' => 1,
+                        'created_by' => $user,
+                    ]
+                );
+            }
         }
     }
 
@@ -2403,6 +2410,64 @@ class Utility extends Model
                 ]
             );
 
+        }
+    }
+
+
+    public static function addNewAccountData()
+    {
+        $users = User::where('type','company')->get();
+
+        foreach($users as $user)
+        {
+            $chartOfAccountTypes = Self::$chartOfAccountType;
+            foreach($chartOfAccountTypes as $k => $type) {
+                $check_type = ChartOfAccountType::where('created_by', $user->id)->where('name', $type)->first();
+
+                $chartOfAccountSubTypes = Self::$chartOfAccountSubType;
+                foreach ($chartOfAccountSubTypes[$k] as $subType) {
+                    $check_subtype = ChartOfAccountSubType::where('created_by', $user->id)->where('type', $check_type->id)->where('name', $subType)->first();
+                    if (empty($check_subtype)) {
+                        $accountSubType = ChartOfAccountSubType::create(
+                            [
+                                'name' => $subType,
+                                'type' => $check_type->id,
+                                'created_by' => $user->id,
+                            ]
+                        );
+                    
+                        $chartOfAccounts = Self::$chartOfAccount1;
+
+                        foreach ($chartOfAccounts as $chartAccount) {
+                            $type = ChartOfAccountType::where('created_by', $user->id)->where('name', $chartAccount['type'])->first();
+                            $sub_type = ChartOfAccountSubType::where('type', $type->id)->where('name', $chartAccount['sub_type'])->where('created_by' , $user->id)->first();
+                            $check_account = ChartOfAccount::where('name', $chartAccount['name'])->where('created_by' , $user->id)->first();
+                            $receivableAccount = ChartOfAccount::where('created_by', $user->id)->where('type', $check_type->id)->where('name', 'Account Receivables')->first();
+                            $payableAccount = ChartOfAccount::where('type', $check_type->id)->where('name', 'Account Payable')->first();
+                                if(!empty($receivableAccount))
+                                {
+                                    $receivableAccount->delete();
+                                }
+                                if(!empty($payableAccount))
+                                {
+                                    $payableAccount->delete();
+                                }
+                            if (empty($check_account)) {
+                                ChartOfAccount::create(
+                                    [
+                                        'name' => $chartAccount['name'],
+                                        'code' => $chartAccount['code'],
+                                        'type' => $type->id,
+                                        'sub_type' => $sub_type->id,
+                                        'is_enabled' => 1,
+                                        'created_by' => $user->id,
+                                    ]
+                                );
+                            }
+                        }        
+                    }
+                }
+            }
         }
     }
 
@@ -4728,17 +4793,17 @@ class Utility extends Model
 
 
         // foreach ($types as $type) {
-        $total = TransactionLines::
+        $total = AddTransactionLine::
             select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name',
             \DB::raw('sum(debit) as totalDebit'),
             \DB::raw('sum(credit) as totalCredit'));
-        $total->leftjoin('chart_of_accounts', 'transaction_lines.account_id', 'chart_of_accounts.id');
+        $total->leftjoin('chart_of_accounts', 'add_transaction_lines.account_id', 'chart_of_accounts.id');
         $total->leftjoin('chart_of_account_types', 'chart_of_accounts.type', 'chart_of_account_types.id');
         // $total->where('chart_of_accounts.type', $type->id);
-        $total->where('transaction_lines.created_by', \Auth::user()->creatorId());
-        $total->where('transaction_lines.account_id', $account_id);
-        $total->where('transaction_lines.date', '>=', $start);
-        $total->where('transaction_lines.date', '<=', $end);
+        $total->where('add_transaction_lines.created_by', \Auth::user()->creatorId());
+        $total->where('add_transaction_lines.account_id', $account_id);
+        $total->where('add_transaction_lines.date', '>=', $start);
+        $total->where('add_transaction_lines.date', '<=', $end);
         $total->groupBy('account_id');
         $total = $total->get()->toArray();
 
@@ -4769,232 +4834,47 @@ class Utility extends Model
             $end = date('Y-m-t');
         }
 
-        $transactionData = DB::table('transaction_lines')
-            ->where('transaction_lines.created_by', \Auth::user()->creatorId())
-            ->where('transaction_lines.account_id', $account_id)
-            ->whereBetween('transaction_lines.date', [$start, $end])
+        $transactionData = DB::table('add_transaction_lines')
+            ->where('add_transaction_lines.created_by', \Auth::user()->creatorId())
+            ->where('add_transaction_lines.account_id', $account_id)
+            ->whereBetween('add_transaction_lines.date', [$start, $end])
             ->leftJoin('invoices', function ($join) {
-                $join->on('transaction_lines.reference_id', '=', 'invoices.id')
-                    ->whereIn('transaction_lines.reference', ['Invoice Payment', 'Invoice']);
+                $join->on('add_transaction_lines.reference_id', '=', 'invoices.id')
+                    ->whereIn('add_transaction_lines.reference', ['Invoice Payment', 'Invoice']);
             })
             ->leftJoin('bills', function ($join) {
-                $join->on('transaction_lines.reference_id', '=', 'bills.id')
-                    ->whereIn('transaction_lines.reference', ['Bill', 'Bill Payment', 'Bill Account', 'Expense', 'Expense Account', 'Expense Payment']);
+                $join->on('add_transaction_lines.reference_id', '=', 'bills.id')
+                    ->whereIn('add_transaction_lines.reference', ['Bill', 'Bill Payment', 'Bill Account']);
             })
             ->leftJoin('revenues', function ($join) {
-                $join->on('transaction_lines.reference_id', '=', 'revenues.id')
-                    ->whereIn('transaction_lines.reference', ['Revenue']);
+                $join->on('add_transaction_lines.reference_id', '=', 'revenues.id')
+                    ->whereIn('add_transaction_lines.reference', ['Revenue']);
             })
             ->leftJoin('payments', function ($join) {
-                $join->on('transaction_lines.reference_id', '=', 'payments.id')
-                    ->whereIn('transaction_lines.reference', ['Payment']);
+                $join->on('add_transaction_lines.reference_id', '=', 'payments.id')
+                    ->whereIn('add_transaction_lines.reference', ['Payment']);
             })
-            ->leftJoin('customers as revenues_customers', 'revenues.customer_id', '=', 'revenues_customers.id')
-            ->leftJoin('venders as payments_venders', 'payments.vender_id', '=', 'payments_venders.id')
-            ->leftJoin('customers', 'invoices.customer_id', '=', 'customers.id')
-            ->leftJoin('venders', 'bills.vender_id', '=', 'venders.id')
-            ->leftJoin('chart_of_accounts', 'transaction_lines.account_id', '=', 'chart_of_accounts.id')
+            ->leftJoin('customers as invoice_customer', 'invoices.customer_id', '=', 'invoice_customer.id')
+            ->leftJoin('customers as revenue_customer', 'revenues.customer_id', '=', 'revenue_customer.id')
+            ->leftJoin('venders as bill_vendor', 'bills.vender_id', '=', 'bill_vendor.id')
+            ->leftJoin('venders as payment_vendor', 'payments.vender_id', '=', 'payment_vendor.id')
+            ->leftJoin('chart_of_accounts', 'add_transaction_lines.account_id', '=', 'chart_of_accounts.id')
             ->select(
-                'transaction_lines.*',
-                'invoices.customer_id as customer_id',
-                'bills.vender_id as vendor_id',
+                'add_transaction_lines.*',
+                'invoice_customer.name as invoice_customer_name',
+                'revenue_customer.name as revenue_customer_name',
+                'bill_vendor.name as bill_vendor_name',
+                'payment_vendor.name as payment_vendor_name',
                 'chart_of_accounts.name as account_name',
-                DB::raw("COALESCE(customers.name, venders.name , revenues_customers.name , payments_venders.name) as user_name"),
-                DB::raw("COALESCE(invoices.invoice_id, bills.bill_id) as ids"),
-            )
-            ->get();
+                DB::raw("COALESCE(invoice_customer.name, revenue_customer.name,bill_vendor.name,payment_vendor.name) as user_name"),
+            )->get();
+
 
         return $transactionData;
 
     }
     //end for chartOfAccount data show
 
-    //export balance sheet report
-
-    public static function getBalanceSheetCredit($account_id, $start_date = null, $end_date = null)
-    {
-
-        if (!empty($start_date) && !empty($end_date)) {
-            $start = $start_date;
-            $end = $end_date;
-        } else {
-            $start = date('Y-m-01');
-            $end = date('Y-m-t');
-        }
-
-        $invoice_product = ProductService::where('sale_chartaccount_id', $account_id)->get()->pluck('id');
-        $invoiceData = InvoiceProduct::select(DB::raw('sum(price * quantity) as amount'));
-
-        if (!empty($start_date) && !empty($end_date)) {
-            $invoiceData->where('created_at', '>=', $start);
-            $invoiceData->where('created_at', '<=', $end);
-        }
-        $invoiceData = $invoiceData->whereIn('product_id', $invoice_product)->first();
-        $invoiceAmount = !empty($invoiceData->amount) ? $invoiceData->amount : 0;
-        $getAccount = BankAccount::where('chart_account_id', $account_id)->get()->pluck('id');
-
-        $invoicePaymentAmount = InvoicePayment::whereIn('account_id', $getAccount);
-        if (!empty($start_date) && !empty($end_date)) {
-            $invoicePaymentAmount->where('date', '>=', $start);
-            $invoicePaymentAmount->where('date', '<=', $end);
-        }
-        $invoicePaymentAmount = $invoicePaymentAmount->sum('amount');
-
-        $revenueAmount = Revenue::whereIn('account_id', $getAccount);
-        if (!empty($start_date) && !empty($end_date)) {
-            $revenueAmount->where('date', '>=', $start);
-            $revenueAmount->where('date', '<=', $end);
-        }
-        $revenueAmount = $revenueAmount->sum('amount');
-
-        $balance = ($invoiceAmount + $invoicePaymentAmount + $revenueAmount);
-        return $balance;
-
-    }
-
-    public static function getBalanceSheetDebit($account_id, $start_date = null, $end_date = null)
-    {
-
-        if (!empty($start_date) && !empty($end_date)) {
-            $start = $start_date;
-            $end = $end_date;
-        } else {
-            $start = date('Y-m-01');
-            $end = date('Y-m-t');
-        }
-
-        $bill_product = ProductService::where('expense_chartaccount_id', $account_id)->get()->pluck('id');
-        $billData = BillProduct::select(DB::raw('sum(price * quantity) as amount'));
-        if (!empty($start_date) && !empty($end_date)) {
-            $billData->where('created_at', '>=', $start);
-            $billData->where('created_at', '<=', $end);
-        }
-        $billData = $billData->whereIn('product_id', $bill_product)->first();
-        $billProductAmount = !empty($billData->amount) ? $billData->amount : 0;
-
-        $billAmount = BillAccount::where('chart_account_id', $account_id);
-        if (!empty($start_date) && !empty($end_date)) {
-            $billAmount->where('created_at', '>=', $start);
-            $billAmount->where('created_at', '<=', $end);
-        }
-        $billAmount = $billAmount->sum('price');
-
-        $getAccount = BankAccount::where('chart_account_id', $account_id)->get()->pluck('id');
-
-        $billPaymentAmount = BillPayment::whereIn('account_id', $getAccount);
-        if (!empty($start_date) && !empty($end_date)) {
-            $billPaymentAmount->where('date', '>=', $start);
-            $billPaymentAmount->where('date', '<=', $end);
-        }
-        $billPaymentAmount = $billPaymentAmount->sum('amount');
-
-        $paymentAmount = Payment::whereIn('account_id', $getAccount);
-        if (!empty($start_date) && !empty($end_date)) {
-            $paymentAmount->where('date', '>=', $start);
-            $paymentAmount->where('date', '<=', $end);
-        }
-        $paymentAmount = $paymentAmount->sum('amount');
-
-        $balance = ($billProductAmount + $billAmount + $billPaymentAmount + $paymentAmount);
-        return $balance;
-    }
-    //end export balance sheet report
-
-    //trial balance sheet report
-
-    public static function trialBalance($account_id, $start, $end)
-    {
-        $journalItem = JournalItem::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(debit) as totalDebit'), \DB::raw('sum(credit) as totalCredit'));
-        $journalItem->leftjoin('journal_entries', 'journal_entries.id', 'journal_items.journal');
-        $journalItem->leftjoin('chart_of_accounts', 'journal_items.account', 'chart_of_accounts.id');
-        $journalItem->where('chart_of_accounts.type', $account_id);
-        $journalItem->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $journalItem->where('journal_items.created_at', '>=', $start);
-        $journalItem->where('journal_items.created_at', '<=', $end);
-        $journalItem->groupBy('account');
-        $journalItem = $journalItem->get()->toArray();
-
-        $invoice = InvoiceProduct::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('0 as totalDebit'), \DB::raw('sum(price*invoice_products.quantity) as totalCredit'));
-        $invoice->leftjoin('product_services', 'product_services.id', 'invoice_products.product_id');
-        $invoice->leftjoin('chart_of_accounts', 'product_services.sale_chartaccount_id', 'chart_of_accounts.id');
-        $invoice->where('chart_of_accounts.type', $account_id);
-        $invoice->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $invoice->where('invoice_products.created_at', '>=', $start);
-        $invoice->where('invoice_products.created_at', '<=', $end);
-        $invoice->groupBy('product_services.sale_chartaccount_id');
-        $invoice = $invoice->get()->toArray();
-
-        $invoicePayment = InvoicePayment::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(amount) as totalDebit'), \DB::raw('0 as totalCredit'));
-        $invoicePayment->leftjoin('bank_accounts', 'bank_accounts.id', 'invoice_payments.account_id');
-        $invoicePayment->leftjoin('chart_of_accounts', 'bank_accounts.chart_account_id', 'chart_of_accounts.id');
-        $invoicePayment->where('chart_of_accounts.type', $account_id);
-        $invoicePayment->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $invoicePayment->where('invoice_payments.created_at', '>=', $start);
-        $invoicePayment->where('invoice_payments.created_at', '<=', $end);
-        $invoicePayment->groupBy('account_id');
-        $invoicePayment = $invoicePayment->get()->toArray();
-
-        $revenue = Revenue::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('0 as totalDebit'), \DB::raw('sum(amount) as totalCredit'));
-        $revenue->leftjoin('bank_accounts', 'bank_accounts.id', 'revenues.account_id');
-        $revenue->leftjoin('chart_of_accounts', 'bank_accounts.chart_account_id', 'chart_of_accounts.id');
-        $revenue->where('chart_of_accounts.type', $account_id);
-        $revenue->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $revenue->where('revenues.created_at', '>=', $start);
-        $revenue->where('revenues.created_at', '<=', $end);
-        $revenue->groupBy('chart_account_id');
-        $revenue = $revenue->get()->toArray();
-
-        $bill = BillProduct::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(price*bill_products.quantity) as totalDebit'), \DB::raw('0 as totalCredit'));
-        $bill->leftjoin('product_services', 'product_services.id', 'bill_products.product_id');
-        $bill->leftjoin('chart_of_accounts', 'product_services.expense_chartaccount_id', 'chart_of_accounts.id');
-        $bill->where('chart_of_accounts.type', $account_id);
-        $bill->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $bill->where('bill_products.created_at', '>=', $start);
-        $bill->where('bill_products.created_at', '<=', $end);
-        $bill->groupBy('product_services.expense_chartaccount_id');
-        $bill = $bill->get()->toArray();
-
-        $billAccount = BillAccount::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(price) as totalDebit'), \DB::raw('0 as totalCredit'));
-        $billAccount->leftjoin('chart_of_accounts', 'bill_accounts.chart_account_id', 'chart_of_accounts.id');
-        $billAccount->where('chart_of_accounts.type', $account_id);
-        $billAccount->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $billAccount->where('bill_accounts.created_at', '>=', $start);
-        $billAccount->where('bill_accounts.created_at', '<=', $end);
-        $billAccount->groupBy('chart_account_id');
-        $billAccount = $billAccount->get()->toArray();
-
-        $billPayment = BillPayment::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(amount) as totalDebit'), \DB::raw('0 as totalCredit'));
-        $billPayment->leftjoin('bank_accounts', 'bank_accounts.id', 'bill_payments.account_id');
-        $billPayment->leftjoin('chart_of_accounts', 'bank_accounts.chart_account_id', 'chart_of_accounts.id');
-        $billPayment->where('chart_of_accounts.type', $account_id);
-        $billPayment->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $billPayment->where('bill_payments.created_at', '>=', $start);
-        $billPayment->where('bill_payments.created_at', '<=', $end);
-        $billPayment->groupBy('account_id');
-        $billPayment = $billPayment->get()->toArray();
-
-        $payments = Payment::select('chart_of_accounts.id', 'chart_of_accounts.code', 'chart_of_accounts.name', \DB::raw('sum(amount) as totalDebit'), \DB::raw('0 as totalCredit'));
-        $payments->leftjoin('bank_accounts', 'bank_accounts.id', 'payments.account_id');
-        $payments->leftjoin('chart_of_accounts', 'bank_accounts.chart_account_id', 'chart_of_accounts.id');
-        $payments->where('chart_of_accounts.type', $account_id);
-        $payments->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-        $payments->where('payments.created_at', '>=', $start);
-        $payments->where('payments.created_at', '<=', $end);
-        $payments->groupBy('account_id');
-        $payments = $payments->get()->toArray();
-
-        if ($billPayment != []) {
-            for ($i = 0; $i < count($invoicePayment); $i++) {
-                $invoicePayment[$i]["totalDebit"] = (
-                    ($invoicePayment[$i]["totalDebit"]) - ($billPayment[$i]["totalDebit"])
-                );
-            }
-        }
-
-        $total = array_merge($invoice, $journalItem, $revenue, $bill, $billAccount, $payments, $invoicePayment);
-        return $total;
-    }
-    //end trial balance sheet report
 
     public static function smtpDetail($user_id)
     {
@@ -5031,29 +4911,77 @@ class Utility extends Model
         }
     }
 
-    public static function addTransactionLines($data , $action)
+    public static function addOnlinePaymentData($payment , $invoice , $payment_type)
     {
-        $existingTransaction = TransactionLines::where('reference_id', $data['reference_id'])
-        ->where('reference_sub_id', $data['reference_sub_id'])->where('reference', $data['reference'])
-        ->first();
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name',$payment_type)->first();
+
+        $get_account = ChartOfAccount::find($account->chart_account_id);
+
+        $data = [
+            'account_id'         => !empty($get_account)? $get_account->id : 0,
+            'transaction_type'   => 'debit',
+            'transaction_amount' => $payment->amount,
+            'reference'          => 'Invoice Payment',
+            'reference_id'       => $invoice->id,
+            'reference_sub_id'   => $payment->id,
+            'date'               => $payment->date,
+            'created_by'         => $invoice->created_by
+        ];
+        self::addTransactionLines($data);
+
+        $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , $invoice->created_by)->first();
+        $data    = [
+            'account_id'         => !empty($account) ? $account->id : 0,
+            'transaction_type'   => 'credit',
+            'transaction_amount' => $payment->amount,
+            'reference'          => 'Invoice Payment',
+            'reference_id'       => $invoice->id,
+            'reference_sub_id'   => $payment->id,
+            'date'               => $payment->date,
+            'created_by'         => $invoice->created_by
+        ];
+        self::addTransactionLines($data);
+    }
+
+    public static function addTransactionLines($data , $action = '' , $type = '')    
+    {
+        if($type == 'notes')
+        {
+            $existingTransaction = AddTransactionLine::where('reference', $data['reference'])
+            ->where('reference_id', $data['reference_id'])
+            ->where('reference_sub_id', $data['reference_sub_id'])
+            ->first();
+        }
+        else
+        {
+            $existingTransaction = AddTransactionLine::where('account_id', $data['account_id'])
+                ->where('reference', $data['reference'])
+                ->where('reference_id', $data['reference_id'])
+                ->where('reference_sub_id', $data['reference_sub_id'])
+                ->first();
+        }
+        
         if ($existingTransaction && $action == 'edit') {
             $transactionLines = $existingTransaction;
         } else {
-            $transactionLines = new TransactionLines();
+            $transactionLines = new  AddTransactionLine();
         }
-        $transactionLines->account_id = $data['account_id'];
-        $transactionLines->reference = $data['reference'];
-        $transactionLines->reference_id = $data['reference_id'];
+
+        $transactionLines->account_id       = $data['account_id'];
+        $transactionLines->reference        = $data['reference'];
+        $transactionLines->reference_id     = $data['reference_id'];
         $transactionLines->reference_sub_id = $data['reference_sub_id'];
-        $transactionLines->date = $data['date'];
-        if ($data['transaction_type'] == "Credit") {
+        $transactionLines->date             = $data['date'];
+
+        if ($data['transaction_type'] == "credit") {
             $transactionLines->credit = $data['transaction_amount'];
-            $transactionLines->debit = 0;
+            $transactionLines->debit  = 0;
         } else {
             $transactionLines->credit = 0;
-            $transactionLines->debit = $data['transaction_amount'];
+            $transactionLines->debit  = $data['transaction_amount'];
         }
-        $transactionLines->created_by = Auth::user()->creatorId();
+
+        $transactionLines->created_by = $data['created_by'] ?? \Auth::user()->creatorId();
         $transactionLines->save();
     }
 
@@ -5767,5 +5695,21 @@ class Utility extends Model
                 'message' => $e->getMessage(),
             ];
         }
+    }
+
+    public static function getAiModelName()
+    {
+        return [
+            'GPT-4 Series' => [
+                'gpt-4o' => 'GPT-4o',
+                'gpt-4-turbo' => 'GPT-4-Turbo',
+                'gpt-4' => 'GPT-4',
+                'gpt-4.1-nano' => 'GPT-4.1-Nano',
+            ],
+            'GPT-3.5 Series' => [
+                'gpt-3.5-turbo' => 'GPT-3.5-Turbo',
+                'gpt-3.5-turbo-instruct' => 'GPT-3.5-Turbo-Instruct',
+            ],
+        ];
     }
 }

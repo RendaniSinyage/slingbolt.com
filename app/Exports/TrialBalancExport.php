@@ -4,29 +4,27 @@ namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
-use App\Models\Revenue;
-use App\Models\BillProduct;
-use App\Models\Customer;
-use App\Models\BillAccount;
-use App\Models\InvoiceProduct;
-use App\Models\JournalItem;
-use App\Models\Payment;
 use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCustomStartCell, WithColumnWidths, WithEvents
+class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCustomStartCell, WithColumnWidths, WithEvents, WithMapping
 {
     /**
     * @return \Illuminate\Support\Collection
     */
 
+    public $data;         
+    public $startDate;    
+    public $endDate;      
+    public $companyName;  
+
     public function __construct($data , $startDate, $endDate, $companyName)
     {
-
         $formattedData = [];
         $totalDebit = 0;
         $totalCredit = 0;
@@ -49,10 +47,10 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
 
             foreach($type as $account)
             {
-                if($account['account'] == 'parent' || $account['account'] == 'parentTotal')
+                if($account['account'] == 'subAccount')
                 {
                     $formattedData[] = [
-                        'Account Name' => '  '.$account['account_name'],
+                        'Account Name' => '      '.$account['account_name'],
                         'Account No'   => $account['account_code'],
                         'Debit'        => $account['totalDebit'],
                         'Credit'       => $account['totalCredit'],
@@ -61,7 +59,7 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
                 else
                 {
                     $formattedData[] = [
-                        'Account Name' => '    ' . $account['account_name'],
+                        'Account Name' => '   ' . $account['account_name'],
                         'Account No'   => $account['account_code'],
                         'Debit'        => $account['totalDebit'],
                         'Credit'       => $account['totalCredit'],
@@ -76,7 +74,6 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
             }
 
         }
-
         if($formattedData != [])
         {
             $formattedData[] = [
@@ -91,6 +88,16 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
         $this->startDate    = $startDate;
         $this->endDate      = $endDate;
         $this->companyName  = $companyName;
+    }
+
+    public function map($row): array
+    {
+        return [
+            $row['Account Name'],
+            $row['Account No'],
+            ($row['Debit'] === 0 || $row['Debit'] === 0.0) ? '0' : $row['Debit'],
+            ($row['Credit'] === 0 || $row['Credit'] === 0.0) ? '0' : $row['Credit'],
+        ];
     }
 
     public function startCell(): string
@@ -114,7 +121,6 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
         $sheet->getStyle('B6')->getFont()->setBold(true);
         $sheet->getStyle('C6')->getFont()->setBold(true);
         $sheet->getStyle('D6')->getFont()->setBold(true);
-
     }
 
     public function array(): array
@@ -122,7 +128,6 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
         return $this->data;
     }
     
-
     public function headings(): array
     {
         return [
@@ -146,19 +151,21 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
                 $event->sheet->getDelegate()->setCellValue('A3', 'Print Out Date : ' . date('Y-m-d H:i'));
                 $event->sheet->getDelegate()->setCellValue('A4', 'Date : ' . $this->startDate . ' - ' . $this->endDate);
 
-                $startRow = 2;
                 $lastRow = $event->sheet->getHighestRow();
 
                 $event->sheet->getStyle('A' . $lastRow . ':Z' . $lastRow)->getFont()->setBold(true);
 
-                // $event->sheet->getStyle('A' . $startRow . ':Z' . $lastRow)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
-
+                foreach (['A2:D2', 'A3:D3', 'A4:D4'] as $range) {
+                    $event->sheet->getStyle($range)
+                        ->getAlignment()
+                        ->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+                }
 
                 $data = $this->data;
                 foreach ($data as $index => $row) {
                     if (isset($row['Account Name']) && ($row['Account Name'] == 'Assets' || $row['Account Name'] == 'Income' || $row['Account Name'] == 'Costs of Goods Sold' || $row['Account Name'] == 'Expenses' ||
                      $row['Account Name'] ==  'Liabilities' || $row['Account Name'] ==  'Equity')) {
-                        $rowIndex = $index + 7; // Adjust for 1-based indexing and header row
+                        $rowIndex = $index + 7;
                         $event->sheet->getStyle('A' . $rowIndex . ':D' . $rowIndex)
                             ->applyFromArray([
                                 'font' => [

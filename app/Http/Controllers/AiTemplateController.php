@@ -111,31 +111,51 @@ class AiTemplateController extends Controller
 
             $max_results = (int)$request->num_of_result;
             $ai_creativity = (float)$request->ai_creativity;
-            $modelName = Utility::getValByName('chat_gpt_model');
+            $modelName = Utility::getValByName('chat_gpt_model') ?? '';
 
-            $complete = $open_ai->completion([
-                'model' => $modelName ? $modelName : '',
-                'prompt' => $prompt.' '.$lang_text,
-                'temperature' => $ai_creativity,
-                'max_tokens' => $ai_tokens,
-                'n' => $max_results
-            ]);
+            $isChatModel = isset($modelName) && $modelName == 'gpt-3.5-turbo-instruct';
+            if ($isChatModel) {
+                $complete = $open_ai->completion([
+                    'model' => $modelName ? $modelName : '',
+                    'prompt' => $prompt.' '.$lang_text,
+                    'temperature' => $ai_creativity,
+                    'max_tokens' => $ai_tokens,
+                    'n' => $max_results
+                ]);
+            } else {
+                $complete = $open_ai->chat([
+                    'model' => $modelName ? $modelName : '',
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are a helpful assistant.'],
+                        ['role' => 'user', 'content' => $prompt.' '.$lang_text],
+                    ],
+                    'temperature' => $ai_creativity,
+                    'max_tokens' => $ai_tokens,
+                    'n' => $max_results
+                ]);
+            }
 
             $response = json_decode($complete , true);
             if (isset($response['choices']))
             {
-                if (count($response['choices']) > 1)
-                {
-                    foreach ($response['choices'] as $value)
-                    {
-                        $text .= $counter . '. ' . ltrim($value['text']) . "\r\n\r\n\r\n";
-                        $counter++;
+                if ($isChatModel) {
+                    if (count($response['choices']) > 1) {
+                        foreach ($response['choices'] as $value) {
+                            $text .= $counter . '. ' . ltrim($value['text']) . "\r\n\r\n\r\n";
+                            $counter++;
+                        }
+                    } else {
+                        $text = $response['choices'][0]['text'];
                     }
-                }
-                else
-                {
-                    $text = $response['choices'][0]['text'];
-
+                } else {
+                    if (count($response['choices']) > 1) {
+                        foreach ($response['choices'] as $value) {
+                            $text .= $counter . '. ' . ltrim($value['message']['content']) . "\r\n\r\n\r\n";
+                            $counter++;
+                        }
+                    } else {
+                        $text = $response['choices'][0]['message']['content'];
+                    }
                 }
 
                 $tokens = $response['usage']['completion_tokens'];
@@ -185,33 +205,58 @@ class AiTemplateController extends Controller
             $counter = 1;
             $prompt = "please correct grammar mistakes and spelling mistakes in this: . $request->description .";
             $is_tone=1;
+            $text = '';
             $ai_tokens = strlen($request->description);
             $max_results = 1;
             $ai_creativity = 1.0;
-            $modelName = Utility::getValByName('chat_gpt_model');
 
-            $complete = $open_ai->completion([
-                'model' => $modelName ? $modelName : '',
-                'prompt' => $prompt,
-                'temperature' => $ai_creativity,
-                'max_tokens' => $ai_tokens,
-                'n' => $max_results
-            ]);
+            $modelName = Utility::getValByName('chat_gpt_model') ?? '';
+
+            $isChatModel = isset($modelName) && $modelName == 'gpt-3.5-turbo-instruct';
+            if ($isChatModel) {
+                $complete = $open_ai->completion([
+                    'model' => $modelName ? $modelName : '',
+                    'prompt' => $prompt,
+                    'temperature' => $ai_creativity,
+                    'max_tokens' => $ai_tokens,
+                    'n' => $max_results
+                ]);
+            } else {
+                $complete = $open_ai->chat([
+                    'model' => $modelName ? $modelName : '',
+                    'messages' => [
+                        ['role' => 'system', 'content' => 'You are a helpful assistant.'],
+                        ['role' => 'user', 'content' => $prompt],
+                    ],
+                    'temperature' => $ai_creativity,
+                    'max_tokens' => $ai_tokens,
+                    'n' => $max_results
+                ]);
+            }
+            
             $response = json_decode($complete , true);
             if (isset($response['choices']))
             {
-                if (count($response['choices']) > 1)
-                {
-                    foreach ($response['choices'] as $value)
-                    {
-                        $text .= $counter . '. ' . ltrim($value['text']) . "\r\n\r\n\r\n";
-                        $counter++;
+                if ($isChatModel) {
+                    if (count($response['choices']) > 1) {
+                        foreach ($response['choices'] as $value) {
+                            $text .= $counter . '. ' . ltrim($value['text']) . "\r\n\r\n\r\n";
+                            $counter++;
+                        }
+                    } else {
+                        $text = $response['choices'][0]['text'];
+                    }
+                } else {
+                    if (count($response['choices']) > 1) {
+                        foreach ($response['choices'] as $value) {
+                            $text .= $counter . '. ' . ltrim($value['message']['content']) . "\r\n\r\n\r\n";
+                            $counter++;
+                        }
+                    } else {
+                        $text = $response['choices'][0]['message']['content'];
                     }
                 }
-                else
-                {
-                    $text = $response['choices'][0]['text'];
-                }
+
                 $tokens = $response['usage']['completion_tokens'];
                 $data= trim($text);
                 return $data;

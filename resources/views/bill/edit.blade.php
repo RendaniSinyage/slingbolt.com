@@ -43,7 +43,6 @@
                         var el = $(this);
                         var id = $(el.find('.id')).val();
                         var amount = $(el.find('.amount')).html();
-                        var account_id = $(el.find('.account_id')).val();
 
                         $(".price").change();
                         $(".discount").change();
@@ -65,8 +64,6 @@
                                 data: {
                                     'id': id,
                                     'amount': amount,
-                                    'account_id':account_id,
-
                                 },
                                 cache: false,
                                 success: function (data) {
@@ -111,6 +108,8 @@
                     tr.find('.item').val(value[i].product_id);
                     changeItem(tr.find('.item'));
                 }
+                // Remove delete button for first row
+                $('.repeater [data-repeater-item]').first().find('[data-repeater-delete]').remove();
             }
         }
 
@@ -212,7 +211,7 @@
                             var totalItemTaxRate = 0;
                             for (var i = 0; i < item.taxes.length; i++) {
 
-                                taxes += '<span class="badge bg-primary p-2 px-3 rounded mt-1 mr-1">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
+                                taxes += '<span class="badge bg-primary p-2 px-3 rounded mt-1 me-1">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
                                 tax.push(item.taxes[i].id);
                                 totalItemTaxRate += parseFloat(item.taxes[i].rate);
 
@@ -241,30 +240,13 @@
 
 
 
-                            var accountinputs = $(".accountamount");
-                            var accountSubTotal = 0;
-                            for (var i = 0; i < accountinputs.length; i++)
-                            {
-                                var currentInputValue = parseFloat(accountinputs[i].innerHTML);
-                                if (!isNaN(currentInputValue))
-                                {
-                                    accountSubTotal += currentInputValue;
-                                }
-                            }
-
-
                             var totalItemPrice = 0;
                             var inputs_quantity = $(".quantity");
                             var priceInput = $('.price');
-                            var acinputs = $(".accountAmount");
                             for (var j = 0; j < priceInput.length; j++) {
-                                var accountAmount = parseFloat(acinputs[j].value);
-                                if (isNaN(accountAmount)) {
-                                    accountAmount = 0;
-                                }
 
                                 if (!isNaN(parseFloat(priceInput[j].value))) {
-                                    var itemTotal = (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value) + accountAmount);
+                                    var itemTotal = (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
 
                                     totalItemPrice += itemTotal;
                                 }
@@ -350,37 +332,18 @@
                 totalInputItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
             }
 
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-
-
-            for (var j = 0; j < accountInput.length; j++) {
-                if(accountInput[j].value!='')
-                {
-                    var accountInputPrice = accountInput[j].value;
-                }
-                else {
-                    var accountInputPrice = 0;
-                }
-
-                totalAccount += (parseFloat(accountInputPrice));
-
-            }
-
-
-
             var inputs = $(".amount");
             var subTotal = 0;
             for (var i = 0; i < inputs.length; i++) {
                 subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
             }
 
-            var sumAmount = totalInputItemPrice + totalAccount;
+            var sumAmount = totalInputItemPrice;
 
 
             $('.subTotal').html(sumAmount.toFixed(2));
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-            $('.totalAmount').html((parseFloat(subTotal)+totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
 
         })
 
@@ -419,32 +382,19 @@
             }
 
 
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-            for (var j = 0; j < accountInput.length; j++) {
-                if(accountInput[j].value!='')
-                {
-                    var accountInputPrice = accountInput[j].value;
-                }
-                else {
-                    var accountInputPrice = 0;
-                }
-
-                totalAccount += (parseFloat(accountInputPrice));
-            }
             var inputs = $(".amount");
             var subTotal = 0;
             for (var i = 0; i < inputs.length; i++) {
                 subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
             }
 
-            var sumAmount = totalItemPrice + totalAccount;
+            var sumAmount = totalItemPrice;
 
 
             $('.subTotal').html(sumAmount.toFixed(2));
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
 
-            $('.totalAmount').html((parseFloat(subTotal) + totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
 
         })
 
@@ -498,93 +448,15 @@
                 }
             }
 
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-            for (var j = 0; j < accountInput.length; j++) {
-                if(accountInput[j].value!='')
-                {
-                    var accountInputPrice = accountInput[j].value;
-                }
-                else {
-                    var accountInputPrice = 0;
-                }
-
-                totalAccount += (parseFloat(accountInputPrice));
-            }
-
-            var sumAmount = totalItemPrice + totalAccount;
-
+            var sumAmount = totalItemPrice;
 
             $('.subTotal').html(sumAmount.toFixed(2));
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
 
-            $('.totalAmount').html((parseFloat(subTotal) + totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
             $('.totalDiscount').html(totalItemDiscountPrice.toFixed(2));
 
         })
-
-        $(document).on('keyup change', '.accountAmount', function () {
-
-            var el1 = $(this).parent().parent().parent().parent();
-            var el = $(this).parent().parent().parent().parent().parent();
-
-            var quantityDiv = $(el.find('.quantity'));
-            var priceDiv = $(el.find('.price'));
-            var discountDiv = $(el.find('.discount'));
-
-            var itemSubTotal=0;
-            var itemSubTotalDiscount=0;
-            for (var p = 0; p < priceDiv.length; p++) {
-                var quantity=quantityDiv[p].value;
-                var price=priceDiv[p].value;
-                var discount=discountDiv[p].value;
-                if(discount.length <= 0)
-                {
-                    discount = 0 ;
-                }
-                itemSubTotal += (quantity*price);
-                itemSubTotalDiscount += (quantity*price) - (discount);
-
-
-            }
-
-
-
-            var totalItemTaxPrice = 0;
-            var itemTaxPriceInput = $('.itemTaxPrice');
-
-            for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                var parsedValue = parseFloat(itemTaxPriceInput[j].value);
-
-                if (!isNaN(parsedValue)) {
-                    totalItemTaxPrice += parsedValue;
-                }
-            }
-
-
-            var amount = $(this).val();
-            el1.find('.accountamount').html(amount);
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-            for (var j = 0; j < accountInput.length; j++) {
-                totalAccount += (parseFloat(accountInput[j].value) );
-            }
-
-
-            var inputs = $(".accountamount");
-            var subTotal = 0;
-            for (var i = 0; i < inputs.length; i++) {
-
-                subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-            }
-
-
-            $('.subTotal').text((totalAccount+itemSubTotal).toFixed(2));
-            $('.totalAmount').text((parseFloat((subTotal + itemSubTotalDiscount) + (totalItemTaxPrice))).toFixed(2));
-
-
-        })
-
 
         $(document).on('change', '.item', function () {
             $('.item option').prop('hidden', false);
@@ -605,10 +477,6 @@
                 }
             });
         })
-
-
-        $('.accountAmount').trigger('keyup');
-
     </script>
 
 @endpush
@@ -653,8 +521,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}
-                                        {{ Form::select('category_id', $category,null, array('class' => 'form-control select')) }}
+                                        {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
+                                        {{ Form::select('category_id', $category,null, array('class' => 'form-control select', 'required'=>'required')) }}
                                         <div class="text-xs mt-1">
                                             {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
                                         </div>
@@ -711,7 +579,6 @@
                             <tbody class="ui-sortable" data-repeater-item>
                                 <tr>
                                     {{ Form::hidden('id',null, array('class' => 'form-control id')) }}
-                                    {{ Form::hidden('account_id',null, array('class' => 'form-control account_id')) }}
                                     <td width="25%" class="form-group pt-0">
                                         {{ Form::select('items', $product_services,null, array('class' => 'form-control select item','data-url'=>route('bill.product'), 'required' => 'required')) }}
                                     </td>
@@ -757,32 +624,13 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="form-group">
-                                        <select name="chart_account_id" class="form-control">
-                                            @foreach ($chartAccounts as $key => $chartAccount)
-                                                <option value="{{ $key }}" class="subAccount">{{ $chartAccount}}</option>
-                                                @foreach ($subAccounts as $subAccount)
-                                                    @if ($key == $subAccount['account'])
-                                                        <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp; {{ $subAccount['name'] }}</option>
-                                                    @endif
-                                                @endforeach
-                                            @endforeach
-                                        </select>
-                                    </td>
-                                    <td class="form-group">
-                                        <div class="input-group ">
-                                            {{ Form::number('amount',null, array('class' => 'form-control accountAmount','placeholder'=>__('Amount'))) }}
-                                            <span class="input-group-text bg-transparent">{{\Auth::user()->currencySymbol()}}</span>
-                                        </div>
-                                    </td>
-
                                     <td colspan="2" class="form-group">
-                                            {{ Form::textarea('description', null, ['class'=>'form-control pro_description','rows'=>'1','placeholder'=>__('Description')]) }}
+                                            {{ Form::textarea('description', null, ['class'=>'form-control pro_description','rows'=>'2','placeholder'=>__('Description')]) }}
                                     </td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
+                                    <td>&nbsp;</td>
                                     <td></td>
-                                    <td class="text-end accountamount">
-                                        0.00
-                                    </td>
                                 </tr>
                             </tbody>
                             <tfoot>

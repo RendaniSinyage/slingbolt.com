@@ -3,9 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Exports\InvoiceExport;
+use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
+use App\Models\ChartOfAccount;
 use App\Models\CreditNote;
 use App\Models\Customer;
+use App\Models\CustomerCreditNotes;
 use App\Models\CustomField;
 use App\Models\Invoice;
 use App\Models\InvoiceBankTransfer;
@@ -18,8 +21,9 @@ use App\Models\StockReport;
 use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Utility;
-use App\Models\TransactionLines;
+use App\Traits\updateNotesStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -28,9 +32,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class InvoiceController extends Controller
 {
-    public function __construct()
-    {
-    }
+    use updateNotesStatus;
 
     public function index(Request $request)
     {
@@ -206,17 +208,22 @@ class InvoiceController extends Controller
                 return redirect()->back()->with('error', __('Something went wrong.'));
             }
             $invoice = Invoice::find($id);
-            $invoice_number = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
-            $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
-            $category->prepend('Select Category', '');
-            $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $invoice->customField = CustomField::getData($invoice, 'invoice');
-            $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'invoice')->get();
 
-            return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields'));
+            if ($invoice->status != 3 && $invoice->status != 4) {
+                $invoice_number = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
+                $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'income')->get()->pluck('name', 'id');
+                $category->prepend('Select Category', '');
+                $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                $invoice->customField = CustomField::getData($invoice, 'invoice');
+                $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'invoice')->get();
+
+                return view('invoice.edit', compact('customers', 'product_services', 'invoice', 'invoice_number', 'category', 'customFields'));
+            } else {
+                return redirect()->back()->with('error', __('Permission denied.'));
+            }
         } else {
-            return response()->json(['error' => __('Permission denied.')], 401);
+            return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
 
@@ -240,14 +247,20 @@ class InvoiceController extends Controller
 
                     return redirect()->route('invoice.index')->with('error', $messages->first());
                 }
-                Utility::updateUserBalance('customer', $request->customer_id, $invoice->getTotal(), 'debit');
 
                 $invoice->customer_id = $request->customer_id;
                 $invoice->issue_date = $request->issue_date;
                 $invoice->due_date = $request->due_date;
                 $invoice->ref_number = $request->ref_number;
-                //                $invoice->discount_apply = isset($request->discount_apply) ? 1 : 0;
                 $invoice->category_id = $request->category_id;
+                
+                $due = $invoice->getDue();
+                if ($due <= 0) {
+                    $invoice->status = 4;
+                } else {
+                    $invoice->status = 3;
+                }
+                
                 $invoice->save();
 
                 Utility::starting_number($invoice->invoice_id + 1, 'invoice');
@@ -264,19 +277,10 @@ class InvoiceController extends Controller
                         $invoiceProduct->invoice_id = $invoice->id;
 
                         Utility::total_quantity('minus', $products[$i]['quantity'], $products[$i]['item']);
-
-                        // $updatePrice = ($products[$i]['price'] * $products[$i]['quantity']) + ($products[$i]['itemTaxPrice']) - ($products[$i]['discount']);
-
-                        // Utility::updateUserBalance('customer', $request->customer_id, $invoice->getTotal(), 'credit');
                     } else {
-                        // Utility::updateUserBalance('customer', $request->customer_id, $invoice->getTotal(), 'credit');
                         Utility::total_quantity('plus', $invoiceProduct->quantity, $invoiceProduct->product_id);
 
                     }
-
-                    $updatePrice += ($products[$i]['price'] * $products[$i]['quantity']) + ($products[$i]['itemTaxPrice']) - ($products[$i]['discount']);
-
-
 
 
                     if (isset($products[$i]['item'])) {
@@ -305,10 +309,6 @@ class InvoiceController extends Controller
 
                 }
 
-                Utility::updateUserBalance('customer', $request->customer_id, $updatePrice, 'credit');
-
-                TransactionLines::where('reference_id',$invoice->id)->where('reference','Invoice')->delete();
-
                 $invoice_products = InvoiceProduct::where('invoice_id', $invoice->id)->get();
                 foreach ($invoice_products as $invoice_product) {
                     $product = ProductService::find($invoice_product->product_id);
@@ -323,16 +323,31 @@ class InvoiceController extends Controller
 
                     $itemAmount = ($invoice_product->price * $invoice_product->quantity) - ($invoice_product->discount) + $totalTaxPrice;
 
-                    $data = [
-                        'account_id' => $product->sale_chartaccount_id,
-                        'transaction_type' => 'Credit',
-                        'transaction_amount' => $itemAmount,
-                        'reference' => 'Invoice',
-                        'reference_id' => $invoice->id,
-                        'reference_sub_id' => $product->id,
-                        'date' => $invoice->issue_date,
-                    ];
-                    Utility::addTransactionLines($data , 'edit');
+                    if($invoice->status != 0) {
+
+                        $data = [
+                            'account_id'         => $product->sale_chartaccount_id,
+                            'transaction_type'   => 'credit',
+                            'transaction_amount' => $itemAmount,
+                            'reference'          => 'Invoice',
+                            'reference_id'       => $invoice->id,
+                            'reference_sub_id'   => $product->id,
+                            'date'               => $invoice->issue_date,
+                        ];
+                        Utility::addTransactionLines($data , 'edit' , 'notes');
+
+                        $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+                        $data    = [
+                            'account_id'         => !empty($account) ? $account->id : 0,
+                            'transaction_type'   => 'debit',
+                            'transaction_amount' => $itemAmount,
+                            'reference'          => 'Invoice',
+                            'reference_id'       => $invoice->id,
+                            'reference_sub_id'   => $product->id,
+                            'date'               => $invoice->issue_date,
+                        ];
+                        Utility::addTransactionLines($data , 'edit');
+                    }
                 }
 
                 return redirect()->route('invoice.index')->with('success', __('Invoice successfully updated.'));
@@ -346,7 +361,7 @@ class InvoiceController extends Controller
 
     public function invoiceNumber()
     {
-        $latest = Invoice::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Invoice::where('created_by', '=', \Auth::user()->creatorId())->latest('invoice_id')->first();
         if (!$latest) {
             return 1;
         }
@@ -396,24 +411,31 @@ class InvoiceController extends Controller
     {
         if (\Auth::user()->can('delete invoice')) {
             if ($invoice->created_by == \Auth::user()->creatorId()) {
+
+                $customerCreditNote = CustomerCreditNotes::where('invoice',$invoice->id)->first();
+
+                if($customerCreditNote) {
+                    return redirect()->back()->with('error', __('The credit note has been created for this invoice, so it cannot be deleted.'));
+                }
                 foreach ($invoice->payments as $invoices) {
                     Utility::bankAccountBalance($invoices->account_id, $invoices->amount, 'debit');
+                    Utility::updateUserBalance('customer', $invoice->customer_id, $invoices->amount, 'credit');
 
                     $invoicepayment = InvoicePayment::find($invoices->id);
-                    $invoices->delete();
+                    
+                    AddTransactionLine::where('reference_id', $invoice->id)->where('reference_sub_id', $invoicepayment->id)->where('reference', 'Invoice Payment')->delete();
+
                     $invoicepayment->delete();
-
                 }
 
-                if ($invoice->customer_id != 0 && $invoice->status != 0) {
-                    Utility::updateUserBalance('customer', $invoice->customer_id, $invoice->getDue(), 'debit');
+                AddTransactionLine::where('reference_id',$invoice->id)->where('reference','Invoice')->delete();
+
+                $creditNoteApply = CreditNote::where('invoice', $invoice->id)->get();
+                foreach($creditNoteApply as $creditNote)
+                {
+                    $this->updateCreditNoteStatus($creditNote , 'delete');
+                    $creditNote->delete();
                 }
-
-
-                TransactionLines::where('reference_id',$invoice->id)->where('reference','Invoice')->delete();
-                TransactionLines::where('reference_id',$invoice->id)->Where('reference','Invoice Payment')->delete();
-
-                CreditNote::where('invoice', '=', $invoice->id)->delete();
 
                 InvoiceProduct::where('invoice_id', '=', $invoice->id)->delete();
                 $invoice->delete();
@@ -437,9 +459,7 @@ class InvoiceController extends Controller
                 $invoice = Invoice::find($invoiceProduct->invoice_id);
                 $productService = ProductService::find($invoiceProduct->product_id);
 
-                Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
-                TransactionLines::where('reference_sub_id',$productService->id)->where('reference','Invoice')->delete();
+                AddTransactionLine::where('reference_id', $invoice->id)->where('reference_sub_id',$productService->id)->where('reference','Invoice')->delete();
 
                 InvoiceProduct::where('id', '=', $request->id)->delete();
                 return response()->json(['status' => true, 'message' => __('Invoice product successfully deleted.')]);
@@ -514,8 +534,6 @@ class InvoiceController extends Controller
                 $invoiceId = Crypt::encrypt($invoice->id);
                 $invoice->url = route('invoice.pdf', $invoiceId);
 
-                // Utility::updateUserBalance('customer', $customer->id, $invoice->getTotal(), 'credit');
-
                 $invoice_products = InvoiceProduct::where('invoice_id', $invoice->id)->get();
                 foreach ($invoice_products as $invoice_product) {
                     $product = ProductService::find($invoice_product->product_id);
@@ -532,15 +550,27 @@ class InvoiceController extends Controller
                     $itemAmount = ($invoice_product->price * $invoice_product->quantity) - ($invoice_product->discount) + $totalTaxPrice;
 
                     $data = [
-                        'account_id' => $product->sale_chartaccount_id,
-                        'transaction_type' => 'Credit',
+                        'account_id'         => $product->sale_chartaccount_id,
+                        'transaction_type'   => 'credit',
                         'transaction_amount' => $itemAmount,
-                        'reference' => 'Invoice',
-                        'reference_id' => $invoice->id,
-                        'reference_sub_id' => $product->id,
-                        'date' => $invoice->issue_date,
+                        'reference'          => 'Invoice',
+                        'reference_id'       => $invoice->id,
+                        'reference_sub_id'   => $product->id,
+                        'date'               => $invoice->issue_date,
                     ];
-                    Utility::addTransactionLines($data , 'create');
+                    Utility::addTransactionLines($data);
+
+                    $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+                    $data    = [
+                        'account_id'         => !empty($account) ? $account->id : 0,
+                        'transaction_type'   => 'debit',
+                        'transaction_amount' => $itemAmount,
+                        'reference'          => 'Invoice',
+                        'reference_id'       => $invoice->id,
+                        'reference_sub_id'   => $product->id,
+                        'date'               => $invoice->issue_date,
+                    ];
+                    Utility::addTransactionLines($data);
                 }
 
                 $customerArr = [
@@ -611,11 +641,6 @@ class InvoiceController extends Controller
 
     public function createPayment(Request $request, $invoice_id)
     {
-        $invoice = Invoice::find($invoice_id);
-        if ($invoice->getDue() < $request->amount) {
-            return redirect()->back()->with('error', __('Invoice payment amount should not greater than subtotal.'));
-        }
-
         if (\Auth::user()->can('create payment invoice')) {
             $validator = \Validator::make(
                 $request->all(), [
@@ -628,6 +653,16 @@ class InvoiceController extends Controller
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
+            }
+            $invoice = Invoice::find($invoice_id);
+            if ($invoice->getDue() < $request->amount) {
+                return redirect()->back()->with('error', __('Invoice payment amount should not greater than subtotal.'));
+            }
+            
+            $bankAccount = BankAccount::find($request->account_id);
+            if($bankAccount->chart_account_id == 0)
+            {
+                return redirect()->back()->with('error', __('This bank account is not connect with chart of account, so please connect first.'));
             }
 
             $invoicePayment = new InvoicePayment();
@@ -685,26 +720,32 @@ class InvoiceController extends Controller
             $payment->invoice = 'invoice ' . \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
             $payment->dueAmount = \Auth::user()->priceFormat($invoice->getDue());
 
-            // Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'credit');
-
+            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
             Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
 
-            $invoicePayments = InvoicePayment::where('invoice_id', $invoice->id)->get();
-            foreach ($invoicePayments as $invoicePayment) {
+            $accountId = BankAccount::find($request->account_id);
+            $data = [
+                'account_id'         => $accountId->chart_account_id,
+                'transaction_type'   => 'debit',
+                'transaction_amount' => $request->amount,
+                'reference'          => 'Invoice Payment',
+                'reference_id'       => $invoice->id,
+                'reference_sub_id'   => $invoicePayment->id,
+                'date'               => $invoicePayment->date,
+            ];
+            Utility::addTransactionLines($data);
 
-                $accountId = BankAccount::find($invoicePayment->account_id);
-                $data = [
-                    'account_id' => $accountId->chart_account_id,
-                    'transaction_type' => 'Debit',
-                    'transaction_amount' => $invoicePayment->amount,
-                    'reference' => 'Invoice Payment',
-                    'reference_id' => $invoice->id,
-                    'reference_sub_id' => $invoicePayment->id,
-                    'date' => $invoicePayment->date,
-                ];
-                Utility::addTransactionLines($data , 'create');
-            }
+            $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+            $data    = [
+                'account_id'         => !empty($account) ? $account->id : 0,
+                'transaction_type'   => 'credit',
+                'transaction_amount' => $request->amount,
+                'reference'          => 'Invoice Payment',
+                'reference_id'       => $invoice->id,
+                'reference_sub_id'   => $invoicePayment->id,
+                'date'               => $invoicePayment->date,
+            ];
+            Utility::addTransactionLines($data);
 
             // Send Email
             $setings = Utility::settings();
@@ -747,14 +788,14 @@ class InvoiceController extends Controller
 
         if (\Auth::user()->can('delete payment invoice')) {
             $payment = InvoicePayment::find($payment_id);
+            $invoice = Invoice::where('id', $invoice_id)->first();
 
             InvoicePayment::where('id', '=', $payment_id)->delete();
 
             InvoiceBankTransfer::where('id', '=', $payment_id)->delete();
+            
+            AddTransactionLine::where('reference_id',$invoice->id)->where('reference_sub_id',$payment_id)->where('reference','Invoice Payment')->delete();
 
-            TransactionLines::where('reference_sub_id',$payment_id)->where('reference','Invoice Payment')->delete();
-
-            $invoice = Invoice::where('id', $invoice_id)->first();
             $due = $invoice->getDue();
             $total = $invoice->getTotal();
 
@@ -777,9 +818,10 @@ class InvoiceController extends Controller
             $user = 'Customer';
             Transaction::destroyTransaction($payment_id, $type, $user);
 
-            Utility::updateUserBalance('customer', $invoice->customer_id, $payment->amount, 'credit');
-
-            Utility::bankAccountBalance($payment->account_id, $payment->amount, 'debit');
+            if ($payment) {
+                Utility::updateUserBalance('customer', $invoice->customer_id, $payment->amount, 'credit');
+                Utility::bankAccountBalance($payment->account_id, $payment->amount, 'debit');
+            }
 
             return redirect()->back()->with('success', __('Payment successfully deleted.'));
         } else {
@@ -840,40 +882,6 @@ class InvoiceController extends Controller
     public function customerInvoiceSend($invoice_id)
     {
         return view('customer.invoice_send', compact('invoice_id'));
-    }
-
-    public function customerInvoiceSendMail(Request $request, $invoice_id)
-    {
-        $validator = \Validator::make(
-            $request->all(), [
-                'email' => 'required|email',
-            ]
-        );
-        if ($validator->fails()) {
-            $messages = $validator->getMessageBag();
-
-            return redirect()->back()->with('error', $messages->first());
-        }
-
-        $email = $request->email;
-        $invoice = Invoice::where('id', $invoice_id)->first();
-
-        $customer = Customer::where('id', $invoice->customer_id)->first();
-        $invoice->name = !empty($customer) ? $customer->name : '';
-        $invoice->invoice = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
-
-        $invoiceId = Crypt::encrypt($invoice->id);
-        $invoice->url = route('invoice.pdf', $invoiceId);
-
-        try
-        {
-            Mail::to($email)->send(new CustomerInvoiceSend($invoice));
-        } catch (\Exception $e) {
-            $smtp_error = __('E-Mail has been not sent due to SMTP configuration');
-        }
-
-        return redirect()->back()->with('success', __('Invoice successfully sent.') . ((isset($smtp_error)) ? '<br> <span class="text-danger">' . $smtp_error . '</span>' : ''));
-
     }
 
     public function shippingDisplay(Request $request, $id)
@@ -1193,8 +1201,11 @@ class InvoiceController extends Controller
             // start for storage limit note
             $user_plan = Plan::find($user->plan);
             // end for storage limit note
-
-            return view('invoice.customer_invoice', compact('settings', 'invoice', 'customer', 'iteams', 'invoicePayment', 'customFields', 'user', 'company_payment_setting', 'user_plan'));
+            $khaltiAccount = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','khalti')->first();
+            $paystackAccount = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paystack')->first();
+            $flutterwaveAccount = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','flutterwave')->first();
+            $razorpayAccount = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','razorpay')->first();
+            return view('invoice.customer_invoice', compact('settings', 'invoice', 'customer', 'iteams', 'invoicePayment', 'customFields', 'user', 'company_payment_setting', 'user_plan' , 'khaltiAccount' , 'paystackAccount' , 'flutterwaveAccount' , 'razorpayAccount'));
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }

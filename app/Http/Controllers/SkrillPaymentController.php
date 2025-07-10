@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -286,6 +287,13 @@ class SkrillPaymentController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','skrill')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Skrill.'));
+        }
+
         $user      = User::find($invoice->created_by);
         $this->invoiceData = $invoice;
         $payment = $this->companyPaymentConfig();
@@ -380,8 +388,7 @@ class SkrillPaymentController extends Controller
 
         $payment  = $this->companyPaymentConfig();
         $orderID  = strtoupper(str_replace('.', '', uniqid('', true)));
-        $settings = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
-
+        $settings = Utility::settingsById($invoice->created_by);
 
         $result    = array();
 
@@ -393,12 +400,13 @@ class SkrillPaymentController extends Controller
                 if(session()->has('skrill_data') && isset($request->tansaction_id) && !empty($request->tansaction_id))
                 {
                     $get_data = session()->get('skrill_data');
-
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','skrill')->first();
                     $payments = InvoicePayment::create(
                         [
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $request->amount,
+                            'account_id' => $account->id,
                             'payment_method' => 1,
                             'order_id' => $orderID,
                             'payment_type' => __('Skrill'),
@@ -420,9 +428,12 @@ class SkrillPaymentController extends Controller
                         Invoice::change_status($invoice->id, 3);
                     }
 
+                    Utility::addOnlinePaymentData($payments , $invoice , 'skrill');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

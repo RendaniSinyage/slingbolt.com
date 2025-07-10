@@ -29,6 +29,12 @@
 
             </div>
         </div>
+        <div class="col-lg-4 col-md-4 col-sm-6">
+            <div class="form-group">
+                {{Form::label('balance',__('Balance'),['class'=>'form-label'])}}
+                {{Form::number('balance',null,array('class'=>'form-control' , 'placeholder' => __('Enter Balance')))}}
+            </div>
+        </div>
         @if(!$customFields->isEmpty())
                     @include('customFields.formBuilder')
         @endif

@@ -34,7 +34,7 @@
                                 <th>{{__('Account Number')}}</th>
                                 <th>{{__('Current Balance')}}</th>
                                 <th>{{__('Contact Number')}}</th>
-                                <th>{{__('Bank Branch')}}</th>
+                                <th>{{__('Payment Gateway')}}</th>
                                 <th width="10%"> {{__('Action')}}</th>
                             </tr>
                             </thead>
@@ -48,7 +48,7 @@
                                     <td>{{  $account->account_number}}</td>
                                     <td>{{  \Auth::user()->priceFormat($account->opening_balance)}}</td>
                                     <td>{{  $account->contact_number}}</td>
-                                    <td>{{  $account->bank_address}}</td>
+                                    <td>{{  ucfirst($account->payment_name) }}</td>
                                     @if(Gate::check('edit bank account') || Gate::check('delete bank account'))
                                         <td class="Action">
                                             <span>

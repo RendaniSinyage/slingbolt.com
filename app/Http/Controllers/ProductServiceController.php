@@ -7,6 +7,7 @@ use App\Models\ChartOfAccountType;
 use App\Models\CustomField;
 use App\Exports\ProductServiceExport;
 use App\Imports\ProductServiceImport;
+use App\Models\ChartOfAccountSubType;
 use App\Models\Product;
 use App\Models\ProductService;
 use App\Models\ProductServiceCategory;
@@ -57,40 +58,109 @@ class ProductServiceController extends Controller
             $category     = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'product & service')->get()->pluck('name', 'id');
             $unit         = ProductServiceUnit::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             $tax          = Tax::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $incomeChartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id as id'))
-                ->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type')
-                ->where('chart_of_account_types.name', 'income')
-                ->where('parent', '=', 0)
-                ->where('chart_of_accounts.created_by', \Auth::user()->creatorId())->get()
-                ->pluck('code_name', 'id');
-            $incomeChartAccounts->prepend('Select Account', 0);
 
-            $incomeSubAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code, chart_of_account_parents.account'));
-            $incomeSubAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-            $incomeSubAccounts->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type');
-            $incomeSubAccounts->where('chart_of_account_types.name', 'income');
-            $incomeSubAccounts->where('chart_of_accounts.parent', '!=', 0);
-            $incomeSubAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-            $incomeSubAccounts = $incomeSubAccounts->get()->toArray();
+            $incomeTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())            
+            ->whereIn('name', ['Assets', 'Liabilities', 'Income'])
+            ->get();
 
+            $incomeChartAccounts = [];
 
-            $expenseChartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id as id'))
-                ->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type')
-                ->whereIn('chart_of_account_types.name', ['Expenses', 'Costs of Goods Sold'])
-                ->where('chart_of_accounts.created_by', \Auth::user()->creatorId())->get()
-                ->pluck('code_name', 'id');
-            $expenseChartAccounts->prepend('Select Account', '');
+            foreach ($incomeTypes as $type) {
+                $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    ->get();
 
-            $expenseSubAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code, chart_of_account_parents.account'));
-            $expenseSubAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-            $expenseSubAccounts->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type');
-            $expenseSubAccounts->whereIn('chart_of_account_types.name', ['Expenses', 'Costs of Goods Sold']);
-            $expenseSubAccounts->where('chart_of_accounts.parent', '!=', 0);
-            $expenseSubAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-            $expenseSubAccounts = $expenseSubAccounts->get()->toArray();
+                $temp = [];
 
+                foreach ($accountTypes as $accountType) {
+                    $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
 
-            return view('productservice.create', compact('category', 'unit', 'tax', 'customFields', 'incomeChartAccounts', 'incomeSubAccounts', 'expenseChartAccounts', 'expenseSubAccounts'));
+                    $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->get();
+                    $tempData = [
+                        'account_name'      => $accountType->name,
+                        'chart_of_accounts' => [],
+                        'subAccounts'       => [],
+                    ];
+                    foreach ($chartOfAccounts as $chartOfAccount) {
+                        $tempData['chart_of_accounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                        ];
+                    }
+
+                    foreach ($incomeSubAccounts as $chartOfAccount) {
+                        $tempData['subAccounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                            'parent'         => $chartOfAccount->parent,
+                            'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                        ];
+                    }
+                    $temp[$accountType->id] = $tempData;
+                }
+                
+                $incomeChartAccounts[$type->name] = $temp;
+            }
+
+            $expenseTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())
+            ->whereIn('name', ['Assets', 'Liabilities', 'Expenses', 'Costs of Goods Sold'])
+            ->get();
+
+            $expenseChartAccounts = [];
+
+            foreach ($expenseTypes as $type) {
+                $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    ->get();
+
+                $temp = [];
+
+                foreach ($accountTypes as $accountType) {
+                    $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+
+                    $expenseSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->get();
+
+                    $tempData = [
+                        'account_name'      => $accountType->name,
+                        'chart_of_accounts' => [],
+                        'subAccounts'       => [],
+                    ];
+                    foreach ($chartOfAccounts as $chartOfAccount) {
+                        $tempData['chart_of_accounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                        ];
+                    }
+
+                    foreach ($expenseSubAccounts as $chartOfAccount) {
+                        $tempData['subAccounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                            'parent'         => $chartOfAccount->parent,
+                            'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                        ];
+                    }
+                    $temp[$accountType->id] = $tempData;
+                }
+
+                $expenseChartAccounts[$type->name] = $temp;
+            }
+
+            return view('productservice.create', compact('category', 'unit', 'tax', 'customFields', 'incomeChartAccounts', 'expenseChartAccounts'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -184,40 +254,110 @@ class ProductServiceController extends Controller
                 $productService->customField = CustomField::getData($productService, 'product');
                 $customFields                = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'product')->get();
                 $productService->tax_id      = explode(',', $productService->tax_id);
-                $incomeChartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id as id'))
-                    ->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type')
-                    ->where('chart_of_account_types.name', 'income')
-                    ->where('parent', '=', 0)
-                    ->where('chart_of_accounts.created_by', \Auth::user()->creatorId())->get()
-                    ->pluck('code_name', 'id');
-                $incomeChartAccounts->prepend('Select Account', 0);
 
+                $incomeTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())            
+                ->whereIn('name', ['Assets', 'Liabilities', 'Income'])
+                ->get();
+    
+                $incomeChartAccounts = [];
+    
+                foreach ($incomeTypes as $type) {
+                    $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                        ->get();
+    
+                    $temp = [];
+    
+                    foreach ($accountTypes as $accountType) {
+                        $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->get();
+    
+                        $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+    
+                        $tempData = [
+                            'account_name' => $accountType->name,
+                            'chart_of_accounts' => [],
+                            'subAccounts' => [],
+                        ];
+                        foreach ($chartOfAccounts as $chartOfAccount) {
+                            $tempData['chart_of_accounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                            ];
+                        }
+    
+                        foreach ($incomeSubAccounts as $chartOfAccount) {
+                            $tempData['subAccounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                                'parent'         => $chartOfAccount->parent,
+                                'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                            ];
+                        }
+                        $temp[$accountType->id] = $tempData;
+                    }
+    
+                    $incomeChartAccounts[$type->name] = $temp;
+                }
+    
+                $expenseTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())
+                ->whereIn('name', ['Assets', 'Liabilities', 'Expenses', 'Costs of Goods Sold'])
+                ->get();
+    
+                $expenseChartAccounts = [];
+    
+                foreach ($expenseTypes as $type) {
+                    $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                        ->get();
+    
+                    $temp = [];
+    
+                    foreach ($accountTypes as $accountType) {
+                        $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->get();
+    
+                        $expenseSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+    
+                        $tempData = [
+                            'account_name'      => $accountType->name,
+                            'chart_of_accounts' => [],
+                            'subAccounts'       => [],
+                        ];
+                        foreach ($chartOfAccounts as $chartOfAccount) {
+                            $tempData['chart_of_accounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                            ];
+                        }
+    
+                        foreach ($expenseSubAccounts as $chartOfAccount) {
+                            $tempData['subAccounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                                'parent'         => $chartOfAccount->parent,
+                                'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                            ];
+                        }
+                        $temp[$accountType->id] = $tempData;
+                    }
+    
+                    $expenseChartAccounts[$type->name] = $temp;
+                }
 
-                $incomeSubAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code, chart_of_account_parents.account'));
-                $incomeSubAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-                $incomeSubAccounts->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type');
-                $incomeSubAccounts->where('chart_of_account_types.name', 'income');
-                $incomeSubAccounts->where('chart_of_accounts.parent', '!=', 0);
-                $incomeSubAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-                $incomeSubAccounts = $incomeSubAccounts->get()->toArray();
-
-
-                $expenseChartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id as id'))
-                    ->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type')
-                    ->whereIn('chart_of_account_types.name', ['Expenses', 'Costs of Goods Sold'])
-                    ->where('chart_of_accounts.created_by', \Auth::user()->creatorId())->get()
-                    ->pluck('code_name', 'id');
-                $expenseChartAccounts->prepend('Select Account', '');
-
-                $expenseSubAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code, chart_of_account_parents.account'));
-                $expenseSubAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-                $expenseSubAccounts->leftjoin('chart_of_account_types', 'chart_of_account_types.id', 'chart_of_accounts.type');
-                $expenseSubAccounts->whereIn('chart_of_account_types.name', ['Expenses', 'Costs of Goods Sold']);
-                $expenseSubAccounts->where('chart_of_accounts.parent', '!=', 0);
-                $expenseSubAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-                $expenseSubAccounts = $expenseSubAccounts->get()->toArray();
-
-                return view('productservice.edit', compact('category', 'unit', 'tax', 'productService', 'customFields', 'incomeChartAccounts', 'expenseChartAccounts', 'incomeSubAccounts', 'expenseSubAccounts'));
+                return view('productservice.edit', compact('category', 'unit', 'tax', 'productService', 'customFields', 'incomeChartAccounts', 'expenseChartAccounts'));
             } else {
                 return response()->json(['error' => __('Permission denied.')], 401);
             }
@@ -335,6 +475,303 @@ class ProductServiceController extends Controller
         return view('productservice.import');
     }
 
+    public function fileImport(Request $request)
+    {
+        session_start();
+
+        $error = '';
+
+        $html = '';
+
+        if ($request->hasFile('file') && $request->file->getClientOriginalName() != '') {
+            $file_array = explode(".", $request->file->getClientOriginalName());
+
+            $extension = end($file_array);
+            if ($extension == 'csv') {
+                $file_data = fopen($request->file->getRealPath(), 'r');
+
+                $file_header = fgetcsv($file_data);
+                $html .= '<table class="table table-bordered"><tr>';
+
+                for ($count = 0; $count < count($file_header); $count++) {
+                    $html .= '
+                            <th>
+                                <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                    <option value="">Set Count Data</option>
+                                    <option value="name">Name</option>
+                                    <option value="sku">SKU</option>
+                                    <option value="sale_price">Sale Price</option>
+                                    <option value="purchase_price">Purchase Price</option>
+                                    <option value="quantity">Quantity</option>
+                                    <option value="description">Description</option>
+                                </select>
+                            </th>
+                            ';
+                }
+                $html .= '
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="type">Type</option>
+                                    </select>
+                            </th>
+
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="sale_chartaccount_id">Income Account</option>
+                                    </select>
+                            </th>
+
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="expense_chartaccount_id">Expense Account</option>
+                                    </select>
+                            </th>
+
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="tax_id">Tax</option>
+                                    </select>
+                            </th>
+
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="category_id">Category</option>
+                                    </select>
+                            </th>
+
+                            <th>
+                                    <select name="set_column_data" class="form-control set_column_data" data-column_number="' . $count . '">
+                                        <option value="unit_id">Unit</option>
+                                    </select>
+                            </th>
+                            ';
+                $html .= '</tr>';
+                $limit = 0;
+                $temp_data = [];
+                while (($row = fgetcsv($file_data)) !== false) {
+                    $limit++;
+
+                    $html .= '<tr>';
+
+                    for ($count = 0; $count < count($row); $count++) {
+                        $html .= '<td>' . $row[$count] . '</td>';
+                    }
+
+                    $html .= '<td>
+                                <select name="type" class="form-control type" id="type" required>
+                                    <option value="product">Product</option>    
+                                    <option value="service">Service</option>    
+                                </select>
+                            </td>';
+
+
+                    $html .= '<td>
+                        <select name="sale_chartaccount_id" class="form-control sale_chartaccount_id" id="sale_chartaccount_id" required>
+                            <option value="">' . __('Select Chart of Account') . '</option>';
+                    
+                    $incomeTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())            
+                        ->whereIn('name', ['Assets', 'Liabilities', 'Income'])
+                        ->get();
+                    $incomeChartAccounts = [];
+                    foreach ($incomeTypes as $type) {
+                        $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                            ->get();
+
+                        $temp = [];
+
+                        foreach ($accountTypes as $accountType) {
+                            $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                                ->where('created_by', '=', \Auth::user()->creatorId())
+                                ->get();
+
+                            $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->get();
+                            $tempData = [
+                                'account_name'      => $accountType->name,
+                                'chart_of_accounts' => [],
+                                'subAccounts'       => [],
+                            ];
+                            foreach ($chartOfAccounts as $chartOfAccount) {
+                                $tempData['chart_of_accounts'][] = [
+                                    'id'             => $chartOfAccount->id,
+                                    'account_number' => $chartOfAccount->account_number,
+                                    'account_name'   => $chartOfAccount->name,
+                                ];
+                            }
+
+                            foreach ($incomeSubAccounts as $chartOfAccount) {
+                                $tempData['subAccounts'][] = [
+                                    'id'             => $chartOfAccount->id,
+                                    'account_number' => $chartOfAccount->account_number,
+                                    'account_name'   => $chartOfAccount->name,
+                                    'parent'         => $chartOfAccount->parent,
+                                    'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                                ];
+                            }
+                            $temp[$accountType->id] = $tempData;
+                        }
+                        
+                        $incomeChartAccounts[$type->name] = $temp;
+                    }
+                    // Invoice Dropdown
+                    foreach ($incomeChartAccounts as $typeName => $subtypes) {
+                        $html .= '<optgroup label="' . $typeName . '">';
+                        
+                        foreach ($subtypes as $subtypeId => $subtypeData) {
+                            $html .= '<option disabled style="color: #000; font-weight: bold;">' . $subtypeData['account_name'] . '</option>';
+                            
+                            foreach ($subtypeData['chart_of_accounts'] as $chartOfAccount) {
+                                $html .= '<option value="' . $chartOfAccount['id'] . '">&nbsp;&nbsp;&nbsp;' . $chartOfAccount['account_name'] . '</option>';
+                                
+                                foreach ($subtypeData['subAccounts'] as $subAccount) {
+                                    if ($chartOfAccount['id'] == $subAccount['parent_account']) {
+                                        $html .= '<option value="' . $subAccount['id'] . '" class="ms-5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- ' . $subAccount['account_name'] . '</option>';
+                                    }
+                                }
+                            }
+                        }
+
+                        $html .= '</optgroup>';
+                    }
+
+                    $html .= '</select>
+                        </td>';
+
+
+                    $expenseTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())
+                        ->whereIn('name', ['Assets', 'Liabilities', 'Expenses', 'Costs of Goods Sold'])
+                        ->get();
+                    $expenseChartAccounts = [];
+                    foreach ($expenseTypes as $type) {
+                        $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                            ->get();
+
+                        $temp = [];
+
+                        foreach ($accountTypes as $accountType) {
+                            $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                                ->where('created_by', '=', \Auth::user()->creatorId())
+                                ->get();
+
+                            $expenseSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->get();
+
+                            $tempData = [
+                                'account_name'      => $accountType->name,
+                                'chart_of_accounts' => [],
+                                'subAccounts'       => [],
+                            ];
+                            foreach ($chartOfAccounts as $chartOfAccount) {
+                                $tempData['chart_of_accounts'][] = [
+                                    'id'             => $chartOfAccount->id,
+                                    'account_number' => $chartOfAccount->account_number,
+                                    'account_name'   => $chartOfAccount->name,
+                                ];
+                            }
+
+                            foreach ($expenseSubAccounts as $chartOfAccount) {
+                                $tempData['subAccounts'][] = [
+                                    'id'             => $chartOfAccount->id,
+                                    'account_number' => $chartOfAccount->account_number,
+                                    'account_name'   => $chartOfAccount->name,
+                                    'parent'         => $chartOfAccount->parent,
+                                    'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                                ];
+                            }
+                            $temp[$accountType->id] = $tempData;
+                        }
+
+                        $expenseChartAccounts[$type->name] = $temp;
+                    }
+                    // Expense Dropdown
+                    $html .= '<td>
+                        <select name="expense_chartaccount_id" class="form-control expense_chartaccount_id" id="expense_chartaccount_id" required>
+                            <option value="">' . __('Select Chart of Account') . '</option>';
+
+                    foreach ($expenseChartAccounts as $typeName => $subtypes) {
+                        $html .= '<optgroup label="' . $typeName . '">';
+                        
+                        foreach ($subtypes as $subtypeId => $subtypeData) {
+                            $html .= '<option disabled style="color: #000; font-weight: bold;">' . $subtypeData['account_name'] . '</option>';
+                            
+                            foreach ($subtypeData['chart_of_accounts'] as $chartOfAccount) {
+                                $html .= '<option value="' . $chartOfAccount['id'] . '">&nbsp;&nbsp;&nbsp;' . $chartOfAccount['account_name'] . '</option>';
+                                
+                                foreach ($subtypeData['subAccounts'] as $subAccount) {
+                                    if ($chartOfAccount['id'] == $subAccount['parent_account']) {
+                                        $html .= '<option value="' . $subAccount['id'] . '" class="ms-5">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;- ' . $subAccount['account_name'] . '</option>';
+                                    }
+                                }
+                            }
+                        }
+
+                        $html .= '</optgroup>';
+                    }
+
+                    $html .= '</select>
+                        </td>';
+
+                    $html .= '<td>
+                                <select name="tax_id" class="form-control tax_id" id="tax_id" required>;';
+                    $taxes   = Tax::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                    foreach ($taxes as $key => $tax) {
+                        $html .= ' <option value="' . $key . '">' . $tax . '</option>';
+                    }
+                    $html .= '  </select>
+                            </td>';
+
+                    $html .= '<td>
+                                <select name="category_id" class="form-control category_id" id="category_id" required>;';
+                    $categories = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'product & service')->get()->pluck('name', 'id');
+                    foreach ($categories as $key => $category) {
+                        $html .= ' <option value="' . $key . '">' . $category . '</option>';
+                    }
+                    $html .= '  </select>
+                            </td>';
+
+                    $html .= '<td>
+                                <select name="unit_id" class="form-control unit_id" id="unit_id" required>;';
+                    $units  = ProductServiceUnit::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                    foreach ($units as $key => $unit) {
+                        $html .= ' <option value="' . $key . '">' . $unit . '</option>';
+                    }
+                    $html .= '  </select>
+                            </td>';
+
+                    $html .= '</tr>';
+
+                    $temp_data[] = $row;
+
+                }
+                $_SESSION['file_data'] = $temp_data;
+            } else {
+                $error = 'Only <b>.csv</b> file allowed';
+            }
+        } else {
+
+            $error = 'Please Select CSV File';
+        }
+        $output = array(
+            'error' => $error,
+            'output' => $html,
+        );
+
+        return json_encode($output);
+
+
+    }
+
+    public function fileImportModal()
+    {
+        return view('productservice.import_modal');
+    }
+
     public function productserviceImportdata(Request $request)
     {
         session_start();
@@ -342,7 +779,6 @@ class ProductServiceController extends Controller
         $flag = 0;
         $html .= '<table class="table table-bordered"><tr>';
         try {
-            $request = $request->data;
             $file_data = $_SESSION['file_data'];
 
             unset($_SESSION['file_data']);
@@ -357,14 +793,29 @@ class ProductServiceController extends Controller
         foreach ($file_data as $key => $row) {
 
             try {
+                $sale_chartaccount = ChartOfAccount::where('created_by', \Auth::user()->creatorId())->Where('id', $request->sale_chartaccount_id[$key])->first();
+                $expense_chartaccount = ChartOfAccount::where('created_by', \Auth::user()->creatorId())->Where('id', $request->expense_chartaccount_id[$key])->first();
+                $tax = Tax::where('created_by', \Auth::user()->creatorId())->Where('id', $request->tax_id[$key])->first();
+                $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->Where('id', $request->category_id[$key])->first();
+                $unit = ProductServiceUnit::where('created_by', \Auth::user()->creatorId())->Where('id', $request->unit_id[$key])->first();
+                
+                if (!$sale_chartaccount || !$expense_chartaccount || !$category || !$unit ) {
+                    throw new \Exception();
+                }
+
                 $productService = new ProductService();
                 $productService->name = $row[$request['name']];
                 $productService->sku = $row[$request['sku']];
                 $productService->sale_price = $row[$request['sale_price']];
                 $productService->purchase_price = $row[$request['purchase_price']];
-                $productService->quantity = (isset($row[$request['type']]) && $row[$request['type']] == 'product') ? $row[$request['quantity']] : 0;
-                $productService->type = $row[$request['type']];
+                $productService->quantity = (isset($request->type[$key]) && $request->type[$key] == 'product') ? $row[$request['quantity']] : 0;
                 $productService->description = $row[$request['description']];
+                $productService->type = $request->type[$key];
+                $productService->sale_chartaccount_id = optional($sale_chartaccount)->id;
+                $productService->expense_chartaccount_id = optional($expense_chartaccount)->id;
+                $productService->tax_id = optional($tax)->id;
+                $productService->category_id = optional($category)->id;
+                $productService->unit_id = optional($unit)->id;
                 $productService->created_by = \Auth::user()->creatorId();
                 $productService->save();
 
@@ -377,12 +828,12 @@ class ProductServiceController extends Controller
                 $html .= '<td>' . (isset($row[$request['sale_price']]) ? $row[$request['sale_price']] : '-') . '</td>';
                 $html .= '<td>' . (isset($row[$request['purchase_price']]) ? $row[$request['purchase_price']] : '-') . '</td>';
                 $html .= '<td>' . (isset($row[$request['quantity']]) ? $row[$request['quantity']] : '-') . '</td>';
-                $html .= '<td>' . (isset($row[$request['tax_id']]) ? $row[$request['tax_id']] : '-') . '</td>';
-                $html .= '<td>' . (isset($row[$request['category_id']]) ? $row[$request['category_id']] : '-') . '</td>';
-                $html .= '<td>' . (isset($row[$request['unit_id']]) ? $row[$request['unit_id']] : '-') . '</td>';
-                $html .= '<td>' . (isset($row[$request['type']]) ? $row[$request['type']] : '-') . '</td>';
                 $html .= '<td>' . (isset($row[$request['description']]) ? $row[$request['description']] : '-') . '</td>';
-
+                $html .= '<td>' . (isset($request->type[$key]) ? $request->type[$key] : '-') . '</td>';
+                $html .= '<td>' . (isset($request->expense_chartaccount_id[$key]) ? $request->expense_chartaccount_id[$key] : '-') . '</td>';
+                $html .= '<td>' . (isset($request->tax_id[$key]) ? $request->tax_id[$key] : '-') . '</td>';
+                $html .= '<td>' . (isset($request->category_id[$key]) ? $request->category_id[$key] : '-') . '</td>';
+                $html .= '<td>' . (isset($request->unit_id[$key]) ? $request->unit_id[$key] : '-') . '</td>';
                 $html .= '</tr>';
             }
         }
@@ -585,7 +1036,8 @@ class ProductServiceController extends Controller
 
                             <td class="subtotal">' . Auth::user()->priceFormat($subtotal) . '</td>
 
-                            <td class="action-btn mt-3">
+                            <td class="mt-3">
+                                <div class="action-btn">
                                  <a href="#" class="btn btn-sm bg-danger bs-pass-para-pos" data-confirm="' . __("Are You Sure?") . '" data-text="' . __("This action can not be undone. Do you want to continue?") . '" data-confirm-yes=' . $model_delete_id . ' title="' . __('Delete') . '}" data-id="' . $id . '" title="' . __('Delete') . '"   >
                                    <span class=""><i class="ti ti-trash text-white"></i></span>
                                  </a>
@@ -595,7 +1047,7 @@ class ProductServiceController extends Controller
                                       <input type="hidden" name="session_key" value="' . $session_key . '">
                                       <input type="hidden" name="id" value="' . $id . '">
                                  </form>
-
+                                </div>
                             </td>
                         </td>';
 
@@ -832,7 +1284,7 @@ class ProductServiceController extends Controller
                 session()->put($session_key, $cart);
             }
 
-            return redirect()->back()->with('error', __('Product removed from cart!'));
+            return redirect()->back()->with('success', __('Product removed from cart!'));
         } else {
             return redirect()->back()->with('error', __('This Product is not found!'));
         }

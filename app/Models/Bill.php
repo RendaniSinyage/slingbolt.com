@@ -45,14 +45,6 @@ class Bill extends Model
         return $this->hasOne('App\Models\Tax', 'id', 'tax_id');
     }
 
-
-    public function accounts()
-    {
-        return $this->hasMany('App\Models\BillAccount', 'ref_id', 'id');
-    }
-
-
-
     public function payments()
     {
         return $this->hasMany('App\Models\BillPayment', 'bill_id', 'id');
@@ -67,14 +59,8 @@ class Bill extends Model
         {
             $subTotal += ($product->price * $product->quantity);
         }
-
-        $accountTotal = 0;
-        foreach ($this->accounts as $account)
-        {
-            $accountTotal += $account->price;
-        }
-
-        return $subTotal + $accountTotal;
+        
+        return $subTotal;
     }
 
     public function items()
@@ -114,17 +100,6 @@ class Bill extends Model
         return $totalDiscount;
     }
 
-    public function getAccountTotal()
-    {
-        $accountTotal = 0;
-        foreach ($this->accounts as $account)
-        {
-            $accountTotal += $account->price;
-        }
-
-        return $accountTotal;
-    }
-
     public function getTotal()
     {
         return ($this->getSubTotal() - $this->getTotalDiscount()) + $this->getTotalTax();
@@ -153,7 +128,12 @@ class Bill extends Model
 
     public function billTotalDebitNote()
     {
-        return $this->debitNote->sum('amount');
+        return $this->hasMany(DebitNote::class, 'bill', 'id')->sum('amount');
+    }
+
+    public function billTotalCustomerDebitNote()
+    {
+        return $this->hasMany(CustomerDebitNotes::class, 'bill', 'id')->sum('amount');
     }
 
     public function lastPayments()

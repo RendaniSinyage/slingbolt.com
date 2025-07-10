@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -322,6 +323,13 @@ class CinetPayController extends Controller
     {
         $invoice_id = decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','cinetpay')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Cinetpay.'));
+        }
+
         $getAmount = $request->amount;
 
         if (Auth::check()) {
@@ -444,11 +452,12 @@ class CinetPayController extends Controller
 
             if ($invoice) {
                 try {
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','cinetpay')->first();
                     $invoice_payment                 = new InvoicePayment();
                     $invoice_payment->invoice_id     = $invoice->id;
                     $invoice_payment->date           = Date('Y-m-d');
                     $invoice_payment->amount         = $get_amount;
-                    $invoice_payment->account_id     = 0;
+                    $invoice_payment->account_id     = $account->id;
                     $invoice_payment->payment_method = 0;
                     $invoice_payment->order_id       = $orderID;
                     $invoice_payment->payment_type   = 'CinetPay';
@@ -468,8 +477,12 @@ class CinetPayController extends Controller
                         $invoice->save();
                     }
 
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'cinetpay');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

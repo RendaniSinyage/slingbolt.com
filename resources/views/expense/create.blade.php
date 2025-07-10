@@ -107,7 +107,7 @@
                         taxes += '-';
                     } else {
                         for (var i = 0; i < item.taxes.length; i++) {
-                            taxes += '<span class="badge bg-primary mt-1 mr-2">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
+                            taxes += '<span class="badge bg-primary p-2 px-3 rounded mt-1 me-1">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
                             tax.push(item.taxes[i].id);
                             totalItemTaxRate += parseFloat(item.taxes[i].rate);
                         }
@@ -128,20 +128,6 @@
                     for (var i = 0; i < inputs.length; i++) {
                         subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
                     }
-
-
-                    var accountinputs = $(".accountamount");
-                    var accountSubTotal = 0;
-                    for (var i = 0; i < accountinputs.length; i++)
-                    {
-                        var currentInputValue = parseFloat(accountinputs[i].innerHTML);
-                        if (!isNaN(currentInputValue))
-                        {
-                            accountSubTotal += currentInputValue;
-                        }
-                    }
-
-
 
                     var totalItemPrice = 0;
                     var priceInput = $('.price');
@@ -169,7 +155,7 @@
                     }
 
 
-                    $('.subTotal').html((totalItemPrice+accountSubTotal).toFixed(2));
+                    $('.subTotal').html((totalItemPrice).toFixed(2));
                     $('.totalTax').html(totalItemTaxPrice.toFixed(2));
                     $('.totalAmount').html((parseFloat(totalItemPrice) - parseFloat(totalItemDiscountPrice) + parseFloat(totalItemTaxPrice)).toFixed(2));
 
@@ -220,22 +206,6 @@
                 totalItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
             }
 
-
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-
-            for (var j = 0; j < accountInput.length; j++) {
-                if (typeof accountInput[j].value != 'undefined') {
-                    var accountInputPrice = parseFloat(accountInput[j].value);
-
-                    if (isNaN(accountInputPrice)) {
-                        totalAccount = 0;
-                    } else {
-                        totalAccount += accountInputPrice;
-                    }
-                }
-            }
-
             var inputs = $(".amount");
             var subTotal = 0;
             for (var i = 0; i < inputs.length; i++) {
@@ -243,14 +213,14 @@
             }
 
 
-            var sumAmount = totalItemPrice + totalAccount;
+            var sumAmount = totalItemPrice;
 
             $('.subTotal').html((sumAmount).toFixed(2));
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-            $('.totalAmount').html((parseFloat(subTotal)+totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
 
            //get hidden value of totalAmount
-            var totalAmount= (parseFloat(subTotal)+totalAccount);
+            var totalAmount= (parseFloat(subTotal));
             $('.totalAmount').val(totalAmount.toFixed(2));
 
 
@@ -292,22 +262,6 @@
                 totalItemPrice += (parseFloat(priceInput[j].value) * parseFloat(inputs_quantity[j].value));
             }
 
-
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-
-            for (var j = 0; j < accountInput.length; j++) {
-                if (typeof accountInput[j].value != 'undefined') {
-                    var accountInputPrice = parseFloat(accountInput[j].value);
-
-                    if (isNaN(accountInputPrice)) {
-                        totalAccount = 0;
-                    } else {
-                        totalAccount += accountInputPrice;
-                    }
-                }
-            }
-
             var inputs = $(".amount");
             var subTotal = 0;
             for (var i = 0; i < inputs.length; i++) {
@@ -315,12 +269,12 @@
             }
 
 
-            $('.subTotal').html((totalItemPrice+totalAccount).toFixed(2));
+            $('.subTotal').html((totalItemPrice).toFixed(2));
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
-            $('.totalAmount').html((parseFloat(subTotal)+totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
 
             //get hidden value of totalAmount
-            var totalAmount= (parseFloat(subTotal)+totalAccount);
+            var totalAmount= (parseFloat(subTotal));
             $('.totalAmount').val(totalAmount.toFixed(2));
 
 
@@ -378,93 +332,16 @@
                 }
             }
 
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-
-            for (var j = 0; j < accountInput.length; j++) {
-                if (typeof accountInput[j].value != 'undefined') {
-                    var accountInputPrice = parseFloat(accountInput[j].value);
-
-                    if (isNaN(accountInputPrice)) {
-                        totalAccount = 0;
-                    } else {
-                        totalAccount += accountInputPrice;
-                    }
-                }
-            }
-
-
-            $('.subTotal').html((totalItemPrice+totalAccount).toFixed(2));
+            $('.subTotal').html((totalItemPrice).toFixed(2));
 
             $('.totalTax').html(totalItemTaxPrice.toFixed(2));
 
-            $('.totalAmount').html((parseFloat(subTotal)+totalAccount).toFixed(2));
+            $('.totalAmount').html((parseFloat(subTotal)).toFixed(2));
             $('.totalDiscount').html(totalItemDiscountPrice.toFixed(2));
 
 
             //get hidden value of totalAmount
-            var totalAmount= (parseFloat(subTotal)+totalAccount);
-            $('.totalAmount').val(totalAmount.toFixed(2));
-
-
-        })
-
-        $(document).on('keyup change', '.accountAmount', function () {
-
-            var el1 = $(this).parent().parent().parent().parent();
-            var el = $(this).parent().parent().parent().parent().parent();
-
-            var quantityDiv = $(el.find('.quantity'));
-            var priceDiv = $(el.find('.price'));
-            var discountDiv = $(el.find('.discount'));
-
-            var itemSubTotal=0;
-            for (var p = 0; p < priceDiv.length; p++) {
-                var quantity=quantityDiv[p].value;
-                var price=priceDiv[p].value;
-                var discount=discountDiv[p].value;
-                if(discount.length <= 0)
-                {
-                    discount = 0 ;
-                }
-                itemSubTotal += (quantity*price) - (discount);
-            }
-
-            var totalItemTaxPrice = 0;
-            var itemTaxPriceInput = $('.itemTaxPrice');
-
-            for (var j = 0; j < itemTaxPriceInput.length; j++) {
-                var parsedValue = parseFloat(itemTaxPriceInput[j].value);
-
-                if (!isNaN(parsedValue)) {
-                    totalItemTaxPrice += parsedValue;
-                }
-            }
-
-
-            var amount = $(this).val();
-            el1.find('.accountamount').html(amount);
-            var totalAccount = 0;
-            var accountInput = $('.accountAmount');
-            for (var j = 0; j < accountInput.length; j++) {
-                totalAccount += (parseFloat(accountInput[j].value) );
-            }
-
-
-            var inputs = $(".accountamount");
-            var subTotal = 0;
-            for (var i = 0; i < inputs.length; i++) {
-
-                subTotal = parseFloat(subTotal) + parseFloat($(inputs[i]).html());
-            }
-
-
-            $('.subTotal').text((totalAccount+itemSubTotal).toFixed(2));
-            $('.totalAmount').text((parseFloat((subTotal + itemSubTotal) + (totalItemTaxPrice))).toFixed(2));
-
-
-            //get hidden value of totalAmount
-            var totalAmount= (parseFloat((subTotal + itemSubTotal) + (totalItemTaxPrice)));
+            var totalAmount= (parseFloat(subTotal));
             $('.totalAmount').val(totalAmount.toFixed(2));
 
 
@@ -835,30 +712,8 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td  class="form-group">
-                                    <select name="chart_account_id" class="form-control" >
-                                        @foreach ($chartAccounts as $key => $chartAccount)
-                                            <option value="{{ $key }}" class="subAccount">{{ $chartAccount}}</option>
-                                            @foreach ($subAccounts as $subAccount)
-                                                @if ($key == $subAccount['account'])
-                                                    <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp; {{ $subAccount['name'] }}</option>
-                                                @endif
-                                            @endforeach
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="form-group">
-                                    <div class="input-group ">
-                                        {{ Form::number('amount','', array('class' => 'form-control accountAmount','placeholder'=>__('Amount'))) }}
-                                        <span class="input-group-text bg-transparent">{{\Auth::user()->currencySymbol()}}</span>
-                                    </div>
-                                </td>
                                 <td colspan="2" class="form-group">
                                     {{ Form::textarea('description', null, ['class'=>'form-control pro_description','rows'=>'1','placeholder'=>__('Description')]) }}
-                                </td>
-                                <td></td>
-                                <td class="text-end accountamount">
-                                    0.00
                                 </td>
                             </tr>
 

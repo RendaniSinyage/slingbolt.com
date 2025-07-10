@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
 use App\Models\ChartOfAccount;
+use App\Models\ChartOfAccountSubType;
+use App\Models\ChartOfAccountType;
 use App\Models\JournalEntry;
 use App\Models\JournalItem;
-use App\Models\TransactionLines;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 
@@ -27,20 +29,58 @@ class JournalEntryController extends Controller
     public function create()
     {
         if (\Auth::user()->can('create journal entry')) {
-            $chartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code,  chart_of_accounts.parent'))
-                ->where('parent', '=', 0)
-                ->where('created_by', \Auth::user()->creatorId())->get()
-                ->toarray();
+            $accountTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())->get();
 
-            $subAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name , chart_of_accounts.id, chart_of_accounts.code , chart_of_account_parents.account'));
-            $subAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-            $subAccounts->where('chart_of_accounts.parent', '!=', 0);
-            $subAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-            $subAccounts = $subAccounts->get()->toArray();
+            $chartAccounts = [];
+
+            foreach ($accountTypes as $type) {
+                $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    ->get();
+
+                $temp = [];
+
+                foreach ($accountTypes as $accountType) {
+                    $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+
+                    $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->get();
+
+                    $tempData = [
+                        'account_name'      => $accountType->name,
+                        'chart_of_accounts' => [],
+                        'subAccounts'       => [],
+                    ];
+                    foreach ($chartOfAccounts as $chartOfAccount) {
+                        $tempData['chart_of_accounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                        ];
+                    }
+
+                    foreach ($incomeSubAccounts as $chartOfAccount) {
+                        $tempData['subAccounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                            'parent'         => $chartOfAccount->parent,
+                            'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                        ];
+                    }
+                    $temp[$accountType->id] = $tempData;
+                }
+
+                $chartAccounts[$type->name] = $temp;
+            }
 
             $journalId = $this->journalNumber();
 
-            return view('journalEntry.create', compact('chartAccounts', 'subAccounts', 'journalId'));
+            return view('journalEntry.create', compact('chartAccounts' , 'journalId'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -113,26 +153,52 @@ class JournalEntryController extends Controller
                 }
                 if (isset($accounts[$i]['debit'])) {
                     $data = [
-                        'account_id' => $accounts[$i]['account'],
-                        'transaction_type' => 'Debit',
+                        'account_id'         => $accounts[$i]['account'],
+                        'transaction_type'   => 'debit',
                         'transaction_amount' => $accounts[$i]['debit'],
-                        'reference' => 'Journal',
-                        'reference_id' => $journal->id,
-                        'reference_sub_id' => $journalItem->id,
-                        'date' => $journal->date,
+                        'reference'          => 'Journal Entry',
+                        'reference_id'       => $journal->id,
+                        'reference_sub_id'   => $journalItem->id,
+                        'date'               => $journal->date,
                     ];
+                    Utility::addTransactionLines($data);
+
+                    $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
+                    $data    = [
+                        'account_id'         => !empty($account) ? $account->id : 0,
+                        'transaction_type'   => 'credit',
+                        'transaction_amount' => $accounts[$i]['debit'],
+                        'reference'          => 'Journal Entry',
+                        'reference_id'       => $journal->id,
+                        'reference_sub_id'   => $journalItem->id,
+                        'date'               => $journal->date,
+                    ];
+                    Utility::addTransactionLines($data);
+
                 } else {
                     $data = [
-                        'account_id' => $accounts[$i]['account'],
-                        'transaction_type' => 'Credit',
+                        'account_id'         => $accounts[$i]['account'],
+                        'transaction_type'   => 'credit',
                         'transaction_amount' => $accounts[$i]['credit'],
-                        'reference' => 'Journal',
-                        'reference_id' => $journal->id,
-                        'reference_sub_id' => $journalItem->id,
-                        'date' => $journal->date,
+                        'reference'          => 'Journal Entry',
+                        'reference_id'       => $journal->id,
+                        'reference_sub_id'   => $journalItem->id,
+                        'date'               => $journal->date,
                     ];
+                    Utility::addTransactionLines($data);
+
+                    $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+                    $data    = [
+                        'account_id'         => !empty($account) ? $account->id : 0,
+                        'transaction_type'   => 'debit',
+                        'transaction_amount' => $accounts[$i]['credit'],
+                        'reference'          => 'Journal Entry',
+                        'reference_id'       => $journal->id,
+                        'reference_sub_id'   => $journalItem->id,
+                        'date'               => $journal->date,
+                    ];
+                    Utility::addTransactionLines($data);
                 }
-                Utility::addTransactionLines($data , 'create');
             }
 
             return redirect()->route('journal-entry.index')->with('success', __('Journal entry successfully created.'));
@@ -160,18 +226,56 @@ class JournalEntryController extends Controller
     public function edit(JournalEntry $journalEntry)
     {
         if (\Auth::user()->can('edit journal entry')) {
-            $chartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name,chart_of_accounts.id, chart_of_accounts.code,  chart_of_accounts.parent'))
-                ->where('parent', '=', 0)
-                ->where('created_by', \Auth::user()->creatorId())->get()
-                ->toarray();
+            $accountTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())->get();
 
-            $subAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name , chart_of_accounts.id, chart_of_accounts.code , chart_of_account_parents.account'));
-            $subAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-            $subAccounts->where('chart_of_accounts.parent', '!=', 0);
-            $subAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-            $subAccounts = $subAccounts->get()->toArray();
+            $chartAccounts = [];
 
-            return view('journalEntry.edit', compact('chartAccounts', 'journalEntry' , 'subAccounts'));
+            foreach ($accountTypes as $type) {
+                $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    ->get();
+
+                $temp = [];
+
+                foreach ($accountTypes as $accountType) {
+                    $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+
+                    $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->get();
+
+                    $tempData = [
+                        'account_name'      => $accountType->name,
+                        'chart_of_accounts' => [],
+                        'subAccounts'       => [],
+                    ];
+                    foreach ($chartOfAccounts as $chartOfAccount) {
+                        $tempData['chart_of_accounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                        ];
+                    }
+
+                    foreach ($incomeSubAccounts as $chartOfAccount) {
+                        $tempData['subAccounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                            'parent'         => $chartOfAccount->parent,
+                            'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                        ];
+                    }
+                    $temp[$accountType->id] = $tempData;
+                }
+
+                $chartAccounts[$type->name] = $temp;
+            }
+
+            return view('journalEntry.edit', compact('chartAccounts', 'journalEntry'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -194,7 +298,6 @@ class JournalEntryController extends Controller
                 }
 
                 $accounts = $request->accounts;
-
                 $totalDebit = 0;
                 $totalCredit = 0;
                 for ($i = 0; $i < count($accounts); $i++) {
@@ -213,6 +316,8 @@ class JournalEntryController extends Controller
                 $journalEntry->description = $request->description;
                 $journalEntry->created_by = \Auth::user()->creatorId();
                 $journalEntry->save();
+
+                AddTransactionLine::where('reference_id',$journalEntry->id)->where('reference', 'Journal Entry')->delete();
 
                 for ($i = 0; $i < count($accounts); $i++) {
                     $journalItem = JournalItem::find($accounts[$i]['id']);
@@ -247,29 +352,53 @@ class JournalEntryController extends Controller
                             }
                         }
                     }
-
                     if (isset($accounts[$i]['debit'])) {
                         $data = [
-                            'account_id' => $accounts[$i]['account'],
-                            'transaction_type' => 'Debit',
+                            'account_id'         => $accounts[$i]['account'],
+                            'transaction_type'   => 'debit',
                             'transaction_amount' => $accounts[$i]['debit'],
-                            'reference' => 'Journal',
-                            'reference_id' => $journalEntry->id,
-                            'reference_sub_id' => $journalItem->id,
-                            'date' => $journalEntry->date,
+                            'reference'          => 'Journal Entry',
+                            'reference_id'       => $journalEntry->id,
+                            'reference_sub_id'   => $journalItem->id,
+                            'date'               => $journalEntry->date,
                         ];
+                        Utility::addTransactionLines($data);
+    
+                        $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
+                        $data    = [
+                            'account_id'         => !empty($account) ? $account->id : 0,
+                            'transaction_type'   => 'credit',
+                            'transaction_amount' => $accounts[$i]['debit'],
+                            'reference'          => 'Journal Entry',
+                            'reference_id'       => $journalEntry->id,
+                            'reference_sub_id'   => $journalItem->id,
+                            'date'               => $journalEntry->date,
+                        ];
+                        Utility::addTransactionLines($data);
                     } else {
                         $data = [
-                            'account_id' => $accounts[$i]['account'],
-                            'transaction_type' => 'Credit',
+                            'account_id'         => $accounts[$i]['account'],
+                            'transaction_type'   => 'credit',
                             'transaction_amount' => $accounts[$i]['credit'],
-                            'reference' => 'Journal',
-                            'reference_id' => $journalEntry->id,
-                            'reference_sub_id' => $journalItem->id,
-                            'date' => $journalEntry->date,
+                            'reference'          => 'Journal Entry',
+                            'reference_id'       => $journalEntry->id,
+                            'reference_sub_id'   => $journalItem->id,
+                            'date'               => $journalEntry->date,
                         ];
+                        Utility::addTransactionLines($data);
+    
+                        $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+                        $data    = [
+                            'account_id'         => !empty($account) ? $account->id : 0,
+                            'transaction_type'   => 'debit',
+                            'transaction_amount' => $accounts[$i]['credit'],
+                            'reference'          => 'Journal Entry',
+                            'reference_id'       => $journalEntry->id,
+                            'reference_sub_id'   => $journalItem->id,
+                            'date'               => $journalEntry->date,
+                        ];
+                        Utility::addTransactionLines($data);
                     }
-                    Utility::addTransactionLines($data , 'edit');
                 }
 
                 return redirect()->route('journal-entry.index')->with('success', __('Journal entry successfully updated.'));
@@ -290,7 +419,7 @@ class JournalEntryController extends Controller
 
                 JournalItem::where('journal', '=', $journalEntry->id)->delete();
 
-                TransactionLines::where('reference_id', $journalEntry->id)->where('reference', 'Journal')->delete();
+                AddTransactionLine::where('reference_id',$journalEntry->id)->where('reference', 'Journal Entry')->delete();
 
                 return redirect()->route('journal-entry.index')->with('success', __('Journal entry successfully deleted.'));
             } else {
@@ -303,7 +432,7 @@ class JournalEntryController extends Controller
 
     public function journalNumber()
     {
-        $latest = JournalEntry::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = JournalEntry::where('created_by', '=', \Auth::user()->creatorId())->latest('journal_id')->first();
         if (!$latest) {
             return 1;
         }

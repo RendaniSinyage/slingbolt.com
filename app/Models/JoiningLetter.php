@@ -48,11 +48,6 @@ class JoiningLetter extends Model
         {
             $arrValue[$key] = $val;
         }
-        $settings = Utility::settings();
-
-        $arrValue['app_name']     = env('APP_NAME');
-
-
         return str_replace($arrVariable, array_values($arrValue), $content);
     }
     public static function defaultJoiningLetter()

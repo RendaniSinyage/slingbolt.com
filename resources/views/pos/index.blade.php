@@ -167,6 +167,9 @@
                                 </thead>
                                 <tbody id="tbody">
                                     @if (session($lastsegment) && !empty(session($lastsegment)) && count(session($lastsegment)) > 0)
+                                        {{-- @php
+                                            $discount = session($lastsegment . '-discount') ?? 0;
+                                        @endphp --}}
                                         @foreach (session($lastsegment) as $id => $details)
                                             @php
                                                 $product = \App\Models\ProductService::find($details['id']);
@@ -175,8 +178,8 @@
                                                         ? $product->pro_image
                                                         : 'uploads/pro_image/';
                                                 $total += $details['subtotal'];
-                                                $netPrice += $details['netPrice'];
-                                                $discount += $details['discount'];
+                                                // $netPrice += $details['netPrice'];
+                                                $discount += $details['discount'] ?? 0;
                                             @endphp
                                             <tr data-product-id="{{ $id }}"
                                                 id="product-id-{{ $id }}">
@@ -272,7 +275,7 @@
                                         <div class="d-flex align-items-center justify-content-sm-end mb-3">
                                             <h6 class="mb-0 text-dark">{{ __('Total') }} :</h6>
                                             <h6 class="mb-0 text-dark totalamount">
-                                                {{ Auth::user()->priceFormat($netPrice) }}</h6>
+                                                {{ Auth::user()->priceFormat($total) }}</h6>
                                         </div>
                                         <div class="tab-content btn-empty d-flex justify-content-sm-end">
                                             <a href="#" class="btn btn-danger bs-pass-para-pos rounded m-0"

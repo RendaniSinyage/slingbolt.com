@@ -41,8 +41,11 @@ class TransferController extends Controller
         if(\Auth::user()->can('create transfer'))
         {
             $departments = Department::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $departments->prepend('Select Department', '');
             $branches    = Branch::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $branches->prepend('Select Branch', '');
             $employees   = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $employees->prepend('Select Employee', '');
 
             return view('transfer.create', compact('employees', 'departments', 'branches'));
         }

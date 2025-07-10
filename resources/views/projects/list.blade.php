@@ -9,7 +9,11 @@
                         <th>{{__('Status')}}</th>
                         <th>{{__('Users')}}</th>
                         <th>{{__('Completion')}}</th>
-                        <th class="text-end">{{__('Action')}}</th>
+                        @if (Gate::check('create project') ||
+                            Gate::check('edit project') ||
+                            Gate::check('delete project'))
+                            <th class="text-end">{{__('Action')}}</th>
+                        @endif
                     </tr>
                     </thead>
                     <tbody>

@@ -62,4 +62,16 @@ class CustomField extends Model
             ]
         )->join('custom_fields', 'custom_field_values.field_id', '=', 'custom_fields.id')->where('custom_fields.module', '=', $module)->where('record_id', '=', $obj->id)->get()->pluck('value', 'id');
     }
+
+    public static function getShowData($obj, $module)
+    {
+        return \DB::table('custom_field_values')->select(
+            [
+                'custom_fields.id',
+                'custom_fields.type',
+                'custom_fields.name',
+                'custom_field_values.value',
+            ]
+        )->join('custom_fields', 'custom_field_values.field_id', '=', 'custom_fields.id')->where('custom_fields.module', '=', $module)->where('record_id', '=', $obj->id)->get();
+    }
 }

@@ -271,7 +271,7 @@
                 </div>
                 <div class="tab-pane fade" id="crm" role="tabpanel" aria-labelledby="pills-profile-tab">
                     @php
-                        $modules=['crm dashboard','lead','pipeline','lead stage','source','label','lead email','lead call','deal','stage','task','form builder','form response', 'form field', 'contract','contract type'];
+                        $modules=['crm dashboard','lead','convert', 'pipeline','lead stage','source','label','lead email','lead call','deal','stage','task','form builder','form response', 'form field', 'contract','contract type'];
                     @endphp
                     <div class="col-md-12">
                         <div class="form-group">
@@ -475,6 +475,14 @@
                                                             <div class="col-md-3 custom-control custom-checkbox">
                                                                 {{Form::checkbox('permissions[]',$key,$role->permission, ['class'=>'form-check-input crm_checkall isscheck_'.str_replace(' ', '', $module),'id' =>'permission'.$key])}}
                                                                 {{Form::label('permission'.$key,'Trial Balance',['class'=>'custom-control-label'])}}<br>
+                                                            </div>
+                                                        @endif
+                                                    @endif
+                                                    @if(in_array($module.' lead to deal',(array) $permissions))
+                                                        @if($key = array_search($module.' lead to deal',$permissions))
+                                                            <div class="col-md-3 custom-control custom-checkbox">
+                                                                {{Form::checkbox('permissions[]',$key,$role->permission, ['class'=>'form-check-input isscheck crm_checkall isscheck_'.str_replace(' ', '', $module),'id' =>'permission'.$key])}}
+                                                                {{Form::label('permission'.$key,'lead to deal',['class'=>'custom-control-label'])}}<br>
                                                             </div>
                                                         @endif
                                                     @endif

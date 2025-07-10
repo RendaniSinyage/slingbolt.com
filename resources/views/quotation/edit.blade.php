@@ -443,7 +443,7 @@
                         <div class="col-md-6">
                             <div class="form-group" id="vender-box">
                                 {{ Form::label('customer_id', __('Customer'),['class'=>'form-label']) }}<x-required></x-required>
-                                {{ Form::text('customer_id', $customer->name, array('class' => 'form-control select','id'=>'vender','required'=>'required', 'readonly' => 'readonly')) }}
+                                {{ Form::text('customer_id', $customer->name ?? '-', array('class' => 'form-control select','id'=>'vender','required'=>'required', 'readonly' => 'readonly')) }}
                             </div>
                             <div id="vender_detail" class="d-none">
                             </div>

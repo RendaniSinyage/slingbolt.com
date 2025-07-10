@@ -134,7 +134,7 @@
                         <div class="crm-sales-card mb-4">
                             <div class="card-header d-flex align-items-center justify-content-between gap-3">
                                 <h4 class="mb-0">{{ $lead_stage->name }}</h4>
-                                <span class="f-w-600">{{ count($leads) }}</span>
+                                <span class="f-w-600 count">{{ count($leads) }}</span>
                             </div>
                             <div class="sales-item-wrp" id="task-list-{{ $lead_stage->id }}"
                                 data-id="{{ $lead_stage->id }}">

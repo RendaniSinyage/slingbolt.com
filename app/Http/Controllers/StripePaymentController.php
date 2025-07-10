@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -257,12 +257,17 @@ class StripePaymentController extends Controller
     public function addPayment(Request $request, $id)
     {
 
-
         $invoice = Invoice::find($id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','stripe')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Stripe.'));
+        }
         $company_payment_setting = Utility::getCompanyPaymentSetting($invoice->created_by);
 
 
-        $settings = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
+        $settings = Utility::settingsById($invoice->created_by);
 
 
 
@@ -301,7 +306,7 @@ class StripePaymentController extends Controller
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $price,
-                            'account_id' => 0,
+                            'account_id' => $account->id,
                             'payment_method' => 0,
                             'order_id' => $orderID,
                             'currency' => $data['currency'],
@@ -321,6 +326,8 @@ class StripePaymentController extends Controller
                         }
                         $invoice->save();
 
+                        Utility::addOnlinePaymentData($payments , $invoice , 'stripe');                        
+
                         $invoicePayment = new Transaction();
                         $invoicePayment->user_id = $invoice->customer_id;
                         $invoicePayment->user_type = 'Customer';
@@ -337,6 +344,8 @@ class StripePaymentController extends Controller
 
                         //for customer balance update
                         Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                        //for bank balance update
+                        Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                         //For Notification
                         $setting = Utility::settingsById($invoice->created_by);

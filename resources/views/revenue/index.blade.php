@@ -125,10 +125,10 @@
                                     <td>
 
                                         @if(!empty($revenue->add_receipt))
-                                            <a  class=" bg-primary me-1 btn btn-sm align-items-center" href="{{ $revenuepath . '/' . $revenue->add_receipt }}" download="">
+                                            <a  class=" bg-primary me-1 btn btn-sm align-items-center" href="{{ $revenuepath . '/' . $revenue->add_receipt }}" download="" data-bs-toggle="tooltip" title="{{__('Download')}}">
                                                 <i class="ti ti-download text-white"></i>
                                             </a>
-                                            <a href="{{ $revenuepath . '/' . $revenue->add_receipt }}"  class=" bg-secondary  btn btn-sm align-items-center" data-bs-toggle="tooltip" title="{{__('Download')}}" target="_blank"><span class="btn-inner--icon"><i class="ti ti-crosshair text-white" ></i></span></a>
+                                            <a href="{{ $revenuepath . '/' . $revenue->add_receipt }}"  class=" bg-secondary  btn btn-sm align-items-center" data-bs-toggle="tooltip" title="{{__('Preview')}}" target="_blank"><span class="btn-inner--icon"><i class="ti ti-crosshair text-white" ></i></span></a>
                                         @else
                                             -
                                         @endif

@@ -154,30 +154,18 @@
                                     @endforeach
 
                                     <tr>
+                                        <td colspan="5"></td>
                                         <td><b>{{__(' Sub Total')}}</b></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['amount'])}}</td>
                                     </tr>
                                     <tr>
+                                        <td colspan="5"></td>
                                         <td><b>{{__('Discount')}}</b></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['discount'])}}</td>
                                     </tr>
                                     <tr class="pos-header">
+                                        <td colspan="5"></td>
                                         <td><b>{{__('Total')}}</b></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
-                                        <td></td>
                                         <td>{{\Auth::user()->priceFormat($posPayment['discount_amount'])}}</td>
                                     </tr>
                                 </table>

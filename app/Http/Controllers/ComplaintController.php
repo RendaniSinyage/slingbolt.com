@@ -41,7 +41,7 @@ class ComplaintController extends Controller
             {
                 $user             = \Auth::user();
                 $current_employee = Employee::where('user_id', $user->id)->get()->pluck('name', 'id');
-                $employees        = Employee::where('user_id', '!=', $user->id)->get()->pluck('name', 'id');
+                $employees        = Employee::where('created_by', Auth::user()->creatorId())->where('user_id', '!=', $user->id)->get()->pluck('name', 'id');
             }
             else
             {
@@ -49,6 +49,8 @@ class ComplaintController extends Controller
                 $current_employee = Employee::where('user_id', $user->id)->get()->pluck('name', 'id');
                 $employees = Employee::where('created_by', Auth::user()->creatorId())->get()->pluck('name', 'id');
             }
+
+            $employees->prepend(__('Select Employee'), '');
 
 
             return view('complaint.create', compact('employees', 'current_employee'));
@@ -86,6 +88,15 @@ class ComplaintController extends Controller
 
                 return redirect()->back()->with('error', $messages->first());
             }
+
+            if(\Auth::user()->type != 'Employee')
+            {
+                if($request->complaint_from == $request->complaint_against)
+                {
+                    return redirect()->back()->with('error', __('Complaint from and against cannot be the same employee.'));
+                }
+            }
+
             $complaint = new Complaint();
             if(\Auth::user()->type == 'Employee')
             {
@@ -159,6 +170,9 @@ class ComplaintController extends Controller
                 $current_employee = Employee::where('user_id', $user->id)->get()->pluck('name', 'id');
                 $employees = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             }
+
+            $employees->prepend(__('Select Employee'), '');
+            
             if($complaint->created_by == \Auth::user()->creatorId())
             {
                 return view('complaint.edit', compact('complaint', 'employees', 'current_employee'));
@@ -203,6 +217,23 @@ class ComplaintController extends Controller
                     $messages = $validator->getMessageBag();
 
                     return redirect()->back()->with('error', $messages->first());
+                }
+
+                // Add validation to prevent same employee selection
+                if(\Auth::user()->type != 'Employee')
+                {
+                    if($request->complaint_from == $request->complaint_against)
+                    {
+                        return redirect()->back()->with('error', __('Complaint from and against cannot be the same employee.'));
+                    }
+                }
+                else
+                {
+                    $emp = Employee::where('user_id', '=', \Auth::user()->id)->first();
+                    if($emp->id == $request->complaint_against)
+                    {
+                        return redirect()->back()->with('error', __('You cannot file a complaint against yourself.'));
+                    }
                 }
 
                 if(\Auth::user()->type == 'Employee')

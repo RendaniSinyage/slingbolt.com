@@ -36,7 +36,7 @@
                                     <tr>
                                         <td class="Id">
                                             <a href="{{ route('pos.show',\Crypt::encrypt($posPayment->id)) }}" class="btn btn-outline-primary">
-                                                {{ AUth::user()->posNumberFormat($posPayment->id) }}
+                                                {{ AUth::user()->posNumberFormat($posPayment->pos_id) }}
                                             </a>
                                         </td>
                                         

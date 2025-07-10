@@ -1,4 +1,4 @@
-{{ Form::open(['route' => ['projects.tasks.store',$project_id,$stage_id],'id' => 'create_task', 'class'=>'needs-validation', 'novalidate']) }}
+{{ Form::open(['route' => ['projects.tasks.store',$project_id],'id' => 'create_task', 'class'=>'needs-validation', 'novalidate']) }}
 <div class="modal-body">
     {{-- start for ai module--}}
     @php
@@ -14,7 +14,7 @@
     @endif
     {{-- end for ai module--}}
     <div class="row">
-        <div class="col-6">
+        <div class="col-12">
             <div class="form-group">
                 {{ Form::label('name', __('Task name'),['class' => 'form-label']) }}<x-required></x-required>
                 {{ Form::text('name', null, ['class' => 'form-control','required'=>'required', 'placeholder'=>__('Enter Task Name')]) }}
@@ -32,6 +32,13 @@
                 <div class="text-xs mt-1">
                     {{ __('Create milestone here.') }} <a href="{{ route('projects.show', $project_id) }}"><b>{{ __('Create milestone') }}</b></a>
                 </div>
+            </div>
+        </div>
+        <div class="col-6">
+            {{ Form::label('stage_id', __('Stage'),['class'=>'form-label']) }}<x-required></x-required>
+            {{ Form::select('stage_id', $stages,null, array('class' => 'form-control select','required'=>'required')) }}
+            <div class="text-xs mt-1">
+                {{ __('Create task stage.') }} <a href="{{ route('project-task-stages.index') }}"><b>{{ __('Create task stage') }}</b></a>
             </div>
         </div>
         <div class="col-12">

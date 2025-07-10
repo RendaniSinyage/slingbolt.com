@@ -309,7 +309,7 @@
                     <div class="crm-sales-card mb-4">
                         <div class="card-header d-flex align-items-center justify-content-between gap-3">
                             <h4 class="mb-0">{{ $stage->name }}</h4>
-                            <span class="f-w-600">{{ count($deals) }}</span>
+                            <span class="f-w-600 count">{{ count($deals) }}</span>
                         </div>
                         <div class="sales-item-wrp" id="task-list-{{ $stage->id }}" data-id="{{ $stage->id }}">
                             @foreach ($deals as $deal)

@@ -186,7 +186,7 @@
                 {{ __('Tracker') }}
             </a>
         @endif
-        @can('view expense')
+        @can('manage project expense')
             <a href="{{ route('projects.expenses.index', $project->id) }}"
                 class="btn btn-sm bg-light-blue-subtitle text-white me-1">
                 {{ __('Expense') }}
@@ -460,7 +460,7 @@
             </div>
         </div>
         <div class="col-md-6 col-12 mb-4">
-            <div class="card mb-0 activity-scroll">
+            <div class="card mb-0">
                 <div class="card-header">
                     <div class="d-flex align-items-center justify-content-between">
                         <h5>{{ __('Members') }}</h5>
@@ -476,7 +476,7 @@
                         @endcan
                     </div>
                 </div>
-                <div class="card-body">
+                <div class="card-body activity-scroll">
                     <ul class="list-group list-group-flush list" id="project_users">
                     </ul>
                 </div>
@@ -593,12 +593,12 @@
             </div>
         @endcan
         <div class="col-lg-6 col-md-6">
-            <div class="card activity-scroll">
+            <div class="card">
                 <div class="card-header">
                     <h5>{{ __('Attachments') }}</h5>
                     <small>{{ __('Attachment that uploaded in this project') }}</small>
                 </div>
-                <div class="card-body">
+                <div class="card-body activity-scroll">
                     <ul class="list-group list-group-flush">
                         @if ($project->projectAttachments()->count() > 0)
                             @foreach ($project->projectAttachments() as $attachment)

@@ -84,7 +84,7 @@
                                                             {{\Auth::user()->priceFormat($account->credit)}}
                                                         @endif
                                                     </td>
-                                                    <td>
+                                                    {{-- <td>
                                                         <div class="action-btn ms-2">
                                                             {!! Form::open(['method' => 'DELETE', 'route' => array('journal.destroy', $account->id),'id'=>'delete-form-'.$account->id]) !!}
 
@@ -94,7 +94,7 @@
                                                             {!! Form::close() !!}
 
                                                         </div>
-                                                    </td>
+                                                    </td> --}}
                                                 </tr>
 
                                             @endforeach

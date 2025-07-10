@@ -340,7 +340,7 @@
                                                                     @php
                                                                         $itemTaxes = [];
                                                                         $getTaxData = Utility::getTaxData();
-
+                                                                        $itemTaxPrice = 0;
                                                                         if (!empty($iteam->tax)) {
                                                                             foreach (
                                                                                 explode(',', $iteam->tax)
@@ -351,6 +351,7 @@
                                                                                     $iteam->price,
                                                                                     $iteam->quantity,
                                                                                 );
+                                                                                $itemTaxPrice += $taxPrice;
                                                                                 $totalTaxPrice += $taxPrice;
                                                                                 $itemTax['name'] =
                                                                                     $getTaxData[$tax]['name'];
@@ -396,6 +397,9 @@
                                                                     @endforeach
                                                                 </table>
                                                             @else
+                                                                @php
+                                                                    $itemTaxPrice = 0;
+                                                                @endphp
                                                                 -
                                                             @endif
                                                         </td>
@@ -403,7 +407,7 @@
                                                         <td>{{ !empty($iteam->description) ? $iteam->description : '-' }}
                                                         </td>
                                                         <td class="text-end">
-                                                            {{ Utility::priceFormat($settings, $iteam->price * $iteam->quantity - $iteam->discount + $totalTaxPrice) }}
+                                                            {{ Utility::priceFormat($settings, $iteam->price * $iteam->quantity - $iteam->discount + $itemTaxPrice) }}
                                                         </td>
                                                     </tr>
                                                 @endforeach
@@ -418,6 +422,7 @@
                                                         </td>
                                                         <td><b>{{ Utility::priceFormat($settings, $totalTaxPrice) }}</b>
                                                         </td>
+                                                        <td></td>
                                                         <td></td>
                                                     </tr>
                                                     <tr>
@@ -577,12 +582,12 @@
                                             @can('delete invoice product')
                                                 <td>
                                                     @if ($bankPayment->status == 'Pending')
-                                                        <div class="action-btn bg-warning">
+                                                        <div class="action-btn">
                                                             <a href="#"
                                                                 data-url="{{ URL::to('invoice/' . $bankPayment->id . '/action') }}"
                                                                 data-size="lg" data-ajax-popup="true"
                                                                 data-title="{{ __('Payment Status') }}"
-                                                                class="mx-3 btn btn-sm align-items-center"
+                                                                class="mx-3 btn btn-sm align-items-center bg-warning"
                                                                 data-bs-toggle="tooltip"
                                                                 title="{{ __('Payment Status') }}"
                                                                 data-original-title="{{ __('Payment Status') }}">
@@ -590,7 +595,7 @@
                                                             </a>
                                                         </div>
                                                     @endif
-                                                    <div class="action-btn bg-danger ms-2">
+                                                    <div class="action-btn ms-2">
                                                         {!! Form::open([
                                                             'method' => 'post',
                                                             'route' => ['invoice.payment.destroy', $invoice->id, $bankPayment->id],
@@ -598,7 +603,7 @@
                                                         ]) !!}
 
                                                         <a href="#"
-                                                            class="mx-3 btn btn-sm align-items-center bs-pass-para"
+                                                            class="mx-3 btn btn-sm align-items-center bs-pass-para bg-danger"
                                                             data-bs-toggle="tooltip" title="Delete"
                                                             data-original-title="{{ __('Delete') }}"
                                                             data-confirm="{{ __('Are You Sure?') . '|' . __('This action can not be undone. Do you want to continue?') }}"
@@ -2262,14 +2267,14 @@
     <script src="https://js.paystack.co/v1/inline.js"></script>
     <script src="https://api.ravepay.co/flwv3-pug/getpaidx/api/flwpbf-inline.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="https://code.jquery.com/jquery-3.5.1.min.js"
-        integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script>
+    <!-- <script src="https://code.jquery.com/jquery-3.5.1.min.js"
+        integrity="sha256-9/aliU8dGd2tb6OSsuzixeV4y/faTqgFtohetphbbj0=" crossorigin="anonymous"></script> -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery.form/4.3.0/jquery.form.min.js"
         integrity="sha384-qlmct0AOBiA2VPZkMY3+2WqkHtIQ9lSdAsAn5RUJD/3vA5MKDgSGcdmIv4ycVxyn" crossorigin="anonymous">
     </script>
 
     <script src="https://khalti.s3.ap-south-1.amazonaws.com/KPG/dist/2020.12.17.0.0.0/khalti-checkout.iffe.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <!-- <script src="http://ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script> -->
     <script>
 
     var config = {
@@ -2330,13 +2335,20 @@
 
     };
 
-    var checkout = new KhaltiCheckout(config);
-        var btn = document.getElementById("pay_with_khalti");
-        btn.onclick = function () {
-            let price =  $('.amount').val()*100;
-            checkout.show({amount: price});
-
-    }
+    $(document).on('click', '#pay_with_khalti', function () {
+        var account = "{{$khaltiAccount}}";
+        if(account == '')
+        {
+            show_toastr('Error', '{{ __("Bank account not connected with Khalti.") }}', 'error')
+            return;
+        } 
+        var checkout = new KhaltiCheckout(config);
+            var btn = document.getElementById("pay_with_khalti");
+            btn.onclick = function () {
+                let price =  $('.amount').val()*100;
+                checkout.show({amount: price});
+        }
+    });
 </script>
 
     <script type="text/javascript">
@@ -2399,6 +2411,12 @@
 
         @if (isset($company_payment_setting['paystack_public_key']))
             $(document).on("click", "#pay_with_paystack", function() {
+                var account = "{{$paystackAccount}}";
+                if(account == '')
+                {
+                    show_toastr('Error', '{{ __("Bank account not connected with Paystack.") }}', 'error')
+                    return;
+                } 
                 $('#paystack-payment-form').ajaxForm(function(res) {
                     var amount = res.total_price;
                     if (res.flag == 1) {
@@ -2443,6 +2461,12 @@
         @if (isset($company_payment_setting['flutterwave_public_key']))
             //    Flaterwave Payment
             $(document).on("click", "#pay_with_flaterwave", function() {
+                var account = "{{$flutterwaveAccount}}";
+                if(account == '')
+                {
+                    show_toastr('Error', '{{ __("Bank account not connected with Flutterwave.") }}', 'error')
+                    return;
+                } 
                 $('#flaterwave-payment-form').ajaxForm(function(res) {
 
                     if (res.flag == 1) {
@@ -2492,6 +2516,12 @@
         // Razorpay Payment
         @if (isset($company_payment_setting['razorpay_public_key']))
             $(document).on("click", "#pay_with_razorpay", function() {
+                var account = "{{$razorpayAccount}}";
+                if(account == '')
+                {
+                    show_toastr('Error', '{{ __("Bank account not connected with Razorpay.") }}', 'error')
+                    return;
+                } 
                 $('#razorpay-payment-form').ajaxForm(function(res) {
                     if (res.flag == 1) {
                         var amount = res.total_price;

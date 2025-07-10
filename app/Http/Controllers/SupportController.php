@@ -27,7 +27,7 @@ class SupportController extends Controller
         }
         else {
 
-            $supports = Support::where('user', \Auth::user()->id)->where('created_by', \Auth::user()->creatorId())->with(['createdBy','assignUser'])->get();
+            $supports = Support::where('user', \Auth::user()->id)->orWhere('ticket_created', \Auth::user()->id)->where('created_by', \Auth::user()->creatorId())->with(['createdBy','assignUser'])->get();
             $countTicket      = Support::where('user', \Auth::user()->id)->where('created_by', \Auth::user()->creatorId())->count();
             $countOpenTicket  = Support::where('status', '=', 'open')->where('user', \Auth::user()->id)->where('created_by', \Auth::user()->creatorId())->count();
             $countonholdTicket  = Support::where('status', '=', 'on hold')->where('user', \Auth::user()->id)->where('created_by', \Auth::user()->creatorId())->count();
@@ -259,7 +259,7 @@ class SupportController extends Controller
         }
         else
         {
-            $support->user = \Auth::user()->id;;
+            $support->user = \Auth::user()->id;
         }
         $support->save();
 

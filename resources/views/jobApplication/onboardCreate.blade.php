@@ -6,6 +6,8 @@
                 {{ Form::label('application', __('Interviewer'), ['class' => 'col-form-label']) }}<x-required></x-required>
                 {{ Form::select('application', $applications, null, ['class' => 'form-control select2', 'required' => 'required']) }}
             </div>
+        @else
+            {{ Form::hidden('application', $id, null, ['class' => 'form-control', 'required' => 'required']) }}
         @endif
         <div class="form-group col-md-12">
             {!! Form::label('joining_date', __('Joining Date'), ['class' => 'col-form-label']) !!}<x-required></x-required>

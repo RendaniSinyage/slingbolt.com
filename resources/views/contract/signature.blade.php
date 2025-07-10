@@ -9,7 +9,7 @@
                 <input type="hidden" @if(Auth::user()->type == 'company')name="company_signature" @elseif(Auth::user()->type == 'client' ) name="client_signature" @endif id="SignupImage1">
             </div>
             <div class="mt-1">
-               <button type="button" class="btn-sm btn-danger" id="clearSig">{{__('Clear')}}</button>
+               <button type="button" class="btn btn-sm btn-secondary" id="clearSig">{{__('Clear')}}</button>
             </div>
 
         </div>

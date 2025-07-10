@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Invoice;
 use App\Models\InvoiceBankTransfer;
@@ -186,6 +187,12 @@ class BankTransferPaymentController extends Controller
         }
         $invoice   = Invoice::find($invoiceID);
 
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','bank transfer')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Bank Transfer.'));
+        }
+
         $user      = User::find($invoice->created_by);
         $settings=Utility::settingsById($invoice->created_by);
         if($invoice)
@@ -246,10 +253,16 @@ class BankTransferPaymentController extends Controller
         $invoiceBankTransfer = InvoiceBankTransfer::find($request->order_id);
         $invoice = Invoice::find($invoiceBankTransfer->invoice_id);
 
-        $settings  = DB::table('settings')->where('created_by', '=', $invoiceBankTransfer->created_by)->get()->pluck('value', 'name');
+        $settings = Utility::settingsById($invoiceBankTransfer->created_by);
 
         if($request->status == 'Approval')
         {
+            $bankAccount = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','bank transfer')->first();
+            if(!$bankAccount)
+            {
+                return redirect()->back()->with('error', __('Bank account not connected with Bank Transfer.'));
+            }
+
             $invoiceBankTransfer->status           = 'Approved';
             $payments = InvoicePayment::create(
                 [
@@ -258,12 +271,19 @@ class BankTransferPaymentController extends Controller
                     'date' => date('Y-m-d'),
                     'amount' => $invoiceBankTransfer->amount,
                     'payment_method' => 1,
+                    'account_id' => $bankAccount->id,
                     'order_id' => $invoiceBankTransfer->order_id,
                     'payment_type' => __('Bank Transfer'),
                     'receipt' => $invoiceBankTransfer->receipt,
                     'description' => __('Invoice') . ' ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id),
                 ]
             );
+
+            Utility::addOnlinePaymentData($payments , $invoice , 'bank transfer');
+
+            Utility::updateUserBalance('customer', $invoice->customer_id, $invoiceBankTransfer->amount, 'debit');
+            Utility::bankAccountBalance($bankAccount->id, $invoiceBankTransfer->amount, 'credit');
+
             $invoiceBankTransfer->delete();
         }
         else

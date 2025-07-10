@@ -3223,41 +3223,6 @@ class UsersTableSeeder extends Seeder
         );
         $superAdmin->assignRole($superAdminRole);
 
-        // customer
-        // $customerRole       = Role::create(
-        //     [
-        //         'name' => 'customer',
-        //         'created_by' => 0,
-        //     ]
-        // );
-        // $customerPermission = [
-        //     'manage customer payment',
-        //     'manage customer transaction',
-        //     'manage customer invoice',
-        //     'show invoice',
-        //     'show proposal',
-        //     'manage customer proposal',
-        //     'show customer',
-        // ];
-        // $customerRole->givePermissionTo($customerPermission);
-
-        // vender
-        // $venderRole       = Role::create(
-        //     [
-        //         'name' => 'vender',
-        //         'created_by' => 0,
-        //     ]
-        // );
-        // $venderPermission = [
-        //     'vender manage bill',
-        //     'manage vender bill',
-        //     'manage vender payment',
-        //     'manage vender transaction',
-        //     'show vender',
-        //     'show bill',
-        // ];
-        // $venderRole->givePermissionTo($venderPermission);
-
         // company
 
         $companyRole = Role::create(

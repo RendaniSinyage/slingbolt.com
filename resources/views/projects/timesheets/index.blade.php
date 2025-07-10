@@ -86,19 +86,24 @@
                     $('.weekly-dates-div #selected_dates').val(data.selectedDate);
 
                     $('.project_tasks_select .tasks-list .dropdown-item').remove();
+                    
+                    var optionhtml = '';
+                    if (data.sectiontasks.length) {
+                        $.each(data.sectiontasks, function (i, item) {
 
-                    $.each(data.sectiontasks, function (i, item) {
-
-                        var optionhtml = '';
-
-                        if (item.section_id != 0 && item.section_name != '' && item.tasks.length > 0) {
-                            optionhtml += `<a href="#" class="dropdown-item select-sub-heading" data-tasks-count="` + item.tasks.length + `">` + item.section_name + `</a>`;
-                        }
-                        $.each(item.tasks, function (ji, jitem) {
-                            optionhtml += `<a href="#" class="dropdown-item select-task" data-task-id="` + jitem.task_id + `">` + jitem.task_name + `</a>`;
+                            if (item.section_id != 0 && item.section_name != '' && item.tasks.length > 0) {
+                                optionhtml += `<a class="dropdown-item select-sub-heading pe-none" data-tasks-count="` + item.tasks.length + `"><b>` + item.section_name + `</b></a>`;
+                            }
+                            $.each(item.tasks, function (ji, jitem) {
+                                optionhtml += `<a href="#" class="dropdown-item select-task" data-task-id="` + jitem.task_id + `">` + jitem.task_name + `</a>`;
+                            });
+                            $('.project_tasks_select .tasks-list').append(optionhtml);
                         });
+                    } else {
+                        optionhtml += `<a class="dropdown-item select-sub-heading pe-none" data-tasks-count="0"><b> No Task Found </b></a>`;
                         $('.project_tasks_select .tasks-list').append(optionhtml);
-                    });
+                    }
+                    
 
                     if (data.totalrecords == 0) {
                         mainEle.hide();

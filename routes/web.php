@@ -8,11 +8,6 @@ use App\Http\Controllers\AnnouncementController;
 use App\Http\Controllers\AppraisalController;
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AttendanceEmployeeController;
-use App\Http\Controllers\Auth\AuthenticatedSessionController;
-use App\Http\Controllers\Auth\EmailVerificationNotificationController;
-use App\Http\Controllers\Auth\EmailVerificationPromptController;
-use App\Http\Controllers\Auth\RegisteredUserController;
-use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\AuthorizeNetController;
 use App\Http\Controllers\AwardController;
 use App\Http\Controllers\AwardTypeController;
@@ -39,6 +34,8 @@ use App\Http\Controllers\ContractTypeController;
 use App\Http\Controllers\CouponController;
 use App\Http\Controllers\CreditNoteController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\CustomerCreditNotesController;
+use App\Http\Controllers\CustomerDebitNotesController;
 use App\Http\Controllers\CustomFieldController;
 use App\Http\Controllers\CustomQuestionController;
 use App\Http\Controllers\DashboardController;
@@ -48,6 +45,7 @@ use App\Http\Controllers\DeductionOptionController;
 use App\Http\Controllers\DepartmentController;
 use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\DocumentController;
+use App\Http\Controllers\DoubleEntryReportController;
 use App\Http\Controllers\DucumentUploadController;
 use App\Http\Controllers\EasebuzzController;
 use App\Http\Controllers\EmailTemplateController;
@@ -398,7 +396,7 @@ Route::group(['middleware' => ['verified']], function () {
             ],
         ],
         function () {
-            Route::resource('systems', SystemController::class);
+            Route::resource('systems', SystemController::class)->except(['create', 'show']);
             Route::post('email-settings', [SystemController::class, 'saveEmailSettings'])->name('email.settings');
             Route::post('company-email-settings', [SystemController::class, 'saveCompanyEmailSettings'])->name('company.email.settings');
 
@@ -547,15 +545,21 @@ Route::group(['middleware' => ['verified']], function () {
             ],
         ],
         function () {
-            Route::get('credit-note', [CreditNoteController::class, 'index'])->name('credit.note');
-            Route::get('custom-credit-note', [CreditNoteController::class, 'customCreate'])->name('invoice.custom.credit.notes');
-            Route::post('custom-credit-note', [CreditNoteController::class, 'customStore'])->name('invoice.custom.credit.note');
-            Route::get('credit-note/invoice', [CreditNoteController::class, 'getinvoice'])->name('invoice.get');
-            Route::get('invoice/{id}/credit-note', [CreditNoteController::class, 'create'])->name('saas-');
-            Route::post('invoice/{id}/credit-note', [CreditNoteController::class, 'store'])->name('invoice.credit.note');
-            Route::get('invoice/{id}/credit-notes/edit/{cn_id}', [CreditNoteController::class, 'edit'])->name('invoice.edit.credit.notes');
-            Route::post('invoice/{id}/credit-note/edit/{cn_id}', [CreditNoteController::class, 'update'])->name('invoice.edit.credit.note');
+            Route::get('customer-credits-note', [CustomerCreditNotesController::class, 'index'])->name('custom-credit.note');
+            Route::get('customer-credit', [CustomerCreditNotesController::class, 'create'])->name('create.custom.credit.note');
+            Route::post('custom-credit-store', [CustomerCreditNotesController::class, 'store'])->name('custom-credits.store');
+            Route::get('invoice/{id}/custom-credit/edit/{cn_id}', [CustomerCreditNotesController::class, 'edit'])->name('invoice.edit.custom-credit');
+            Route::post('invoice/{id}/custom-credit-note/edit/{cn_id}', [CustomerCreditNotesController::class, 'update'])->name('invoice.custom-note.edit');
+            Route::delete('invoice/{id}/custom-credit/delete/{cn_id}', [CustomerCreditNotesController::class, 'destroy'])->name('invoice.custom-note.delete');
+            Route::post('credit-invoice/items', [CustomerCreditNotesController::class, 'getItems'])->name('credit-invoice.items');
+            Route::post('credit-invoice/itemprice', [CustomerCreditNotesController::class, 'getItemPrice'])->name('credit-invoice.itemprice');
+
+            Route::get('invoice/{id}/credit-note', [CreditNoteController::class, 'create'])->name('invoice.credit.note');
+            Route::post('invoice/{id}/credit-storenote', [CreditNoteController::class, 'store'])->name('invoice.credit.storenote');
+            Route::get('invoice/{id}/credit-note/edit/{cn_id}', [CreditNoteController::class, 'edit'])->name('invoice.edit.credit.note');
+            Route::post('invoice/{id}/credit-note//{cn_id}', [CreditNoteController::class, 'update'])->name('invoice.edit.credit.updatenote');
             Route::delete('invoice/{id}/credit-note/delete/{cn_id}', [CreditNoteController::class, 'destroy'])->name('invoice.delete.credit.note');
+            Route::post('invoice/credit-note/price', [CreditNoteController::class, 'getPrice'])->name('credit-note.price');
         }
     );
 
@@ -568,15 +572,21 @@ Route::group(['middleware' => ['verified']], function () {
             ],
         ],
         function () {
-            Route::get('debit-note', [DebitNoteController::class, 'index'])->name('debit.note');
-            Route::get('custom-debit-notes', [DebitNoteController::class, 'customCreate'])->name('bill.custom.debit.notes');
-            Route::post('custom-debit-note', [DebitNoteController::class, 'customStore'])->name('bill.custom.debit.note');
-            Route::get('debit-note/bill', [DebitNoteController::class, 'getbill'])->name('bill.get');
-            Route::get('bill/{id}/debit-notes', [DebitNoteController::class, 'create'])->name('bill.debit.notes');
-            Route::post('bill/{id}/debit-note', [DebitNoteController::class, 'store'])->name('bill.debit.note');
-            Route::get('bill/{id}/debit-notes/edit/{cn_id}', [DebitNoteController::class, 'edit'])->name('bill.edit.debit.notes');
-            Route::post('bill/{id}/debit-note/edit/{cn_id}', [DebitNoteController::class, 'update'])->name('bill.edit.debit.note');
+            Route::get('customer-debits-note', [CustomerDebitNotesController::class, 'index'])->name('custom-debit.note');
+            Route::get('customer-debit', [CustomerDebitNotesController::class, 'create'])->name('create.custom.debit.note');
+            Route::post('custom-debit-store', [CustomerDebitNotesController::class, 'store'])->name('custom-debits.store');
+            Route::get('bill/{id}/custom-debit/edit/{cn_id}', [CustomerDebitNotesController::class, 'edit'])->name('bill.edit.custom-debit');
+            Route::post('bill/{id}/custom-debit-note/edit/{cn_id}', [CustomerDebitNotesController::class, 'update'])->name('bill.custom-note.edit');
+            Route::delete('bill/{id}/custom-debit/delete/{cn_id}', [CustomerDebitNotesController::class, 'destroy'])->name('bill.custom-note.delete');
+            Route::post('debit-bill/items', [CustomerDebitNotesController::class, 'getItems'])->name('debit-bill.items');
+            Route::post('debit-bill/itemprice', [CustomerDebitNotesController::class, 'getItemPrice'])->name('debit-bill.itemprice');
+
+            Route::get('bill/{id}/debit-note', [DebitNoteController::class, 'create'])->name('bill.debit.note');
+            Route::post('bill/{id}/debit-storenote', [DebitNoteController::class, 'store'])->name('bill.debit.storenote');
+            Route::get('bill/{id}/debit-note/edit/{cn_id}', [DebitNoteController::class, 'edit'])->name('bill.edit.debit.note');
+            Route::post('bill/{id}/debit-note//{cn_id}', [DebitNoteController::class, 'update'])->name('bill.edit.debit.updatenote');
             Route::delete('bill/{id}/debit-note/delete/{cn_id}', [DebitNoteController::class, 'destroy'])->name('bill.delete.debit.note');
+            Route::post('bill/debit-note/price', [DebitNoteController::class, 'getPrice'])->name('debit-note.price');
         }
     );
 
@@ -643,28 +653,37 @@ Route::group(['middleware' => ['verified']], function () {
             Route::get('report/expense-summary', [ReportController::class, 'expenseSummary'])->name('report.expense.summary');
             Route::get('report/income-vs-expense-summary', [ReportController::class, 'incomeVsExpenseSummary'])->name('report.income.vs.expense.summary');
             Route::get('report/tax-summary', [ReportController::class, 'taxSummary'])->name('report.tax.summary');
-            //        Route::get('report/profit-loss-summary', [ReportController::class, 'profitLossSummary'])->name('report.profit.loss.summary');
             Route::get('report/invoice-summary', [ReportController::class, 'invoiceSummary'])->name('report.invoice.summary');
             Route::get('report/bill-summary', [ReportController::class, 'billSummary'])->name('report.bill.summary');
             Route::get('report/product-stock-report', [ReportController::class, 'productStock'])->name('report.product.stock.report');
             Route::get('report/invoice-report', [ReportController::class, 'invoiceReport'])->name('report.invoice');
             Route::get('report/account-statement-report', [ReportController::class, 'accountStatement'])->name('report.account.statement');
-            Route::get('balance-sheet-report/{view?}/{collapseview?}', [ReportController::class, 'balanceSheet'])->name('report.balance.sheet');
-            Route::get('profit-loss-report/{view?}/{collapseView?}', [ReportController::class, 'profitLoss'])->name('report.profit.loss');
-
-            Route::get('ledger-report/{account?}', [ReportController::class, 'ledgerSummary'])->name('report.ledger');
-            Route::get('trial-balance-report/{view?}', [ReportController::class, 'trialBalanceSummary'])->name('trial.balance');
-
             Route::get('reports-monthly-cashflow', [ReportController::class, 'monthlyCashflow'])->name('report.monthly.cashflow')->middleware(['auth', 'XSS']);
             Route::get('reports-quarterly-cashflow', [ReportController::class, 'quarterlyCashflow'])->name('report.quarterly.cashflow')->middleware(['auth', 'XSS']);
-            Route::post('export/trial-balance', [ReportController::class, 'trialBalanceExport'])->name('trial.balance.export');
-            Route::post('export/balance-sheet', [ReportController::class, 'balanceSheetExport'])->name('balance.sheet.export');
-            Route::post('export/profit-loss', [ReportController::class, 'profitLossExport'])->name('profit.loss.export');
-            Route::get('report/sales', [ReportController::class, 'salesReport'])->name('report.sales');
-            Route::post('export/sales', [ReportController::class, 'salesReportExport'])->name('sales.export');
-            Route::get('report/receivables', [ReportController::class, 'ReceivablesReport'])->name('report.receivables');
-            Route::post('export/receivables', [ReportController::class, 'ReceivablesExport'])->name('receivables.export');
-            Route::get('report/payables', [ReportController::class, 'PayablesReport'])->name('report.payables');
+        }
+    );
+
+    // doubel entry report
+    Route::group(
+        [
+            'middleware' => [
+                'auth',
+                'XSS',
+                'revalidate',
+            ],
+        ],
+        function () {
+            Route::get('trial-balance-report/{view?}', [DoubleEntryReportController::class, 'trialBalanceSummary'])->name('trial.balance');
+            Route::post('export/trial-balance', [DoubleEntryReportController::class, 'trialBalanceExport'])->name('trial.balance.export');
+            Route::get('balance-sheet-report/{view?}/{collapseview?}', [DoubleEntryReportController::class, 'balanceSheet'])->name('report.balance.sheet');
+            Route::post('export/balance-sheet', [DoubleEntryReportController::class, 'balanceSheetExport'])->name('balance.sheet.export');
+            Route::get('profit-loss-report/{view?}/{collapseView?}', [DoubleEntryReportController::class, 'profitLoss'])->name('report.profit.loss');
+            Route::post('export/profit-loss', [DoubleEntryReportController::class, 'profitLossExport'])->name('profit.loss.export');
+            Route::get('ledger-report/{account?}', [DoubleEntryReportController::class, 'ledgerSummary'])->name('report.ledger');
+            Route::get('report/sales', [DoubleEntryReportController::class, 'salesReport'])->name('report.sales');
+            Route::post('export/sales', [DoubleEntryReportController::class, 'salesReportExport'])->name('sales.export');
+            Route::get('report/receivables', [DoubleEntryReportController::class, 'ReceivablesReport'])->name('report.receivables');
+            Route::get('report/payables', [DoubleEntryReportController::class, 'PayablesReport'])->name('report.payables');
         }
     );
 
@@ -887,6 +906,7 @@ Route::group(['middleware' => ['verified']], function () {
     Route::resource('employee', EmployeeController::class)->middleware(['auth', 'XSS']);
 
     Route::post('employee/getdepartment', [EmployeeController::class, 'getDepartment'])->name('employee.getdepartment')->middleware(['auth', 'XSS']);
+    Route::post('department/employee', [EmployeeController::class, 'getEmployee'])->name('department.getemployee')->middleware(['auth', 'XSS']);
 
     Route::resource('department', DepartmentController::class)->middleware(['auth', 'XSS']);
     Route::resource('designation', DesignationController::class)->middleware(['auth', 'XSS']);
@@ -908,7 +928,7 @@ Route::group(['middleware' => ['verified']], function () {
     Route::resource('loan', LoanController::class)->middleware(['auth', 'XSS']);
     Route::resource('saturationdeduction', SaturationDeductionController::class)->middleware(['auth', 'XSS']);
     Route::resource('otherpayment', OtherPaymentController::class)->middleware(['auth', 'XSS']);
-    Route::resource('overtime', OvertimeController::class)->middleware(['auth', 'XSS']);
+    Route::resource('overtime', OvertimeController::class)->middleware(['auth', 'XSS'])->except(['index']);
 
     Route::get('employee/salary/{eid}', [SetSalaryController::class, 'employeeBasicSalary'])->name('employee.basic.salary')->middleware(['auth', 'XSS']);
     Route::post('employee/update/sallary/{id}', [SetSalaryController::class, 'employeeUpdateSalary'])->name('employee.salary.update')->middleware(['auth', 'XSS']);
@@ -1125,14 +1145,15 @@ Route::group(['middleware' => ['verified']], function () {
     // Project Task Module
 
     Route::get('/projects/{id}/task', [ProjectTaskController::class, 'index'])->name('projects.tasks.index')->middleware(['auth', 'XSS']);
-    Route::get('/projects/{pid}/task/{sid}', [ProjectTaskController::class, 'create'])->name('projects.tasks.create')->middleware(['auth', 'XSS']);
-    Route::post('/projects/{pid}/task/{sid}', [ProjectTaskController::class, 'store'])->name('projects.tasks.store')->middleware(['auth', 'XSS']);
+    Route::get('/projects/{pid}/task/create', [ProjectTaskController::class, 'create'])->name('projects.tasks.create')->middleware(['auth', 'XSS']);
+    Route::post('/projects/{pid}/task/store', [ProjectTaskController::class, 'store'])->name('projects.tasks.store')->middleware(['auth', 'XSS']);
     Route::get('/projects/{id}/task/{tid}/show', [ProjectTaskController::class, 'show'])->name('projects.tasks.show')->middleware(['auth', 'XSS']);
     Route::get('/projects/{id}/task/{tid}/edit', [ProjectTaskController::class, 'edit'])->name('projects.tasks.edit')->middleware(['auth', 'XSS']);
     Route::post('/projects/{id}/task/update/{tid}', [ProjectTaskController::class, 'update'])->name('projects.tasks.update')->middleware(['auth', 'XSS']);
     Route::delete('/projects/{id}/task/{tid}', [ProjectTaskController::class, 'destroy'])->name('projects.tasks.destroy')->middleware(['auth', 'XSS']);
     Route::patch('/projects/{id}/task/order', [ProjectTaskController::class, 'taskOrderUpdate'])->name('tasks.update.order')->middleware(['auth', 'XSS']);
     Route::patch('update-task-priority-color', [ProjectTaskController::class, 'updateTaskPriorityColor'])->name('update.task.priority.color')->middleware(['auth', 'XSS']);
+    Route::get('tasks/get/stage/count', [ProjectTaskController::class, 'getStageTasks'])->name('tasks.get.stage.count')->middleware(['auth', 'XSS']);
 
     Route::post('/projects/{id}/comment/{tid}/file', [ProjectTaskController::class, 'commentStoreFile'])->name('comment.store.file')->middleware(['auth', 'XSS']);
     Route::delete('/projects/{id}/comment/{tid}/file/{fid}', [ProjectTaskController::class, 'commentDestroyFile'])->name('comment.destroy.file');
@@ -1279,7 +1300,7 @@ Route::group(['middleware' => ['verified']], function () {
 
     // Form Field Bind
     Route::get('/form_field/{id}', [FormBuilderController::class, 'formFieldBind'])->name('form.field.bind')->middleware(['auth', 'XSS']);
-    Route::post('/form_field_store/{id}}', [FormBuilderController::class, 'bindStore'])->name('form.bind.store')->middleware(['auth', 'XSS']);
+    Route::post('/form_field_store/{id}', [FormBuilderController::class, 'bindStore'])->name('form.bind.store')->middleware(['auth', 'XSS']);
 
     // contract
 
@@ -1496,7 +1517,8 @@ Route::group(['middleware' => ['verified']], function () {
 
     Route::get('export/productservice', [ProductServiceController::class, 'export'])->name('productservice.export');
     Route::get('import/productservice/file', [ProductServiceController::class, 'importFile'])->name('productservice.file.import');
-    // Route::post('import/productservice', [ProductServiceController::class, 'import'])->name('productservice.import');
+    Route::post('productservice/import', [ProductServiceController::class, 'fileImport'])->name('productservice.import');
+    Route::get('import/productservice/modal', [ProductServiceController::class, 'fileImportModal'])->name('productservice.import.modal');
     Route::post('import/productservice', [ProductServiceController::class, 'productserviceImportdata'])->name('productservice.import.data');
 
     Route::get('export/customer', [CustomerController::class, 'export'])->name('customer.export');

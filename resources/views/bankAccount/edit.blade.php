@@ -3,18 +3,39 @@
     <div class="row">
         <div class="form-group col-md-6">
             {{ Form::label('chart_account_id', __('Account'),['class'=>'form-label']) }}<x-required></x-required>
-            <select name="chart_account_id" class="form-control" required="required">
-                @foreach ($chartAccounts as $key => $chartAccount)
-                    <option value="{{ $key }}" class="subAccount" {{ $key == $bankAccount->chart_account_id ? 'selected' : ''}}>{{ $chartAccount }}</option>
-                    @foreach ($subAccounts as $subAccount)
-                        @if ($key == $subAccount['account'])
-                            <option value="{{ $subAccount['id'] }}" class="ms-5" {{ $subAccount['id'] == $bankAccount->chart_account_id ? 'selected' : ''}}> &nbsp; &nbsp;&nbsp; {{ $subAccount['code_name'] }}</option>
-                        @endif
-                    @endforeach
+            <select name="chart_account_id" class="form-control" required>
+                <option value="">{{ __('Select Chart of Account') }}</option>
+                @foreach ($chartAccounts as $typeName => $subtypes)
+                    <optgroup label="{{ $typeName }}">
+                        @foreach ($subtypes as $subtypeId => $subtypeData)
+                            <option disabled style="color: #000; font-weight: bold;">{{ $subtypeData['account_name'] }}</option>
+                            @foreach ($subtypeData['chart_of_accounts'] as $chartOfAccount)
+                                <option value="{{ $chartOfAccount['id'] }}" {{ $bankAccount->chart_account_id == $chartOfAccount['id'] ? 'selected' : ''}}>
+                                    &nbsp;&nbsp;&nbsp;{{ $chartOfAccount['account_name'] }}
+                                </option>
+                                @foreach ($subtypeData['subAccounts'] as $subAccount)
+                                    @if ($chartOfAccount['id'] == $subAccount['parent_account'])
+                                    <option value="{{ $subAccount['id'] }}" class="ms-5" {{ $bankAccount->chart_account_id == $subAccount['id'] ? 'selected' : ''}}> &nbsp; &nbsp;&nbsp;&nbsp; {{' - '. $subAccount['account_name'] }}</option>
+                                    @endif
+                                @endforeach
+                            @endforeach
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </select>
             <div class="text-xs mt-1">
                 {{ __('Create account here.') }} <a href="{{ route('chart-of-account.index') }}"><b>{{ __('Create account') }}</b></a>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                {{ Form::label('payment_name', __('Payment Gateway'), ['class' => 'form-label']) }}<x-required></x-required>
+                <select name="payment_name" class="form-control" required="required">
+                    <option value="" disabled selected>{{ __('Select Type') }}</option>
+                    @foreach ($payments as $key => $value)
+                        <option value="{{ $key }}" {{ $bankAccount->payment_name == $key ? 'selected' :''}}>{{ $value }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
         <div class="form-group col-md-6">
@@ -34,7 +55,7 @@
             {{ Form::number('opening_balance',null, array('class' => 'form-control','step'=>'0.01', 'placeholder'=>__('Enter Opening Balance'))) }}
         </div>
         <div class="col-md-6">
-            <x-mobile label="{{__('Contact Number')}}" name="contact_number" value="{{old('contact_number')}}" placeholder="Enter Contact Number"></x-mobile>
+            <x-mobile label="{{__('Contact Number')}}" name="contact_number" value="{{$bankAccount->contact_number ?? old('contact_number')}}" placeholder="Enter Contact Number"></x-mobile>
         </div>
         <div class="form-group  col-md-12 mb-0">
             {{ Form::label('bank_address', __('Bank Address'),['class'=>'form-label']) }}

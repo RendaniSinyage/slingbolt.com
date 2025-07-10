@@ -1,6 +1,8 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\BankAccount;
 use App\Models\Utility;
 use App\Models\Plan;
 use App\Models\Coupon;
@@ -279,6 +281,12 @@ class PaymentWallPaymentController extends Controller
 
         $invoice   = Invoice::find($invoiceID);
 
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paymentwall')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with PaymentWall.'));
+        }
+
         if(\Auth::check())
         {
             $user=\Auth::user();
@@ -330,7 +338,8 @@ class PaymentWallPaymentController extends Controller
                         $invoice_payment                 = new InvoicePayment();
                         $invoice_payment->transaction_id = app('App\Http\Controllers\InvoiceController')->transactionNumber();
                         $invoice_payment->invoice_id     = $invoice->id;
-                        $invoice_payment->amount         = isset($invoice_data['total_price']) ? $invoice_data['total_price'] : 0;
+                        $invoice_payment->amount         = isset($request->amount) ? $request->amount : 0;
+                        $invoice_payment->account_id     = $account->id;
                         $invoice_payment->date           = date('Y-m-d');
                         $invoice_payment->payment_id     = 0;
                         $invoice_payment->payment_type   = 'Paystack';
@@ -348,7 +357,12 @@ class PaymentWallPaymentController extends Controller
                         }
 
 
+                        Utility::addOnlinePaymentData($invoice_payment , $invoice , 'paymentwall');                        
 
+                        //for customer balance update
+                        Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                        //for bank balance update
+                        Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                         $assignPlan = $authuser->assignPlan($invoice->id);
                         if($assignPlan['is_success'])

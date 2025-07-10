@@ -297,7 +297,7 @@ class QuotationController extends Controller
 
     function quotationNumber()
     {
-        $latest = Quotation::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Quotation::where('created_by', '=', \Auth::user()->creatorId())->latest('quotation_id')->first();
         if(!$latest)
         {
             return 1;

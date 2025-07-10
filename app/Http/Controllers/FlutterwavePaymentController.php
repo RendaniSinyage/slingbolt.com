@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -242,6 +243,13 @@ class FlutterwavePaymentController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','flutterwave')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Flutterwave.'));
+        }
+
         $user      = User::find($invoice->created_by);
         $settings=Utility::settingsById($invoice->created_by);
         if($invoice)
@@ -310,13 +318,14 @@ class FlutterwavePaymentController extends Controller
                 if(isset($response['status']) && $response['status'] == 'success')
                 {
                     $paydata = $response['data'];
-
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','flutterwave')->first();
                     $payments = InvoicePayment::create(
                         [
 
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $request->amount,
+                            'account_id' => $account->id,
                             'payment_method' => 1,
                             'order_id' => $orderID,
                             'payment_type' => __('Flutterwave'),
@@ -337,8 +346,12 @@ class FlutterwavePaymentController extends Controller
                         Invoice::change_status($invoice->id, 3);
                     }
 
+                    Utility::addOnlinePaymentData($payments , $invoice , 'flutterwave');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

@@ -43,10 +43,12 @@
                                         <h5 class="mb-2">{{__('Create Bill')}}</h5>
                                         <p class="text-muted mb-2">{{__('Created on ')}}{{\Auth::user()->dateFormat($bill->bill_date)}}</p>
                                         @can('edit bill')
-                                            <a href="{{ route('bill.edit',\Crypt::encrypt($bill->id)) }}" class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip" data-original-title="{{__('Edit')}}">
-                                                <i class="ti ti-pencil"></i>
-                                                {{__('Edit')}}
-                                            </a>
+                                            @if ($bill->status != 3 && $bill->status != 4)
+                                                <a href="{{ route('bill.edit',\Crypt::encrypt($bill->id)) }}" class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip" data-original-title="{{__('Edit')}}">
+                                                    <i class="ti ti-pencil"></i>
+                                                    {{__('Edit')}}
+                                                </a>
+                                            @endif
                                         @endcan
                                     </div>
                                 </div>
@@ -119,11 +121,11 @@
         @if ($bill->status != 0)
             <div class="row justify-content-between align-items-center mb-3">
                 <div class="col-md-12 d-flex flex-wrap gap-2 align-items-center justify-content-end">
-                    @if (!empty($billPayment))
+                    @if ($bill->status != 4)
                         <div class="all-button-box">
-                            <a href="#" data-url="{{ route('bill.debit.notes', $bill->id) }}" data-ajax-popup="true"
-                                data-title="{{ __('Add Debit Note') }}" class="btn btn-sm btn-primary">
-                                {{ __('Add Debit Note') }}
+                            <a href="#" data-url="{{ route('bill.debit.note', $bill->id) }}" data-ajax-popup="true"
+                                data-title="{{ __('Apply Debit Note') }}" class="btn btn-sm btn-primary">
+                                {{ __('Apply Debit Note') }}
                             </a>
                         </div>
                     @endif
@@ -290,14 +292,12 @@
                                                 <th class="text-dark">{{ __('Rate') }}</th>
                                                 <th class="text-dark">{{ __('Discount') }}</th>
                                                 <th class="text-dark">{{ __('Tax') }}</th>
-                                                <th class="text-dark">{{ __('Chart Of Account') }}</th>
-                                                <th class="text-dark">{{ __('Account Amount') }}</th>
+                                                <th></th>
                                                 <th class="text-dark">{{ __('Description') }}</th>
                                                 <th class="text-end text-dark" width="12%">{{ __('Price') }}<br>
                                                     <small
                                                         class="text-danger font-weight-bold">{{ __('after tax & discount') }}</small>
                                                 </th>
-                                                <th></th>
                                             </tr>
                                             @php
                                                 $totalQuantity = 0;
@@ -333,7 +333,7 @@
                                                                     @php
                                                                         $itemTaxes = [];
                                                                         $getTaxData = Utility::getTaxData();
-
+                                                                        $itemTaxPrice = 0;
                                                                         if (!empty($item->tax)) {
                                                                             foreach (explode(',', $item->tax) as $tax) {
                                                                                 $taxPrice = \Utility::taxRate(
@@ -341,6 +341,7 @@
                                                                                     $item->price,
                                                                                     $item->quantity,
                                                                                 );
+                                                                                $itemTaxPrice += $taxPrice;
                                                                                 $totalTaxPrice += $taxPrice;
                                                                                 $itemTax['name'] =
                                                                                     $getTaxData[$tax]['name'];
@@ -385,25 +386,19 @@
                                                                     @endforeach
                                                                 </table>
                                                             @else
+                                                                @php
+                                                                    $itemTaxPrice = 0;
+                                                                @endphp
                                                                 -
                                                             @endif
                                                         </td>
-
-                                                        @php
-                                                            $chartAccount = \App\Models\ChartOfAccount::find(
-                                                                $item->chart_account_id,
-                                                            );
-                                                        @endphp
-
-                                                        <td>{{ !empty($chartAccount) ? $chartAccount->name : '-' }}</td>
-                                                        <td>{{ \Auth::user()->priceFormat($item->amount) }}</td>
+                                                        <td></td>
 
                                                         <td>{{ !empty($item->description) ? $item->description : '-' }}</td>
 
                                                         <td class="text-end">
-                                                            {{ \Auth::user()->priceFormat($item->price * $item->quantity - $item->discount + $totalTaxPrice) }}
+                                                            {{ \Auth::user()->priceFormat($item->price * $item->quantity - $item->discount + $itemTaxPrice) }}
                                                         </td>
-                                                        <td></td>
                                                     </tr>
                                                 @else
                                                     <tr>
@@ -423,7 +418,6 @@
                                                         <td>-</td>
                                                         <td class="text-end">
                                                             {{ \Auth::user()->priceFormat($item['amount']) }}</td>
-                                                        <td></td>
 
 
                                                     </tr>
@@ -438,20 +432,19 @@
                                                     <td><b>{{ \Auth::user()->priceFormat($totalDiscount) }}</b></td>
                                                     <td><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
                                                     <td></td>
-                                                    <td><b>{{ \Auth::user()->priceFormat($bill->getAccountTotal()) }}</b>
-                                                    </td>
-
+                                                    <td></td>
+                                                    <td></td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="text-end"><b>{{ __('Sub Total') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Sub Total') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($bill->getSubTotal()) }}</td>
                                                 </tr>
 
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="text-end"><b>{{ __('Discount') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Discount') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($bill->getTotalDiscount()) }}</td>
                                                 </tr>
@@ -459,36 +452,43 @@
                                                 @if (!empty($taxesData))
                                                     @foreach ($taxesData as $taxName => $taxPrice)
                                                         <tr>
-                                                            <td colspan="8"></td>
-                                                            <td class="text-end"><b>{{ $taxName }}</b></td>
+                                                            <td colspan="7"></td>
+                                                            <td class="text-center"><b>{{ $taxName }}</b></td>
                                                             <td class="text-end">
                                                                 {{ \Auth::user()->priceFormat($taxPrice) }}</td>
                                                         </tr>
                                                     @endforeach
                                                 @endif
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="blue-text text-end"><b>{{ __('Total') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="blue-text text-center"><b>{{ __('Total') }}</b></td>
                                                     <td class="blue-text text-end">
                                                         {{ \Auth::user()->priceFormat($bill->getTotal()) }}</td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="text-end"><b>{{ __('Paid') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Paid') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($bill->getTotal() - $bill->getDue() - $bill->billTotalDebitNote()) }}
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="text-end"><b>{{ __('Debit Note') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Debit Note Applied') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($bill->billTotalDebitNote()) }}
                                                     </td>
                                                 </tr>
                                                 <tr>
-                                                    <td colspan="8"></td>
-                                                    <td class="text-end"><b>{{ __('Due') }}</b></td>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Debit Note Issued') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($bill->billTotalCustomerDebitNote()) }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="7"></td>
+                                                    <td class="text-center"><b>{{ __('Due') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($bill->getDue()) }}</td>
                                                 </tr>
@@ -586,6 +586,7 @@
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th class="text-dark">{{__('Debit Note')}}</th>
                                     <th class="text-dark">{{ __('Date') }}</th>
                                     <th class="text-dark">{{ __('Amount') }}</th>
                                     <th class="text-dark">{{ __('Description') }}</th>
@@ -596,13 +597,14 @@
                             </thead>
                             @forelse($bill->debitNote as $key =>$debitNote)
                                 <tr>
+                                    <td><span class="btn btn-outline-primary">{{ !empty($debitNote->debitNote) ? \App\Models\CustomerDebitNotes::debitNumberFormat($debitNote->debitNote->debit_id) : '---'}}</span></td>
                                     <td>{{ \Auth::user()->dateFormat($debitNote->date) }}</td>
                                     <td>{{ \Auth::user()->priceFormat($debitNote->amount) }}</td>
                                     <td>{{ $debitNote->description }}</td>
                                     <td>
                                         @can('edit debit note')
                                             <div class="action-btn me-2">
-                                                <a data-url="{{ route('bill.edit.debit.notes', [$debitNote->bill, $debitNote->id]) }}"
+                                                <a data-url="{{ route('bill.edit.debit.note', [$debitNote->bill, $debitNote->id]) }}"
                                                     data-ajax-popup="true" data-title="{{ __('Edit Debit Note') }}"
                                                     href="#" class="mx-3 btn btn-sm align-items-center bg-info"
                                                     data-bs-toggle="tooltip" data-bs-original-title="{{ __('Edit') }}">

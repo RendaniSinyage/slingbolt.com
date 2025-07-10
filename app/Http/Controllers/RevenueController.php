@@ -2,16 +2,16 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
+use App\Models\ChartOfAccount;
 use App\Models\Customer;
 use App\Models\InvoicePayment;
 use App\Models\ProductServiceCategory;
 use App\Models\Revenue;
 use App\Models\Transaction;
 use App\Models\Utility;
-use App\Models\TransactionLines;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class RevenueController extends Controller
 {
@@ -80,7 +80,7 @@ class RevenueController extends Controller
         if(\Auth::user()->can('create revenue'))
         {
             $customers = Customer::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $customers->prepend('', '');
+            $customers->prepend('Select Customer', '');
             $categories = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'income')->get()->pluck('name', 'id');
             $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
 
@@ -104,6 +104,7 @@ class RevenueController extends Controller
                                    'amount' => 'required',
                                    'account_id' => 'required',
                                    'category_id' => 'required',
+                                   'customer_id' => 'required'
                                ]
             );
             if($validator->fails())
@@ -111,6 +112,12 @@ class RevenueController extends Controller
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
+            }
+
+            $bankAccount = BankAccount::find($request->account_id);
+            if($bankAccount->chart_account_id == 0)
+            {
+                return redirect()->back()->with('error', __('This bank account is not connect with chart of account, so please connect first.'));
             }
 
             $revenue                 = new Revenue();
@@ -163,22 +170,33 @@ class RevenueController extends Controller
 
             if(!empty($customer))
             {
-                Utility::userBalance('customer', $customer->id, $revenue->amount, 'credit');
+                Utility::updateUserBalance('customer', $customer->id, $revenue->amount, 'debit');
             }
-
             Utility::bankAccountBalance($request->account_id, $revenue->amount, 'credit');
 
             $accountId = BankAccount::find($revenue->account_id);
             $data = [
-                'account_id' => $accountId->chart_account_id,
-                    'transaction_type' => 'Credit',
+                    'account_id'         => $accountId->chart_account_id,
+                    'transaction_type'   => 'debit',
                     'transaction_amount' => $revenue->amount,
-                    'reference' => 'Revenue',
-                    'reference_id' => $revenue->id,
-                    'reference_sub_id' => 0,
-                    'date' => $revenue->date,
+                    'reference'          => 'Revenue',
+                    'reference_id'       => $revenue->id,
+                    'reference_sub_id'   => 0,
+                    'date'               => $revenue->date,
                 ];
-                Utility::addTransactionLines($data , 'create');
+            Utility::addTransactionLines($data);
+
+            $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+            $data    = [
+                'account_id'         => !empty($account) ? $account->id : 0,
+                'transaction_type'   => 'credit',
+                'transaction_amount' => $revenue->amount,
+                'reference'          => 'Revenue',
+                'reference_id'       => $revenue->id,
+                'reference_sub_id'   => 0,
+                'date'               => $revenue->date,
+            ];
+            Utility::addTransactionLines($data);
 
             //For Notification
             $setting  = Utility::settings(\Auth::user()->creatorId());
@@ -241,7 +259,7 @@ class RevenueController extends Controller
         if(\Auth::user()->can('edit revenue'))
         {
             $customers = Customer::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $customers->prepend('', '');
+            $customers->prepend('Select Customer', '');
             $categories = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'income')->get()->pluck('name', 'id');
             $accounts   = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
 
@@ -266,6 +284,7 @@ class RevenueController extends Controller
                                    'amount' => 'required',
                                    'account_id' => 'required',
                                    'category_id' => 'required',
+                                   'customer_id' => 'required'
                                ]
             );
             if($validator->fails())
@@ -278,17 +297,10 @@ class RevenueController extends Controller
             $customer = Customer::where('id', $request->customer_id)->first();
             if(!empty($customer))
             {
-                Utility::userBalance('customer', $revenue->customer_id, $revenue->amount, 'debit');
+                Utility::updateUserBalance('customer', $customer->id, $revenue->amount, 'credit'); // For old amount remove
+                Utility::updateUserBalance('customer', $customer->id, $request->amount, 'debit');
             }
-
-            Utility::bankAccountBalance($revenue->account_id, $revenue->amount, 'debit');
-
-
-            if(!empty($customer))
-            {
-                Utility::userBalance('customer', $customer->id, $request->amount, 'credit');
-            }
-
+            Utility::bankAccountBalance($request->account_id, $revenue->amount, 'debit'); // For old amount remove
             Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
 
             $revenue->date           = $request->date;
@@ -337,17 +349,27 @@ class RevenueController extends Controller
 
             $accountId = BankAccount::find($revenue->account_id);
             $data = [
-                'account_id' => $accountId->chart_account_id,
-                'transaction_type' => 'Credit',
+                'account_id'         => $accountId->chart_account_id,
+                'transaction_type'   => 'debit',
                 'transaction_amount' => $revenue->amount,
-                'reference' => 'Revenue',
-                'reference_id' => $revenue->id,
-                'reference_sub_id' => 0,
-                'date' => $revenue->date,
+                'reference'          => 'Revenue',
+                'reference_id'       => $revenue->id,
+                'reference_sub_id'   => 0,
+                'date'               => $revenue->date,
+            ];
+            Utility::addTransactionLines($data , 'edit' , 'notes');
+
+            $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
+            $data    = [
+                'account_id'         => !empty($account) ? $account->id : 0,
+                'transaction_type'   => 'credit',
+                'transaction_amount' => $revenue->amount,
+                'reference'          => 'Revenue',
+                'reference_id'       => $revenue->id,
+                'reference_sub_id'   => 0,
+                'date'               => $revenue->date,
             ];
             Utility::addTransactionLines($data , 'edit');
-
-
 
             return redirect()->route('revenue.index')->with('success', __('Revenue Updated Successfully'). ((isset($result) && $result!=1) ? '<br> <span class="text-danger">' . $result . '</span>' : ''));
 
@@ -373,7 +395,7 @@ class RevenueController extends Controller
                     $result = Utility::changeStorageLimit(\Auth::user()->creatorId(), $file_path);
 
                 }
-                TransactionLines::where('reference_id',$revenue->id)->where('reference','Revenue')->delete();
+                AddTransactionLine::where('reference_id',$revenue->id)->where('reference','Revenue')->delete();
                 $revenue->delete();
                 $type = 'Revenue';
                 $user = 'Customer';
@@ -381,10 +403,8 @@ class RevenueController extends Controller
 
                 if($revenue->customer_id != 0)
                 {
-                    Utility::userBalance('customer', $revenue->customer_id, $revenue->amount, 'debit');
+                    Utility::updateUserBalance('customer', $revenue->customer_id, $revenue->amount, 'credit');
                 }
-
-
                 Utility::bankAccountBalance($revenue->account_id, $revenue->amount, 'debit');
 
                 return redirect()->route('revenue.index')->with('success', __('Revenue successfully deleted.'));

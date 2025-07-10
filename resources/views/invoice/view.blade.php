@@ -263,11 +263,13 @@
                                         <p class="text-muted mb-2">
                                             {{ __('Created on ') }}{{ \Auth::user()->dateFormat($invoice->issue_date) }}</p>
                                             @can('edit invoice')
-                                        <a href="{{ route('invoice.edit', \Crypt::encrypt($invoice->id)) }}"
-                                            class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip"
-                                            data-original-title="{{ __('Edit') }}"><i
-                                                class="ti ti-pencil"></i>{{ __('Edit') }}</a>
-                                    @endcan
+                                                @if ($invoice->status != 3 && $invoice->status != 4)
+                                                    <a href="{{ route('invoice.edit', \Crypt::encrypt($invoice->id)) }}"
+                                                        class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip"
+                                                        data-original-title="{{ __('Edit') }}"><i
+                                                            class="ti ti-pencil"></i>{{ __('Edit') }}</a>
+                                                @endif
+                                            @endcan
                                     </div>
                                 </div>
                             </div>
@@ -360,16 +362,14 @@
         @if ($invoice->status != 0)
             <div class="row justify-content-between align-items-center mb-3">
                 <div class="d-flex flex-wrap align-items-center justify-content-end gap-2">
-                    @if (!empty($creditnote))
+                    @if ($invoice->status != 4)
                         <div class="all-button-box">
                             <a href="#" class="btn btn-sm btn-primary"
                                 data-url="{{ route('invoice.credit.note', $invoice->id) }}" data-ajax-popup="true"
-                                data-title="{{ __('Add Credit Note') }}">
-                                {{ __('Add Credit Note') }}
+                                data-title="{{ __('Apply Credit Note') }}">
+                                {{ __('Apply Credit Note') }}
                             </a>
                         </div>
-                    @endif
-                    @if ($invoice->status != 4)
                         <div class="all-button-box">
                             <a href="{{ route('invoice.payment.reminder', $invoice->id) }}"
                                 class="btn btn-sm btn-primary">{{ __('Receipt Reminder') }}</a>
@@ -563,11 +563,12 @@
                                                                 @php
                                                                     $itemTaxes = [];
                                                                     $getTaxData = Utility::getTaxData();
-
+                                                                    $itemTaxPrice = 0;
                                                                     if (!empty($iteam->tax)) {
                                                                         foreach (explode(',', $iteam->tax) as $tax) {
                                                                             $taxPrice = \Utility::taxRate($getTaxData[$tax]['rate'], $iteam->price, $iteam->quantity, $iteam->discount);
 
+                                                                            $itemTaxPrice += $taxPrice;
                                                                             $totalTaxPrice += $taxPrice;
                                                                             $itemTax['name'] = $getTaxData[$tax]['name'];
                                                                             $itemTax['rate'] = $getTaxData[$tax]['rate'] . '%';
@@ -594,13 +595,16 @@
                                                                 @endforeach
                                                             </table>
                                                         @else
+                                                            @php
+                                                                $itemTaxPrice = 0;
+                                                            @endphp
                                                             -
                                                         @endif
                                                     </td>
 
                                                     <td>{{ !empty($iteam->description) ? $iteam->description : '-' }}</td>
                                                     <td class="text-end">
-                                                        {{ \Auth::user()->priceFormat($iteam->price * $iteam->quantity - $iteam->discount + $totalTaxPrice) }}
+                                                        {{ \Auth::user()->priceFormat($iteam->price * $iteam->quantity - $iteam->discount + $itemTaxPrice) }}
                                                     </td>
                                                 </tr>
                                             @endforeach
@@ -613,17 +617,18 @@
                                                     <td><b>{{ \Auth::user()->priceFormat($totalDiscount) }}</b></td>
                                                     <td><b>{{ \Auth::user()->priceFormat($totalTaxPrice) }}</b></td>
                                                     <td></td>
+                                                    <td></td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="text-end"><b>{{ __('Sub Total') }}</b></td>
+                                                    <td class="text-center"><b>{{ __('Sub Total') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->getSubTotal()) }}</td>
                                                 </tr>
 
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="text-end"><b>{{ __('Discount') }}</b></td>
+                                                    <td class="text-center"><b>{{ __('Discount') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->getTotalDiscount()) }}
                                                     </td>
@@ -633,7 +638,7 @@
                                                     @foreach ($taxesData as $taxName => $taxPrice)
                                                         <tr>
                                                             <td colspan="6"></td>
-                                                            <td class="text-end"><b>{{ $taxName }}</b></td>
+                                                            <td class="text-center"><b>{{ $taxName }}</b></td>
                                                             <td class="text-end">
                                                                 {{ \Auth::user()->priceFormat($taxPrice) }}</td>
                                                         </tr>
@@ -641,27 +646,34 @@
                                                 @endif
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="blue-text text-end"><b>{{ __('Total') }}</b></td>
+                                                    <td class="blue-text text-center"><b>{{ __('Total') }}</b></td>
                                                     <td class="blue-text text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->getTotal()) }}</td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="text-end"><b>{{ __('Paid') }}</b></td>
+                                                    <td class="text-center"><b>{{ __('Paid') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->getTotal() - $invoice->getDue() - $invoice->invoiceTotalCreditNote()) }}
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="text-end"><b>{{ __('Credit Note') }}</b></td>
+                                                    <td class="text-center"><b>{{ __('Credit Note Applied') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->invoiceTotalCreditNote()) }}
                                                     </td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="6"></td>
-                                                    <td class="text-end"><b>{{ __('Due') }}</b></td>
+                                                    <td class="text-center"><b>{{ __('Credit Note Issued') }}</b></td>
+                                                    <td class="text-end">
+                                                        {{ \Auth::user()->priceFormat($invoice->invoiceTotalCustomerCreditNote()) }}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td colspan="6"></td>
+                                                    <td class="text-center"><b>{{ __('Due') }}</b></td>
                                                     <td class="text-end">
                                                         {{ \Auth::user()->priceFormat($invoice->getDue()) }}</td>
                                                 </tr>
@@ -861,6 +873,7 @@
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th class="text-dark">{{ __('Credit Note') }}</th>
                                     <th class="text-dark">{{ __('Date') }}</th>
                                     <th class="text-dark" class="">{{ __('Amount') }}</th>
                                     <th class="text-dark" class="">{{ __('Description') }}</th>
@@ -871,13 +884,14 @@
                             </thead>
                             @forelse($invoice->creditNote as $key =>$creditNote)
                                 <tr>
+                                    <td><span class="btn btn-outline-primary">{{ !empty($creditNote->creditNote) ? \App\Models\CustomerCreditNotes::creditNumberFormat($creditNote->creditNote->credit_id) : '---'}}</span></td>
                                     <td>{{ \Auth::user()->dateFormat($creditNote->date) }}</td>
                                     <td class="">{{ \Auth::user()->priceFormat($creditNote->amount) }}</td>
                                     <td class="">{{ $creditNote->description }}</td>
                                     <td>
                                         @can('edit credit note')
                                             <div class="action-btn me-2">
-                                                <a data-url="{{ route('invoice.edit.credit.notes', [$creditNote->invoice, $creditNote->id]) }}"
+                                                <a data-url="{{ route('invoice.edit.credit.note', [$creditNote->invoice, $creditNote->id]) }}"
                                                     data-ajax-popup="true" title="{{ __('Edit Credit Note') }}"
                                                     data-original-title="{{ __('Credit Note') }}" href="#"
                                                     class="mx-3 btn btn-sm align-items-center bg-info" data-bs-toggle="tooltip"

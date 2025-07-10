@@ -14,25 +14,25 @@
     @endif
     {{-- end for ai module--}}
     <div class="row">
-        <div class="form-group col-lg-6 col-md-6 ">
-            {{ Form::label('employee_id', __('Employee'),['class'=>'form-label'])}}<x-required></x-required>
-            {{ Form::select('employee_id', $employees,null, array('class' => 'form-control select','required'=>'required')) }}
-            <div class="text-xs mt-1">
-                {{ __('Create employee here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create employee') }}</b></a>
-            </div>
-        </div>
         <div class="form-group col-lg-6 col-md-6">
             {{Form::label('branch_id',__('Branch'),['class'=>'form-label'])}}<x-required></x-required>
-            {{Form::select('branch_id',$branches,null,array('class'=>'form-control select','required'=>'required'))}}
+            {{Form::select('branch_id',$branches, $transfer->branch_id,array('class'=>'form-control select', 'id' => 'branch_id', 'required'=>'required'))}}
             <div class="text-xs mt-1">
                 {{ __('Create branch here.') }} <a href="{{ route('branch.index') }}"><b>{{ __('Create branch') }}</b></a>
             </div>
         </div>
         <div class="form-group col-lg-6 col-md-6">
             {{Form::label('department_id',__('Department'),['class'=>'form-label'])}}<x-required></x-required>
-            {{Form::select('department_id',$departments,null,array('class'=>'form-control select','required'=>'required'))}}
+            {{Form::select('department_id',$departments,null,array('class'=>'form-control select', 'id' => 'department_id', 'required'=>'required'))}}
             <div class="text-xs mt-1">
                 {{ __('Create department here.') }} <a href="{{ route('department.index') }}"><b>{{ __('Create department') }}</b></a>
+            </div>
+        </div>
+        <div class="form-group col-lg-6 col-md-6 ">
+            {{ Form::label('employee_id', __('Employee'),['class'=>'form-label'])}}<x-required></x-required>
+            {{ Form::select('employee_id', $employees,null, array('class' => 'form-control select','id' => 'employee_id', 'required'=>'required')) }}
+            <div class="text-xs mt-1">
+                {{ __('Create employee here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create employee') }}</b></a>
             </div>
         </div>
         <div class="form-group col-lg-6 col-md-6">
@@ -55,3 +55,74 @@
 
 
 {{Form::close()}}
+
+{{-- @push('script-page') --}}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            var b_id = $('#branch_id').val();
+            var d_id = $('#department_id').val();
+            getDepartment(b_id);
+            getEmployee(d_id);
+        });
+
+        $(document).on('change', '#branch_id', function() {
+            var branch_id = $(this).val();
+            getDepartment(branch_id);
+        });
+
+        $(document).on('change', 'select[name=department_id]', function() {
+            var department_id = $(this).val();
+            getEmployee(department_id);
+        });
+
+        function getDepartment(branch_id) {
+            $.ajax({
+                url: '{{ route('employee.getdepartment') }}',
+                method: 'POST',
+                data: {
+                    "branch_id": branch_id,
+                    "_token": "{{ csrf_token() }}",
+                },
+                success: function(data) {
+                    $('#department_id').empty();
+                    $('#department_id').append(
+                        '<option value="" disabled>{{ __('Select Department') }}</option>');
+
+                    $.each(data, function(key, value) {
+                        var selected = '';
+                        if (key == '{{ $transfer->department_id }}') {
+                            selected = 'selected';
+                        }
+
+                        $('#department_id').append('<option value="' + key + '"  ' + selected + '>' + value + '</option>');
+                    });
+                }
+            });
+        }
+
+        function getEmployee(did) {
+            $.ajax({
+                url: '{{ route('department.getemployee') }}',
+                type: 'POST',
+                data: {
+                    "department_id": did,
+                    "_token": "{{ csrf_token() }}",
+                },
+                success: function(data) {
+                    $('#employee_id').empty();
+                    $('#employee_id').append('<option value="">Select Employee</option>');
+                    $.each(data, function(key, value) {
+                        var select = '';
+                        if (key == '{{ $transfer->employee_id }}') {
+                            select = 'selected';
+                        }
+
+                        $('#employee_id').append('<option value="' + key + '"  ' + select + '>' +
+                            value + '</option>');
+                    });
+                }
+            });
+        }
+    </script>
+{{-- @endpush --}}
+

@@ -1,6 +1,6 @@
 <?php
 // System : ERPGo SaaS
-// System Version : 7.6
+// System Version : 7.7
 
 function getPhpVersionInfo()
 {

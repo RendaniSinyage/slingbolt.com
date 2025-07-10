@@ -106,7 +106,7 @@
                             <h5>{{ __('Staff Report') }}</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
+                            <div class="row align-items-end">
                                 <div class="col-md-4">
                                     {{ Form::label('From Date', __('From Date'),['class'=>'col-form-label']) }}
                                     {{ Form::date('From Date',null, array('class' => 'form-control from_date','id'=>'data_picker1',)) }}
@@ -117,7 +117,7 @@
                                     {{ Form::date('To Date',null, array('class' => 'form-control to_date','id'=>'data_picker2',)) }}
                                     <span id="toDate"  style="color: red;"></span>
                                 </div>
-                                <div class="col-md-4" id="filter_type" style="padding-top : 38px;">
+                                <div class="col-md-4" id="filter_type" >
                                     <button  class="btn btn-primary label-margin generate_button" >{{__('Generate')}}</button>
                                 </div>
                             </div>

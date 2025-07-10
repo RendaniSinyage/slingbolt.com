@@ -440,7 +440,7 @@ class EmployeeController extends Controller
 
     function employeeNumber()
     {
-        $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest('employee_id')->first();
         if(!$latest)
         {
             return 1;
@@ -522,17 +522,16 @@ class EmployeeController extends Controller
 
     public function getdepartment(Request $request)
     {
-
-        if($request->branch_id == 0)
-        {
-            $departments = Department::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id')->toArray();
-        }
-        else
-        {
-            $departments = Department::where('created_by', '=', \Auth::user()->creatorId())->where('branch_id', $request->branch_id)->get()->pluck('name', 'id')->toArray();
-        }
+        $departments = Department::where('created_by', '=', \Auth::user()->creatorId())->where('branch_id', $request->branch_id)->get()->pluck('name', 'id')->toArray();
 
         return response()->json($departments);
+    }
+
+    public function getEmployee(Request $request)
+    {
+        $employees = Employee::where('created_by', '=', \Auth::user()->creatorId())->where('department_id', $request->department_id)->get()->pluck('name', 'id')->toArray();
+
+        return response()->json($employees);
     }
 
     public function joiningletterPdf($id)
@@ -548,7 +547,7 @@ class EmployeeController extends Controller
         $result = date("H:i",strtotime($settings['company_end_time'])-$secs);
         $obj = [
             'date' =>  \Auth::user()->dateFormat($date),
-            'app_name' => env('APP_NAME'),
+            'app_name' => $settings['company_name'] ?? env('APP_NAME'),
             'employee_name' => $employees->name,
             'address' =>!empty($employees->address)?$employees->address:'' ,
             'designation' => !empty($employees->designation->name)?$employees->designation->name:'',

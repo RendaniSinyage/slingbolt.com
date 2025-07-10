@@ -11,6 +11,7 @@
 
 @section('content')
     <div class="col-sm-12 col-lg-12 col-xl-12 col-md-12 mt-4">
+        @if (Auth::user()->type == 'company' || Auth::user()->type == 'HR')
         <div class="card">
             <div class="card-body">
                 {{ Form::open(['route' => ['payslip.store'], 'method' => 'POST', 'id' => 'payslip_form']) }}
@@ -38,6 +39,7 @@
                 {{ Form::close() }}
             </div>
         </div>
+        @endif
     </div>
 
     <div class="col-12">

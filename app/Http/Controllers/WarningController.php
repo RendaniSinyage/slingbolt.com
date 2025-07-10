@@ -50,6 +50,8 @@ class WarningController extends Controller
                 $employees        = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             }
 
+            $employees->prepend(__('Select Employee'), '');
+
             return view('warning.create', compact('employees', 'current_employee'));
         }
         else
@@ -151,6 +153,9 @@ class WarningController extends Controller
                 $current_employee = Employee::where('user_id', $user->id)->get()->pluck('name', 'id');
                 $employees        = Employee::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             }
+
+            $employees->prepend(__('Select Employee'), '');
+            
             if($warning->created_by == \Auth::user()->creatorId())
             {
                 return view('warning.edit', compact('warning', 'employees', 'current_employee'));

@@ -4,14 +4,14 @@
     <div class="row">
         <div class="form-group  col-md-6">
             {{ Form::label('from_account', __('From Account'),['class'=>'form-label']) }}<x-required></x-required>
-            {{ Form::select('from_account', $bankAccount,null, array('class' => 'form-control select','required'=>'required')) }}
+            {{ Form::select('from_account', $bankAccount,null, array('class' => 'form-control select', 'id' => 'from_account', 'required'=>'required')) }}
             <div class="text-xs mt-1">
                 {{ __('Create account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create account') }}</b></a>
             </div>
         </div>
         <div class="form-group  col-md-6">
             {{ Form::label('to_account', __('To Account'),['class'=>'form-label']) }}<x-required></x-required>
-            {{ Form::select('to_account', $bankAccount,null, array('class' => 'form-control select','required'=>'required')) }}
+            {{ Form::select('to_account', $bankAccount,null, array('class' => 'form-control select', 'id' => 'to_account', 'required'=>'required')) }}
             <div class="text-xs mt-1">
                 {{ __('Create account here.') }} <a href="{{ route('bank-account.index') }}"><b>{{ __('Create account') }}</b></a>
             </div>

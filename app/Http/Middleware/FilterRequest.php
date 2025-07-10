@@ -19,7 +19,7 @@ class FilterRequest
             if (is_string($value)) {
                 $value = htmlspecialchars_decode($value);
                 $value = preg_replace('/<\s*script\b[^>]*>(.*?)<\s*\/\s*script\s*>/is', '', $value);
-                $value = str_replace(['&lt;', '&gt;', 'javascript', 'script','alert'], '', $value);
+                $value = str_replace(['&lt;', '&gt;', 'javascript','alert'], '', $value);
             }
         });
         $request->merge($input);

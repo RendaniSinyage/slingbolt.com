@@ -13,7 +13,7 @@
     </script>
 @endpush
 @section('page-title')
-    {{__('Manage Vendor-Detail')}}
+    {{__('Manage Vendor Detail')}}
 @endsection
 @section('breadcrumb')
     <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
@@ -54,6 +54,11 @@
                     <p class="card-text mb-0">{{$vendor->name}}</p>
                     <p class="card-text mb-0">{{$vendor->email}}</p>
                     <p class="card-text mb-0">{{$vendor->contact}}</p>
+                    @if (count($vendor->customField) > 0)
+                        @foreach ($vendor->customField as $field)
+                            <p class="card-text mb-0"><strong>{{ $field->name }} : </strong>{{ $field->value ?? '-' }}</p>
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>

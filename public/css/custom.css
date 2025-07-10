@@ -2325,6 +2325,10 @@ body.theme-10 .border-primary {
     background: rgba(62, 201, 214, 0.1);
 }
 
+.support-ticket-card .support-card-inner .white-icon{
+    fill: #ffffff !important;
+}
+
 .dash-info-card .info-card-inner .info-icon,
 .pos-dash-card .pos-card-inner .pos-icon,
 .warehouse-card .warehouse-card-inner .warehouse-icon,
@@ -3884,7 +3888,7 @@ select {
     color: var(--bs-white);
 }
 .permission-inner {
-    height: 177px;
+    max-height: 177px;
     overflow-y: auto;
 }
 .permission-inner .badge{

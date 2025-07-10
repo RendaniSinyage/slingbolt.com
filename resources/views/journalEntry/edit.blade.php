@@ -257,13 +257,23 @@
 
                                 <td width="25%" class="form-group pt-0">
                                     <select name="account" class="form-control" required="required">
-                                        @foreach ($chartAccounts as $chartAccount)
-                                            <option value="{{ $chartAccount['id'] }}" class="subAccount">{{ $chartAccount['code_name'] }}</option>
-                                            @foreach ($subAccounts as $subAccount)
-                                                @if ($chartAccount['id'] == $subAccount['account'])
-                                                    <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp; {{ $subAccount['code_name'] }}</option>
-                                                @endif
-                                            @endforeach
+                                        <option value="">{{ __('Select Chart of Account') }}</option>
+                                        @foreach ($chartAccounts as $typeName => $subtypes)
+                                            <optgroup label="{{ $typeName }}">
+                                                @foreach ($subtypes as $subtypeId => $subtypeData)
+                                                    <option disabled style="color: #000; font-weight: bold;">{{ $subtypeData['account_name'] }}</option>
+                                                    @foreach ($subtypeData['chart_of_accounts'] as $chartOfAccount)
+                                                        <option value="{{ $chartOfAccount['id'] }}">
+                                                            &nbsp;&nbsp;&nbsp;{{ $chartOfAccount['account_name'] }}
+                                                        </option>
+                                                        @foreach ($subtypeData['subAccounts'] as $subAccount)
+                                                            @if ($chartOfAccount['id'] == $subAccount['parent_account'])
+                                                            <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp;&nbsp; {{' - '. $subAccount['account_name'] }}</option>
+                                                            @endif
+                                                        @endforeach
+                                                    @endforeach
+                                                @endforeach
+                                            </optgroup>
                                         @endforeach
                                     </select>
                                 </td>

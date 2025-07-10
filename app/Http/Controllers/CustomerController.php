@@ -115,7 +115,7 @@ class CustomerController extends Controller
                 $customer->shipping_phone   = $request->shipping_phone;
                 $customer->shipping_zip     = $request->shipping_zip;
                 $customer->shipping_address = $request->shipping_address;
-
+                $customer->balance          = $request->balance ?? 0;
                 $customer->lang = !empty($default_language) ? $default_language->value : '';
 
                 $customer->save();
@@ -159,6 +159,7 @@ class CustomerController extends Controller
         }
         $id       = \Crypt::decrypt($ids);
         $customer = Customer::find($id);
+        $customer->customField = CustomField::getShowData($customer, 'customer');
 
         return view('customer.show', compact('customer'));
     }
@@ -221,6 +222,7 @@ class CustomerController extends Controller
             $customer->shipping_phone   = $request->shipping_phone;
             $customer->shipping_zip     = $request->shipping_zip;
             $customer->shipping_address = $request->shipping_address;
+            $customer->balance          = $request->balance ?? 0;
             $customer->save();
 
             CustomField::saveData($customer, $request->customField);
@@ -257,7 +259,7 @@ class CustomerController extends Controller
 
     function customerNumber()
     {
-        $latest = Customer::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Customer::where('created_by', '=', \Auth::user()->creatorId())->latest('customer_id')->first();
         if(!$latest)
         {
             return 1;

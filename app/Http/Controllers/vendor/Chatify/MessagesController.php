@@ -37,13 +37,22 @@ class MessagesController extends Controller
         // check if user authorized
         if(Auth::check())
         {
-            return Chatify::pusherAuth(
-                $request['channel_name'], $request['socket_id'], $authData
-            );
+            $response = Chatify::pusherAuth(
+                    $request['channel_name'], 
+                    $request['socket_id'], 
+                    $authData
+                );
+                
+            return response()->json(json_decode($response));
+
+            // return Chatify::pusherAuth(
+            //     $request['channel_name'], $request['socket_id'], $authData
+            // );
         }
 
         // if not authorized
-        return new Response('Unauthorized', 401);
+        return response()->json(['error' => 'Unauthorized'], 401);
+        // return new Response('Unauthorized', 401);
 
 
     }

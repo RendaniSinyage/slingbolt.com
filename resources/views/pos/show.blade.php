@@ -41,7 +41,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="row">
+                <div class="row" style="overflow-x: auto ">
                     <table class="table">
                         <thead>
                         <tr>

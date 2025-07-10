@@ -903,7 +903,7 @@
                                                 <li
                                                     class="dash-item {{ Request::route()->getName() == 'credit.note' ? ' active' : '' }}">
                                                     <a class="dash-link"
-                                                        href="{{ route('credit.note') }}">{{ __('Credit Note') }}</a>
+                                                        href="{{ route('custom-credit.note') }}">{{ __('Credit Note') }}</a>
                                                 </li>
                                             @endcan
                                         </ul>
@@ -948,7 +948,7 @@
                                                 <li
                                                     class="dash-item  {{ Request::route()->getName() == 'debit.note' ? ' active' : '' }}">
                                                     <a class="dash-link"
-                                                        href="{{ route('debit.note') }}">{{ __('Debit Note') }}</a>
+                                                        href="{{ route('custom-debit.note') }}">{{ __('Debit Note') }}</a>
                                                 </li>
                                             @endcan
                                         </ul>
@@ -1513,7 +1513,7 @@
                     </li>
                 @endif
 
-                @if (Gate::check('manage timesheet'))
+                {{-- @if (Gate::check('manage timesheet'))
                     <li
                         class="dash-item dash-hasmenu {{ Request::segment(1) == 'timesheet-list' ? ' active' : '' }}">
                         <a href="{{ route('timesheet.list') }}" class="dash-link">
@@ -1521,7 +1521,7 @@
                                 class="dash-mtext">{{ __('Timesheet') }}</span>
                         </a>
                     </li>
-                @endif
+                @endif --}}
 
                 @if (Gate::check('manage project task'))
                     <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'calendar' ? ' active' : '' }}">

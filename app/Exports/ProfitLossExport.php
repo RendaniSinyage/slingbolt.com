@@ -3,7 +3,6 @@
 namespace App\Exports;
 
 use Maatwebsite\Excel\Concerns\FromArray;
-use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\BeforeWriting;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -12,14 +11,18 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Events\AfterSheet;
 use Maatwebsite\Excel\Concerns\WithCustomStartCell;
-use Illuminate\Support\Collection;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithMapping;
 
-class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyles, WithColumnWidths, WithCustomStartCell
+class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyles, WithColumnWidths, WithCustomStartCell, WithMapping
 {
     /**
     * @return \Illuminate\Support\Collection
     */
+
+    public $data;       
+    public $companyName;
+    public $startDate;  
+    public $endDate;    
 
     public function __construct($data , $startDate, $endDate, $companyName)
     {
@@ -55,18 +58,18 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
                     {
                         $netAmount = -$account['netAmount'];
                     }
-                    if ($account['account'] == 'parent' || $account['account'] == 'parentTotal')
+                    if($account['account'] == 'subAccount')
                     {
                         $formattedData[] = [
-                            'Account Name' => '   ' . $account['account_name'],
+                            'Account Name' => '       ' . $account['account_name'],
                             'Account No'   => $account['account_code'],
                             'Total'        => $netAmount
                         ];
                     }
-                    elseif (!preg_match('/\btotal\b/i', $account['account_name']) || $account['account'] == 'subAccount')
+                    elseif ($account['account'] == 'parent' || $account['account'] == 'parentTotal' || !preg_match('/\btotal\b/i', $account['account_name']))
                     {
                         $formattedData[] = [
-                            'Account Name' => '     ' . $account['account_name'],
+                            'Account Name' => '   ' . $account['account_name'],
                             'Account No'   => $account['account_code'],
                             'Total'        => $netAmount
                         ];
@@ -94,7 +97,6 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
             
             }
         }
-
 
         $grossProfit = $totalIncome - $totalCosts;
         
@@ -134,19 +136,18 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
                     $netAmount = -$account['netAmount'];
                 }
 
-
-                if ($account['account'] == 'parent' || $account['account'] == 'parentTotal')
+                if ($account['account'] == 'subAccount')
                 {
                     $formattedData[] = [
-                        'Account Name' => '   ' . $account['account_name'],
+                        'Account Name' => '        ' . $account['account_name'],
                         'Account No'   => $account['account_code'],
                         'Total'        => $netAmount
                     ];
                 }
-                elseif (!preg_match('/\btotal\b/i', $account['account_name']) || $account['account'] == 'subAccount')
+                elseif (!preg_match('/\btotal\b/i', $account['account_name']) || $account['account'] == 'parent' || $account['account'] == 'parentTotal')
                 {
                     $formattedData[] = [
-                        'Account Name' => '     ' . $account['account_name'],
+                        'Account Name' => '   ' . $account['account_name'],
                         'Account No'   => $account['account_code'],
                         'Total'        => $netAmount
                     ];
@@ -159,6 +160,7 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
                         'Total'        => $netAmount
                     ];
                 }
+                $totalExpense = $netAmount;
             }
             }
 
@@ -173,6 +175,15 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
         $this->companyName = $companyName;
         $this->startDate   = $startDate;
         $this->endDate     = $endDate;
+    }
+
+    public function map($row): array
+    {
+        return [
+            $row['Account Name'],
+            $row['Account No'],
+            ($row['Total'] === 0 || $row['Total'] === 0.0) ? '0' : $row['Total'],
+        ];
     }
 
     public function startCell(): string

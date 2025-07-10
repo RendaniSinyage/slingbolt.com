@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -247,6 +248,13 @@ class PaytmPaymentController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paytm')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Paytm.'));
+        }
+        
         $this->invoiceData = $invoice;
         $user      = User::find($invoice->created_by);
 
@@ -303,7 +311,7 @@ class PaytmPaymentController extends Controller
         $invoice   = Invoice::find($invoiceID);
 
         $orderID  = strtoupper(str_replace('.', '', uniqid('', true)));
-        $settings = DB::table('settings')->where('created_by', '=',$invoice->created_by)->get()->pluck('value', 'name');
+        $settings = Utility::settingsById($invoice->created_by);
 
         $this->invoiceData = $invoice;
         $payment  = $this->companyPaymentConfig();
@@ -318,12 +326,13 @@ class PaytmPaymentController extends Controller
 
                 // if($transaction->isSuccessful())
                 // {
-
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paytm')->first();
                     $payments = InvoicePayment::create(
                         [
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $request->amount,
+                            'account_id' => $account->id,
                             'payment_method' => 1,
                             'order_id' => $orderID,
                             'payment_type' => __('Paytm'),
@@ -344,8 +353,12 @@ class PaytmPaymentController extends Controller
                         Invoice::change_status($invoice->id, 3);
                     }
 
+                    Utility::addOnlinePaymentData($payments , $invoice , 'paytm');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

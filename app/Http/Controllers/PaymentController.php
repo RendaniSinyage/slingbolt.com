@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
 use App\Models\BillAccount;
 use App\Models\BillPayment;
@@ -9,7 +10,6 @@ use App\Models\ChartOfAccount;
 use App\Models\Payment;
 use App\Models\ProductServiceCategory;
 use App\Models\Transaction;
-use App\Models\TransactionLines;
 use App\Models\Utility;
 use App\Models\Vender;
 use Illuminate\Http\Request;
@@ -64,7 +64,7 @@ class PaymentController extends Controller
     {
         if (\Auth::user()->can('create payment')) {
             $venders = Vender::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $venders->prepend('--', null);
+            $venders->prepend('Select Vendor', null);
 
             $categories = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'expense')->get()->pluck('name', 'id');
             $categories->prepend('Select Category', '');
@@ -91,6 +91,7 @@ class PaymentController extends Controller
                     'amount' => 'required',
                     'account_id' => 'required',
                     'category_id' => 'required',
+                    'vender_id' => 'required'
                 ]
             );
             if ($validator->fails()) {
@@ -99,6 +100,12 @@ class PaymentController extends Controller
                 return redirect()->back()->with('error', $messages->first());
             }
 
+            $bankAccount = BankAccount::find($request->account_id);
+            if($bankAccount->chart_account_id == 0)
+            {
+                return redirect()->back()->with('error', __('This bank account is not connect with chart of account, so please connect first.'));
+            }
+            
             $payment = new Payment();
             $payment->date = $request->date;
             $payment->amount = $request->amount;
@@ -130,27 +137,30 @@ class PaymentController extends Controller
             $payment->created_by = \Auth::user()->creatorId();
             $payment->save();
 
-            $chartAccountId = ChartOfAccount::find($request->account_id);
-
-            $accountId = BankAccount::find($payment->account_id);
-            $data = [
-                'account_id' => $accountId->chart_account_id,
-                'transaction_type' => 'Debit',
+            $account     = BankAccount::find($payment->account_id);
+            $get_account = ChartOfAccount::find($account->chart_account_id);
+            $data        = [
+                'account_id'         => !empty($get_account)? $get_account->id : 0,
+                'transaction_type'   => 'credit',
                 'transaction_amount' => $payment->amount,
-                'reference' => 'Payment',
-                'reference_id' => $payment->id,
-                'reference_sub_id' => 0,
-                'date' => $payment->date,
+                'reference'          => 'Payment',
+                'reference_id'       => $payment->id,
+                'reference_sub_id'   => 0,
+                'date'               => $payment->date,
             ];
-            Utility::addTransactionLines($data , 'create');
+            Utility::addTransactionLines($data);
 
-            $account = new BillAccount();
-            $account->chart_account_id = $chartAccountId;
-            $account->price = $request->amount;
-            $account->description = $request->description;
-            $account->type = 'Payment';
-            $account->ref_id = $payment->id;
-            $account->save();
+            $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
+            $data    = [
+                'account_id'         => !empty($account) ? $account->id : 0,
+                'transaction_type'   => 'debit',
+                'transaction_amount' => $payment->amount,
+                'reference'          => 'Payment',
+                'reference_id'       => $payment->id,
+                'reference_sub_id'   => 0,
+                'date'               => $payment->date,
+            ];
+            Utility::addTransactionLines($data);
 
             $category = ProductServiceCategory::where('id', $request->category_id)->first();
             $payment->payment_id = $payment->id;
@@ -171,9 +181,8 @@ class PaymentController extends Controller
             $payment->bill = '';
 
             if (!empty($vender)) {
-                Utility::userBalance('vendor', $vender->id, $request->amount, 'debit');
+                Utility::updateUserBalance('vendor', $vender->id, $request->amount, 'credit');
             }
-
             Utility::bankAccountBalance($request->account_id, $request->amount, 'debit');
 
             //For Notification
@@ -203,7 +212,7 @@ class PaymentController extends Controller
 
         if (\Auth::user()->can('edit payment')) {
             $venders = Vender::where('created_by', '=', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $venders->prepend('--', 0);
+            $venders->prepend('Select Vendor', 0);
 
             $categories = ProductServiceCategory::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'expense')->get()->pluck('name', 'id');
             $categories->prepend('Select Category', '');
@@ -241,14 +250,13 @@ class PaymentController extends Controller
             }
             $vender = Vender::where('id', $request->vender_id)->first();
             if (!empty($vender)) {
-                Utility::userBalance('vendor', $vender->id, $payment->amount, 'credit');
+                Utility::updateUserBalance('vendor', $vender->id, $payment->amount, 'debit');
             }
             Utility::bankAccountBalance($payment->account_id, $payment->amount, 'credit');
 
             $payment->date = $request->date;
             $payment->amount = $request->amount;
             $payment->account_id = $request->account_id;
-//            $payment->chart_account_id  = $request->chart_account_id;
             $payment->vender_id = $request->vender_id;
             $payment->category_id = $request->category_id;
             $payment->payment_method = 0;
@@ -279,15 +287,28 @@ class PaymentController extends Controller
             $payment->description = $request->description;
             $payment->save();
 
-            $accountId = BankAccount::find($payment->account_id);
-            $data = [
-                'account_id' => $accountId->chart_account_id,
-                'transaction_type' => 'Debit',
+            $account     = BankAccount::find($payment->account_id);
+            $get_account = ChartOfAccount::find($account->chart_account_id);
+            $data        = [
+                'account_id'         => !empty($get_account)? $get_account->id : 0,
+                'transaction_type'   => 'credit',
                 'transaction_amount' => $payment->amount,
-                'reference' => 'Payment',
-                'reference_id' => $payment->id,
-                'reference_sub_id' => 0,
-                'date' => $payment->date,
+                'reference'          => 'Payment',
+                'reference_id'       => $payment->id,
+                'reference_sub_id'   => 0,
+                'date'               => $payment->date,
+            ];
+            Utility::addTransactionLines($data , 'edit' , 'notes');
+
+            $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
+            $data    = [
+                'account_id'         => !empty($account) ? $account->id : 0,
+                'transaction_type'   => 'debit',
+                'transaction_amount' => $payment->amount,
+                'reference'          => 'Payment',
+                'reference_id'       => $payment->id,
+                'reference_sub_id'   => 0,
+                'date'               => $payment->date,
             ];
             Utility::addTransactionLines($data , 'edit');
 
@@ -299,9 +320,8 @@ class PaymentController extends Controller
             Transaction::editTransaction($payment);
 
             if (!empty($vender)) {
-                Utility::userBalance('vendor', $vender->id, $request->amount, 'debit');
+                Utility::updateUserBalance('vendor', $vender->id, $request->amount, 'credit');
             }
-
             Utility::bankAccountBalance($request->account_id, $request->amount, 'debit');
 
             return redirect()->route('payment.index')->with('success', __('Payment Updated Successfully') . ((isset($result) && $result != 1) ? '<br> <span class="text-danger">' . $result . '</span>' : ''));
@@ -321,8 +341,7 @@ class PaymentController extends Controller
                     $result = Utility::changeStorageLimit(\Auth::user()->creatorId(), $file_path);
 
                 }
-
-                TransactionLines::where('reference_id', $payment->id)->where('reference', 'Payment')->delete();
+                AddTransactionLine::where('reference_id',$payment->id)->where('reference', 'Payment')->delete();
 
                 $payment->delete();
                 $type = 'Payment';
@@ -330,7 +349,7 @@ class PaymentController extends Controller
                 Transaction::destroyTransaction($payment->id, $type, $user);
 
                 if ($payment->vender_id != 0) {
-                    Utility::userBalance('vendor', $payment->vender_id, $payment->amount, 'credit');
+                    Utility::updateUserBalance('vendor', $payment->vender_id, $payment->amount, 'debit');
                 }
                 Utility::bankAccountBalance($payment->account_id, $payment->amount, 'credit');
 

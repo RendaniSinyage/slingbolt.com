@@ -291,6 +291,8 @@
                                                     <td><b>{{$user->priceFormat($totalRate)}}</b></td>
                                                     <td><b>{{$user->priceFormat($totalTaxPrice)}}</b></td>
                                                     <td><b>{{$user->priceFormat($totalDiscount)}}</b></td>
+                                                    <td></td>
+                                                    <td></td>
                                                 </tr>
                                                 <tr>
                                                     <td colspan="6"></td>

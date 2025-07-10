@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\BankAccount;
 use App\Models\BillPayment;
 use App\Models\ChartOfAccount;
+use App\Models\ChartOfAccountSubType;
 use App\Models\ChartOfAccountType;
 use App\Models\CustomField;
 use App\Models\InvoicePayment;
@@ -37,22 +38,59 @@ class BankAccountController extends Controller
     {
         if(\Auth::user()->can('create bank account'))
         {
-            $chartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(code, " - ", name) AS code_name, id'))
-            ->where('parent', '=', 0)
-                ->where('created_by', \Auth::user()->creatorId())->get()
-                ->pluck('code_name', 'id');
-            $chartAccounts->prepend('Select Account', '');
+            $accountTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())->get();
 
-            $subAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id, chart_of_accounts.code, chart_of_accounts.name , chart_of_account_parents.account'));
-            $subAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-            $subAccounts->where('chart_of_accounts.parent', '!=', 0);
-            $subAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-            $subAccounts = $subAccounts->get()->toArray();
+            $chartAccounts = [];
 
+            foreach ($accountTypes as $type) {
+                $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    ->get();
 
+                $temp = [];
+
+                foreach ($accountTypes as $accountType) {
+                    $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+
+                    $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                    ->where('created_by', '=', \Auth::user()->creatorId())
+                    ->get();
+
+                    $tempData = [
+                        'account_name' => $accountType->name,
+                        'chart_of_accounts' => [],
+                        'subAccounts' => [],
+                    ];
+                    foreach ($chartOfAccounts as $chartOfAccount) {
+                        $tempData['chart_of_accounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                        ];
+                    }
+
+                    foreach ($incomeSubAccounts as $chartOfAccount) {
+                        $tempData['subAccounts'][] = [
+                            'id'             => $chartOfAccount->id,
+                            'account_number' => $chartOfAccount->account_number,
+                            'account_name'   => $chartOfAccount->name,
+                            'parent'         => $chartOfAccount->parent,
+                            'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                        ];
+                    }
+                    $temp[$accountType->id] = $tempData;
+                }
+
+                $chartAccounts[$type->name] = $temp;
+            }
+            
+            $payments = BankAccount::payments();
             $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'account')->get();
 
-            return view('bankAccount.create', compact('customFields','chartAccounts' , 'subAccounts'));
+            return view('bankAccount.create', compact('customFields','chartAccounts' , 'payments'));
         }
         else
         {
@@ -69,6 +107,7 @@ class BankAccountController extends Controller
                 'holder_name' => 'required',
                 'bank_name' => 'required',
                 'account_number' => 'required',
+                'payment_name' => 'required'
             ];
 
             if ($request->contact_number != null) {
@@ -82,28 +121,22 @@ class BankAccountController extends Controller
                 return redirect()->route('bank-account.index')->with('error', $messages->first());
             }
 
-            $account                  = new BankAccount();
+            if (BankAccount::where('payment_name', $request->payment_name)->where('created_by' , \Auth::user()->creatorId())->exists()) {
+                return redirect()->route('bank-account.index')->with('error', __('This payment name already exists.'));
+            }
+
+            $account                   = new BankAccount();
             $account->chart_account_id = $request->chart_account_id;
-            $account->holder_name     = $request->holder_name;
-            $account->bank_name       = $request->bank_name;
-            $account->account_number  = $request->account_number;
-            $account->opening_balance = $request->opening_balance ? $request->opening_balance : 0;
-            $account->contact_number  = $request->contact_number ? $request->contact_number : '-';
-            $account->bank_address    = $request->bank_address ? $request->bank_address : '-';
-            $account->created_by      = \Auth::user()->creatorId();
+            $account->payment_name     = $request->payment_name;
+            $account->holder_name      = $request->holder_name;
+            $account->bank_name        = $request->bank_name;
+            $account->account_number   = $request->account_number;
+            $account->opening_balance  = $request->opening_balance ? $request->opening_balance : 0;
+            $account->contact_number   = $request->contact_number ? $request->contact_number : '-';
+            $account->bank_address     = $request->bank_address ? $request->bank_address : '-';
+            $account->created_by       = \Auth::user()->creatorId();
             $account->save();
             CustomField::saveData($account, $request->customField);
-
-            $data = [
-                'account_id' => $account->chart_account_id,
-                'transaction_type' => 'Credit',
-                'transaction_amount' => $account->opening_balance,
-                'reference' => 'Bank Account',
-                'reference_id' => $account->id,
-                'reference_sub_id' => 0,
-                'date' => date('Y-m-d'),
-            ];
-            Utility::addTransactionLines($data , 'create');
 
             return redirect()->route('bank-account.index')->with('success', __('Account successfully created.'));
         }
@@ -125,22 +158,60 @@ class BankAccountController extends Controller
         {
             if($bankAccount->created_by == \Auth::user()->creatorId())
             {
-                $chartAccounts = ChartOfAccount::select(\DB::raw('CONCAT(code, " - ", name) AS code_name, id'))
-                ->where('parent', '=', 0)
-                    ->where('created_by', \Auth::user()->creatorId())->get()
-                    ->pluck('code_name', 'id');
-                $chartAccounts->prepend('Select Account', 0);
+                $accountTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())->get();
 
-                $subAccounts = ChartOfAccount::select(\DB::raw('CONCAT(chart_of_accounts.code, " - ", chart_of_accounts.name) AS code_name, chart_of_accounts.id, chart_of_accounts.code, chart_of_accounts.name , chart_of_account_parents.account'));
-                $subAccounts->leftjoin('chart_of_account_parents', 'chart_of_accounts.parent', 'chart_of_account_parents.id');
-                $subAccounts->where('chart_of_accounts.parent', '!=', 0);
-                $subAccounts->where('chart_of_accounts.created_by', \Auth::user()->creatorId());
-                $subAccounts = $subAccounts->get()->toArray();
+                $chartAccounts = [];
+    
+                foreach ($accountTypes as $type) {
+                    $accountTypes = ChartOfAccountSubType::where('type', $type->id)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                        ->get();
+    
+                    $temp = [];
+    
+                    foreach ($accountTypes as $accountType) {
+                        $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
+                            ->where('created_by', '=', \Auth::user()->creatorId())
+                            ->get();
+    
+                        $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
+    
+                        $tempData = [
+                            'account_name'      => $accountType->name,
+                            'chart_of_accounts' => [],
+                            'subAccounts'       => [],
+                        ];
+                        foreach ($chartOfAccounts as $chartOfAccount) {
+                            $tempData['chart_of_accounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                            ];
+                        }
+    
+                        foreach ($incomeSubAccounts as $chartOfAccount) {
+                            $tempData['subAccounts'][] = [
+                                'id'             => $chartOfAccount->id,
+                                'account_number' => $chartOfAccount->account_number,
+                                'account_name'   => $chartOfAccount->name,
+                                'parent'         => $chartOfAccount->parent,
+                                'parent_account' => !empty($chartOfAccount->parentAccount) ? $chartOfAccount->parentAccount->account : 0,
+                            ];
+                        }
+                        $temp[$accountType->id] = $tempData;
+                    }
+    
+                    $chartAccounts[$type->name] = $temp;
+                }
 
                 $bankAccount->customField = CustomField::getData($bankAccount, 'account');
                 $customFields             = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'account')->get();
+                $payments = BankAccount::payments();
 
-                return view('bankAccount.edit', compact('bankAccount', 'customFields','chartAccounts','subAccounts'));
+                return view('bankAccount.edit', compact('bankAccount', 'customFields','chartAccounts' , 'payments'));
             }
             else
             {
@@ -163,6 +234,7 @@ class BankAccountController extends Controller
                 'holder_name' => 'required',
                 'bank_name' => 'required',
                 'account_number' => 'required',
+                'payment_name' => 'required'
             ];
 
             if ($request->contact_number != null) {
@@ -176,27 +248,21 @@ class BankAccountController extends Controller
                 return redirect()->route('bank-account.index')->with('error', $messages->first());
             }
 
+            if (BankAccount::where('id', '!=', $bankAccount->id)->where('payment_name', $request->payment_name)->where('created_by' , \Auth::user()->creatorId())->exists()) {
+                return redirect()->route('bank-account.index')->with('error', __('This payment name already exists.'));
+            }
+
             $bankAccount->chart_account_id = $request->chart_account_id;
-            $bankAccount->holder_name     = $request->holder_name;
-            $bankAccount->bank_name       = $request->bank_name;
-            $bankAccount->account_number  = $request->account_number;
-            $bankAccount->opening_balance = $request->opening_balance ? $request->opening_balance : 0;
-            $bankAccount->contact_number  = $request->contact_number ? $request->contact_number : '-';
-            $bankAccount->bank_address    = $request->bank_address ? $request->bank_address : '-';
-            $bankAccount->created_by      = \Auth::user()->creatorId();
+            $bankAccount->payment_name     = $request->payment_name;
+            $bankAccount->holder_name      = $request->holder_name;
+            $bankAccount->bank_name        = $request->bank_name;
+            $bankAccount->account_number   = $request->account_number;
+            $bankAccount->opening_balance  = $request->opening_balance ? $request->opening_balance : 0;
+            $bankAccount->contact_number   = $request->contact_number ? $request->contact_number : '-';
+            $bankAccount->bank_address     = $request->bank_address ? $request->bank_address : '-';
+            $bankAccount->created_by       = \Auth::user()->creatorId();
             $bankAccount->save();
             CustomField::saveData($bankAccount, $request->customField);
-
-            $data = [
-                'account_id' => $bankAccount->chart_account_id,
-                'transaction_type' => 'Credit',
-                'transaction_amount' => $bankAccount->opening_balance,
-                'reference' => 'Bank Account',
-                'reference_id' => $bankAccount->id,
-                'reference_sub_id' => 0,
-                'date' => date('Y-m-d'),
-            ];
-            Utility::addTransactionLines($data , 'edit');
 
             return redirect()->route('bank-account.index')->with('success', __('Account successfully updated.'));
         }

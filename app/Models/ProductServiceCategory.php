@@ -69,7 +69,7 @@ class ProductServiceCategory extends Model
             ->whereRAW('YEAR(date) =?', [$year])
             ->sum('amount');
 
-            $bills     =  $this->bills()->with(['accounts','items'])->get()
+            $bills     =  $this->bills()->with(['items'])->get()
             ->sum->getTotal();
         $totalExpense = (!empty($payment) ? $payment : 0) + (!empty($bills) ? ($bills) : 0);
 

@@ -642,7 +642,7 @@ class UserController extends Controller
 
     public function userLogDestroy($id)
     {
-        $users = LoginDetail::where('user_id', $id)->delete();
+        $users = LoginDetail::where('id', $id)->delete();
         return redirect()->back()->with('success', 'User successfully deleted.');
     }
 

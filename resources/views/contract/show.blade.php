@@ -24,7 +24,11 @@
                     "_token": "{{ csrf_token() }}",
                 },
                 success: function(data) {
-                    show_toastr('{{ __('success') }}', 'Status Update Successfully!', 'success');
+                    if (data) {
+                        show_toastr('{{ __('success') }}', 'Status Update Successfully!', 'success');
+                    } else {
+                        show_toastr('{{ __('error') }}', 'Status Update Failed!', 'error');
+                    }
                     location.reload();
                 }
 
@@ -404,7 +408,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-5">
+                    <div class="col-md-6">
                         <div class="card report_card total_amount_card mb-0 h-100">
                             <div class="card-body pt-0">
                                 <address class="mb-0 text-sm">

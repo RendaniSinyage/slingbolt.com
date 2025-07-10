@@ -55,7 +55,7 @@ class ProjectController extends Controller
     {
         if(\Auth::user()->can('create project'))
         {
-          $users   = User::where('created_by', '=', \Auth::user()->creatorId())->where('type', '!=', 'client')->get()->pluck('name', 'id');
+          $users   = User::where('created_by', '=', \Auth::user()->creatorId())->whereNotIn('type', ['company', 'client'])->get()->pluck('name', 'id');
           $clients = User::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'client')->get()->pluck('name', 'id');
           $clients->prepend('Select Client', '');
           $users->prepend('Select User', '');
@@ -927,7 +927,7 @@ class ProjectController extends Controller
 
     function bugNumber()
     {
-        $latest = Bug::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Bug::where('created_by', '=', \Auth::user()->creatorId())->latest('bug_id')->first();
         if(!$latest)
         {
             return 1;

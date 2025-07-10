@@ -76,7 +76,7 @@
                             <div class="row">
                                 <div class="col-md-5 mb-3 mb-md-0">
                                     <div class = "border rounded p-3 mb-0">
-                                        <h4>{{ __('Refer ') . $companyName .  __(' and earn ') . $currency . (isset($setting) ? $setting->minimum_threshold_amount : '') . __(' per paid signup!') }}</h4>
+                                        <h4>{{ __('Refer ') . $companyName .  __(' and earn ') . (isset($setting) ? $setting->minimum_threshold_amount : '') . __('% per paid signup!') }}</h4>
                                         {!! isset($setting) ? $setting->guideline : '' !!}
                                     </div>
                                 </div>

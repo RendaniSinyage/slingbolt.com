@@ -19,7 +19,7 @@
             {{Form::label('name',__('Name'),['class'=>'form-label'])}}<x-required></x-required>
             {{Form::text('name',null,array('class'=>'form-control font-style','placeholder'=>__('Enter Plan Name'),'required'=>'required'))}}
         </div>
-        @if($plan->price > 0)
+        @if($plan->id != 1)
             <div class="form-group col-md-6">
                 {{Form::label('price',__('Price'),['class'=>'form-label'])}}<x-required></x-required>
                 {{Form::number('price',null,array('class'=>'form-control','placeholder'=>__('Enter Plan Price'),'required'=>'required' ,'step' => '0.01'))}}
@@ -65,7 +65,7 @@
             {{ Form::label('description', __('Description'),['class'=>'form-label']) }}
             {!! Form::textarea('description', null, ['class'=>'form-control','rows'=>'2', 'placeholder' => __('Enter Description')]) !!}
         </div>
-        @if($plan->price > 0)
+        @if($plan->id != 1)
         <div class="col-md-6">
             <label class="form-check-label" for="trial"></label>
             <div class="form-group">

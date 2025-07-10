@@ -55,7 +55,7 @@ class ProposalController extends Controller
                 $query->whereBetween('issue_date', $date_range);
             }
 
-            if(!empty($request->status))
+            if(isset($request->status))
             {
                 $query->where('status', '=', $request->status);
             }
@@ -291,7 +291,7 @@ class ProposalController extends Controller
 
     function proposalNumber()
     {
-        $latest = Proposal::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Proposal::where('created_by', '=', \Auth::user()->creatorId())->latest('proposal_id')->first();
         if(!$latest)
         {
             return 1;
@@ -312,7 +312,7 @@ class ProposalController extends Controller
             $id       = Crypt::decrypt($ids);
             $proposal = Proposal::with(['items.product.unit'])->find($id);
 
-            if($proposal->created_by == \Auth::user()->creatorId())
+            if(!empty($proposal) && $proposal->created_by == \Auth::user()->creatorId())
             {
                 $customer = $proposal->customer;
                 $iteams   = $proposal->items;
@@ -909,7 +909,7 @@ class ProposalController extends Controller
 
     function invoiceNumber()
     {
-        $latest = Invoice::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Invoice::where('created_by', '=', \Auth::user()->creatorId())->latest('invoice_id')->first();
         if(!$latest)
         {
             return 1;

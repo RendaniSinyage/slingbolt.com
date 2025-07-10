@@ -276,7 +276,7 @@
                         <div class="crm-sales-card mb-4">
                             <div class="card-header d-flex align-items-center justify-content-between gap-3">
                                 <h4 class="mb-0">{{ $status->title }}</h4>
-                                <span class="f-w-600">{{ count($bugs) }}</span>
+                                <span class="f-w-600 count">{{ count($bugs) }}</span>
                             </div>
                             <div class="sales-item-wrp kanban-box" id="task-list-{{ $status->id }}" data-id="{{ $status->id }}">
                                 @foreach ($bugs as $bug)

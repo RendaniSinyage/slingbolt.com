@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -262,9 +263,16 @@ class SspayController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','sspay')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with SSpay.'));
+        }
+        
         $this->invoiceData = $invoice;
         $user      = User::find($invoice->created_by);
-        $settings  = DB::table('settings')->where('created_by', '=',$invoice->created_by)->get()->pluck('value', 'name');
+        $settings = Utility::settingsById($invoice->created_by);
         $get_amount = $request->amount;
 
         if ($invoice)
@@ -356,13 +364,14 @@ class SspayController extends Controller
             }
             else if ($request->status_id == 1)
             {
+                $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','sspay')->first();
                 $payments = InvoicePayment::create(
                     [
 
                         'invoice_id' => $invoice->id,
                         'date' => date('Y-m-d'),
                         'amount' => $amount,
-                        'account_id' => 0,
+                        'account_id' => $account->id,
                         'payment_method' => 0,
                         'order_id' => $orderID,
                         'payment_type' => __('SSpay'),
@@ -387,8 +396,12 @@ class SspayController extends Controller
                 $invoicePayment->account     = 0;
                 \App\Models\Transaction::addTransaction($invoicePayment);
 
+                Utility::addOnlinePaymentData($payments , $invoice , 'sspay');                        
+
                 //for customer balance update
                 Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                //for bank balance update
+                Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
 
 

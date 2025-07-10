@@ -1,9 +1,8 @@
 <!doctype html>
 <html xmlns="http://www.w3.org/1999/xhtml">
 @php
-    use App\Models\Utility;
-        $logo=\App\Models\Utility::get_file('uploads/logo');
-     $company_logo = Utility::getValByName('company_logo');
+    $logo=\App\Models\Utility::get_file('uploads/logo');
+    $company_logo = Utility::getValByName('company_logo_dark');
 @endphp
 <head>
     <title>

@@ -74,6 +74,11 @@
                     <p class="card-text mb-1">{{$customer['name']}}</p>
                     <p class="card-text mb-1">{{$customer['email']}}</p>
                     <p class="card-text mb-0">{{$customer['contact']}}</p>
+                    @if (count($customer->customField) > 0)
+                        @foreach ($customer->customField as $field)
+                            <p class="card-text mb-0"><strong>{{ $field->name }} : </strong>{{ $field->value ?? '-' }}</p>
+                        @endforeach
+                    @endif
                 </div>
             </div>
         </div>

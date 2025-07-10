@@ -141,7 +141,7 @@
                         taxes += '-';
                     } else {
                         for (var i = 0; i < item.taxes.length; i++) {
-                            taxes += '<span class="badge bg-primary mt-1 mr-2">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
+                            taxes += '<span class="badge bg-primary p-2 px-3 rounded mt-1 me-1">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
                             tax.push(item.taxes[i].id);
                             totalItemTaxRate += parseFloat(item.taxes[i].rate);
                         }

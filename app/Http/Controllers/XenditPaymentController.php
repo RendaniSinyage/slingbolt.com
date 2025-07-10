@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Bill;
 use App\Models\BillPayment;
 use App\Models\Coupon;
@@ -196,6 +197,13 @@ class XenditPaymentController extends Controller
 
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($fixedData['invoice_id']);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','xendit')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Xendit.'));
+        }
+        
         $user = User::where('id', $invoice->created_by)->first();
         $get_amount = $fixedData['amount'];
         $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
@@ -249,12 +257,12 @@ class XenditPaymentController extends Controller
         $get_amount = $fixedData['get_amount'];
 
         if ($getInvoice['status'] == 'PAID') {
-
+            $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','xendit')->first();
             $invoice_payment                 = new InvoicePayment();
             $invoice_payment->invoice_id     = $invoice->id;
             $invoice_payment->date           = Date('Y-m-d');
             $invoice_payment->amount         = $get_amount;
-            $invoice_payment->account_id     = 0;
+            $invoice_payment->account_id     = $account->id;
             $invoice_payment->payment_method = 0;
             $invoice_payment->order_id       = $request->orderId;
             $invoice_payment->payment_type   = 'Xendit';
@@ -279,8 +287,12 @@ class XenditPaymentController extends Controller
                 $invoice->save();
             }
 
+            Utility::addOnlinePaymentData($invoice_payment , $invoice , 'xendit');                        
+
             //for customer balance update
             Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+            //for bank balance update
+            Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
             //For Notification
             $setting  = Utility::settingsById($invoice->created_by);

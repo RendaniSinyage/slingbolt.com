@@ -82,3 +82,23 @@
         </div>
     </div>
 @endsection
+
+@push('script-page')
+<script>
+    function updateDropdowns() {
+        const fromVal = $('#complaint_from').val();
+        const againstVal = $('#complaint_against').val();
+
+        $('#complaint_against option, #complaint_from option').prop('disabled', false);
+        
+        if (fromVal) {
+            $('#complaint_against option[value="' + fromVal + '"]').prop('disabled', true);
+        }
+        if (againstVal) {
+            $('#complaint_from option[value="' + againstVal + '"]').prop('disabled', true);
+        }
+    }
+
+    $(document).on('change', '#complaint_from, #complaint_against', updateDropdowns);
+</script>
+@endpush

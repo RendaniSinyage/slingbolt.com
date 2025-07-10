@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -159,6 +160,12 @@ class MidtransPaymentController extends Controller
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
 
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','midtrans')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Midtrans.'));
+        }
+        
         $getAmount = $request->amount;
         if (Auth::check()) {
             $user = Auth::user();
@@ -230,12 +237,12 @@ class MidtransPaymentController extends Controller
             {
                 if (isset($response['status_code']) && $response['status_code'] == 200) {
 
-
+                $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','midtrans')->first();
                 $invoice_payment = new InvoicePayment();
                 $invoice_payment->invoice_id = $invoice->id;
                 $invoice_payment->date = Date('Y-m-d');
                 $invoice_payment->amount = $request->amount;
-                $invoice_payment->account_id = 0;
+                $invoice_payment->account_id = $account->id;
                 $invoice_payment->payment_method = 0;
                 $invoice_payment->order_id = $orderID;
                 $invoice_payment->payment_type = 'Midtrans';
@@ -261,8 +268,13 @@ class MidtransPaymentController extends Controller
                     $invoice->save();
                 }
             }
+
+                Utility::addOnlinePaymentData($invoice_payment , $invoice , 'midtrans');                        
+
                 //for customer balance update
                 Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                //for bank balance update
+                Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                 //For Notification
                 $setting = Utility::settingsById($invoice->created_by);

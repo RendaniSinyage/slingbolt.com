@@ -17,7 +17,7 @@
         @if(\Auth::user()->type != 'Employee')
             <div class="form-group col-md-6 col-lg-6">
                 {{ Form::label('warning_by', __('Warning By'),['class'=>'form-label'])}}<x-required></x-required>
-                {{ Form::select('warning_by', $employees,null, array('class' => 'form-control select','required'=>'required')) }}
+                {{ Form::select('warning_by', $employees,null, array('class' => 'form-control select', 'id' => 'warning_by', 'required'=>'required')) }}
                 <div class="text-xs mt-1">
                     {{ __('Create warning by here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create warning by') }}</b></a>
                 </div>
@@ -25,7 +25,7 @@
         @endif
         <div class="form-group col-md-6 col-lg-6">
             {{Form::label('warning_to',__('Warning To'),['class'=>'form-label'])}}<x-required></x-required>
-            {{Form::select('warning_to',$employees,null,array('class'=>'form-control select','required'=>'required'))}}
+            {{Form::select('warning_to',$employees,null,array('class'=>'form-control select', 'id' => 'warning_to', 'required'=>'required'))}}
             <div class="text-xs mt-1">
                 {{ __('Create warning to here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create warning to') }}</b></a>
             </div>
@@ -51,4 +51,4 @@
     <input type="submit" value="{{__('Create')}}" class="btn  btn-primary">
 </div>
 
-    {{Form::close()}}
+{{Form::close()}}

@@ -52,20 +52,22 @@ class ProjectTaskController extends Controller
         }
     }
 
-    public function create($project_id, $stage_id)
+    public function create($project_id)
     {
         if (\Auth::user()->can('create project task')) {
             $project = Project::find($project_id);
             $hrs = Project::projectHrs($project_id);
             $settings = Utility::settings();
+            $stages = TaskStage::orderBy('order')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name','id');
+            $stages->prepend(__('Select task stage'), '');
 
-            return view('project_task.create', compact('project_id', 'stage_id', 'project', 'hrs', 'settings'));
+            return view('project_task.create', compact('project_id', 'stages', 'project', 'hrs', 'settings'));
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }
     }
 
-    public function store(Request $request, $project_id, $stage_id)
+    public function store(Request $request, $project_id)
     {
         if (\Auth::user()->can('create project task')) {
             $validator = Validator::make(
@@ -73,6 +75,7 @@ class ProjectTaskController extends Controller
                     'name' => 'required',
                     'estimated_hrs' => 'required',
                     'priority' => 'required',
+                    'stage_id' => 'required',
                 ]
             );
 
@@ -85,13 +88,13 @@ class ProjectTaskController extends Controller
             $last_stage = $project->first()->id;
             $post = $request->all();
             $post['project_id'] = $project->id;
-            $post['stage_id'] = $stage_id;
+            $post['stage_id'] = $request->stage_id;
             $post['assign_to'] = $request->assign_to;
             $post['created_by'] = \Auth::user()->creatorId();
             $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date));
             $post['end_date'] = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
 
-            if ($stage_id == $last_stage) {
+            if ($request->stage_id == $last_stage) {
                 $post['marked_at'] = date('Y-m-d');
             }
             $task = ProjectTask::create($post);
@@ -339,8 +342,10 @@ class ProjectTaskController extends Controller
             $project = Project::find($project_id);
             $task = ProjectTask::find($task_id);
             $hrs = Project::projectHrs($project_id);
+            $stages = TaskStage::orderBy('order')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name','id');
+            $stages->prepend(__('Select task stage'), '');
 
-            return view('project_task.edit', compact('project', 'task', 'hrs'));
+            return view('project_task.edit', compact('project', 'task', 'hrs', 'stages'));
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }
@@ -355,6 +360,7 @@ class ProjectTaskController extends Controller
                     'name' => 'required',
                     'estimated_hrs' => 'required',
                     'priority' => 'required',
+                    'stage_id' => 'required',
                 ]
             );
 
@@ -386,14 +392,21 @@ class ProjectTaskController extends Controller
         }
     }
 
-    public function getStageTasks(Request $request, $stage_id)
+    public function getStageTasks(Request $request)
     {
-
         if (\Auth::user()->can('view project task')) {
-            $count = ProjectTask::where('stage_id', $stage_id)->count();
-            echo json_encode($count);
+            $stage_id = $request->stage_id;
+            $project_id = $request->project_id;
+            
+            $count = ProjectTask::where('stage_id', $stage_id);
+            if ($project_id) {
+                $count = $count->where('project_id', $project_id);
+            }
+            $count = $count->count();
+            
+            return response()->json($count);
         } else {
-            return redirect()->back()->with('error', __('Permission Denied.'));
+            return response()->json(['error' => __('Permission Denied.')], 401);
         }
     }
 

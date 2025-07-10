@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -158,6 +159,13 @@ class AuthorizeNetController extends Controller
     {
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','authorizenet')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with AuthorizeNet.'));
+        }
+        
         $user = User::find($invoice->created_by);
 
         $company_payment_setting = Utility::getCompanyPaymentSetting($user->id);
@@ -208,11 +216,12 @@ class AuthorizeNetController extends Controller
             $orderID = strtoupper(str_replace('.', '', uniqid('', true)));
             try
             {
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','authorizenet')->first();
                     $invoice_payment                 = new InvoicePayment();
                     $invoice_payment->invoice_id     = $invoice_id;
                     $invoice_payment->date           = Date('Y-m-d');
                     $invoice_payment->amount         = $amount;
-                    $invoice_payment->account_id         = 0;
+                    $invoice_payment->account_id         = $account->id;
                     $invoice_payment->payment_method         = 0;
                     $invoice_payment->order_id      =$orderID;
                     $invoice_payment->payment_type   = 'AuthorizeNet';
@@ -236,8 +245,13 @@ class AuthorizeNetController extends Controller
                         $invoice->status = 3;
                         $invoice->save();
                     }
+
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'authorizenet');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $customer = Customer::find($invoice->customer_id);

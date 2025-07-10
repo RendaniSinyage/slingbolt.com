@@ -245,7 +245,7 @@ class Vender extends Authenticatable
     public function vendorTotalBillSum($vendorId)
     {
         return $this->bills()
-            ->with(['items','accounts']) // Eager load the items relationship to avoid N+1 problem
+            ->with(['items']) // Eager load the items relationship to avoid N+1 problem
             ->get()
             ->sum->getTotal();
     }

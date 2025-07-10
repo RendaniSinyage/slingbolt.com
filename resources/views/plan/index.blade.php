@@ -127,22 +127,22 @@
                             <div class="col-6">
                                 <ul class="list-unstyled my-5">
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->account == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->account == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->account == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('Account') }}</li>
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->crm == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->crm == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->crm == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('CRM') }}</li>
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->hrm == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->hrm == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->hrm == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('HRM') }}</li>
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->project == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->project == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->project == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('Project') }}</li>
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->pos == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->pos == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->pos == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('POS') }}</li>
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
-                                                class="text-primary ti ti-circle-plus"></i></span>{{ $plan->chatgpt == 1 ? __('Enable') : __('Disable') }}
+                                                class="ti {{ $plan->chatgpt == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->chatgpt == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('Chat GPT') }}</li>
 
                                 </ul>
@@ -158,7 +158,7 @@
                                     <i class="ti ti-pencil text-white"></i>
 
                                 </a>
-                            @if($plan->price > 0)
+                            @if($plan->id != 1)
                             {!! Form::open([
                                                             'method' => 'DELETE',
                                                             'route' => ['plans.destroy', $plan->id],

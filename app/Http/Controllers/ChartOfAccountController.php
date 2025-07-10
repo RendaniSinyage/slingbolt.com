@@ -59,7 +59,7 @@ class ChartOfAccountController extends Controller
         $account_type = [];
 
         foreach ($types as $type) {
-            $accountTypes = ChartOfAccountSubType::where('type', $type->id)->where('created_by',\Auth::user()->creatorId())->get();
+            $accountTypes = ChartOfAccountSubType::where('type', $type->id)->where('created_by',\Auth::user()->creatorId())->whereNotIn('name',['Accounts Receivable','Accounts Payable'])->get();
             $temp = [];
             foreach($accountTypes as $accountType)
             {

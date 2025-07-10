@@ -143,7 +143,7 @@
                         taxes += '-';
                     } else {
                         for (var i = 0; i < item.taxes.length; i++) {
-                            taxes += '<span class="badge bg-primary mt-1 mr-2">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
+                            taxes += '<span class="badge bg-primary p-2 px-3 rounded mt-1 me-1">' + item.taxes[i].name + ' ' + '(' + item.taxes[i].rate + '%)' + '</span>';
                             tax.push(item.taxes[i].id);
                             totalItemTaxRate += parseFloat(item.taxes[i].rate);
                         }
@@ -560,8 +560,8 @@
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}
-                                        {{ Form::select('category_id', $category,null, array('class' => 'form-control select')) }}
+                                        {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
+                                        {{ Form::select('category_id', $category,null, array('class' => 'form-control select', 'required'=>'required')) }}
                                         <div class="text-xs mt-1">
                                             {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
                                         </div>
@@ -659,35 +659,13 @@
                                 </td>
                             </tr>
                             <tr>
-
-                                <td  class="form-group">
-                                    <select name="chart_account_id" class="form-control">
-                                        @foreach ($chartAccounts as $key => $chartAccount)
-                                            <option value="{{ $key }}" class="subAccount">{{ $chartAccount}}</option>
-                                            @foreach ($subAccounts as $subAccount)
-                                                @if ($key == $subAccount['account'])
-                                                    <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp; {{ $subAccount['name'] }}</option>
-                                                @endif
-                                            @endforeach
-                                        @endforeach
-                                    </select>
-                                </td>
-                                <td class="form-group">
-                                    <div class="input-group">
-                                        {{ Form::number('amount','', array('class' => 'form-control accountAmount','placeholder'=>__('Amount'))) }}
-                                        <span class="input-group-text bg-transparent">{{\Auth::user()->currencySymbol()}}</span>
-                                    </div>
-                                </td>
-
                                 <td colspan="2" class="form-group">
-                                    {{ Form::textarea('description', null, ['class'=>'form-control pro_description','rows'=>'1','placeholder'=>__('Description')]) }}
+                                    {{ Form::textarea('description', null, ['class'=>'form-control pro_description','rows'=>'2','placeholder'=>__('Description')]) }}
                                 </td>
-                                <td></td>
-
-
-                                <td class="text-end accountamount">
-                                    0.00
-                                </td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
+                                <td>&nbsp;</td>
                             </tr>
 
                             </tbody>

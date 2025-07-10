@@ -16921,7 +16921,7 @@ a.text-muted:hover {
   clear: both;
 }
 
-.custom-color label {
+.custom-color>label {
   width: 2.25rem;
   height: 2.25rem;
   float: left;
@@ -16938,32 +16938,32 @@ a.text-muted:hover {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .custom-color label {
+  .custom-color>label {
     transition: none;
   }
 }
 
-.custom-color label:hover {
+.custom-color>label:hover {
   cursor: pointer;
   opacity: 1;
 }
 
-.custom-color label i, .custom-color label svg {
+.custom-color>label i, .custom-color>label svg {
   opacity: 0;
   color: rgba(255, 255, 255, 0.7);
 }
 
-.custom-color input {
+.custom-color>input {
   left: -9999px;
   position: absolute;
 }
 
-.custom-color input:checked + label {
+.custom-color>input:checked + label {
   transform: scale(1.1);
   opacity: 1;
 }
 
-.custom-color input:checked + label i, .custom-color input:checked + label svg {
+.custom-color>input:checked + label i, .custom-color>input:checked + label svg {
   opacity: 1;
 }
 

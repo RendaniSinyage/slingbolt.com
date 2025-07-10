@@ -1,5 +1,6 @@
 @php
     $logo=\App\Models\Utility::get_file('uploads/logo/');
+    $company_logo = Utility::getValByName('company_logo_light');
     $setting = App\Models\Utility::colorset();
     $settings = App\Models\Utility::settingsById($job->created_by);
     $color = (!empty($setting['color'])) ? $setting['color'] : 'theme-3';
@@ -79,7 +80,7 @@ else {
         <nav class="navbar">
             <div class="container">
                 <a class="navbar-brand" href="#">
-                    <img src="{{ $logo . '/' . (isset($company_logos) && !empty($company_logos) ? $company_logos : 'logo-light.png') }}" alt="logo" style="width: 90px">
+                    <img src="{{ $logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-light.png') }}" alt="logo" style="width: 90px">
 
                 </a>
             </div>

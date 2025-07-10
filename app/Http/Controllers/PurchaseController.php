@@ -166,7 +166,7 @@ class PurchaseController extends Controller
             $id   = Crypt::decrypt($ids);
             $purchase = Purchase::find($id);
 
-            if($purchase->created_by == \Auth::user()->creatorId())
+            if(!empty($purchase) && $purchase->created_by == \Auth::user()->creatorId())
             {
 
                 $purchasePayment = PurchasePayment::where('purchase_id', $purchase->id)->first();
@@ -197,15 +197,20 @@ class PurchaseController extends Controller
                 return redirect()->back()->with('error', __('Something went wrong.'));
             }
             $purchase     = Purchase::find($idwww);
-            $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'expense')->get()->pluck('name', 'id');
-            $category->prepend('Select Category', '');
-            $warehouse     = warehouse::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
 
-            $purchase_number      = \Auth::user()->purchaseNumberFormat($purchase->purchase_id);
-            $venders          = Vender::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-            $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->where('type','!=', 'service')->get()->pluck('name', 'id');
+            if ($purchase->status != 3 && $purchase->status != 4) {
+                $category = ProductServiceCategory::where('created_by', \Auth::user()->creatorId())->where('type', 'expense')->get()->pluck('name', 'id');
+                $category->prepend('Select Category', '');
+                $warehouse     = warehouse::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
 
-            return view('purchase.edit', compact('venders', 'product_services', 'purchase', 'warehouse','purchase_number', 'category'));
+                $purchase_number      = \Auth::user()->purchaseNumberFormat($purchase->purchase_id);
+                $venders          = Vender::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                $product_services = ProductService::where('created_by', \Auth::user()->creatorId())->where('type','!=', 'service')->get()->pluck('name', 'id');
+
+                return view('purchase.edit', compact('venders', 'product_services', 'purchase', 'warehouse','purchase_number', 'category'));
+            } else {
+                return redirect()->back()->with('error', __('Permission denied.'));
+            }
         }
         else
         {
@@ -225,7 +230,9 @@ class PurchaseController extends Controller
                 $validator = \Validator::make(
                     $request->all(), [
                         'vender_id' => 'required',
+                        'warehouse_id' => 'required',
                         'purchase_date' => 'required',
+                        'category_id' => 'required',
                         'items' => 'required',
                     ]
                 );
@@ -393,7 +400,7 @@ class PurchaseController extends Controller
 
     function purchaseNumber()
     {
-        $latest = Purchase::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Purchase::where('created_by', '=', \Auth::user()->creatorId())->latest('purchase_id')->first();
         if(!$latest)
         {
             return 1;
@@ -418,7 +425,7 @@ class PurchaseController extends Controller
             $purchaseId    = Crypt::encrypt($purchase->id);
             $purchase->url = route('purchase.pdf', $purchaseId);
 
-            Utility::userBalance('vendor', $vender->id, $purchase->getTotal(), 'credit');
+            // Utility::updateUserBalance('vendor', $vender->id, $purchase->getTotal(), 'credit');
 
             $vendorArr = [
                 'vender_bill_name' => $purchase->name,
@@ -839,9 +846,9 @@ class PurchaseController extends Controller
             $payment->amount = \Auth::user()->priceFormat($request->amount);
             $payment->bill   = 'bill ' . \Auth::user()->purchaseNumberFormat($purchasePayment->purchase_id);
 
-            Utility::userBalance('vendor', $purchase->vender_id, $request->amount, 'debit');
+            // Utility::updateUserBalance('vendor', $purchase->vender_id, $request->amount, 'debit');
 
-            Utility::bankAccountBalance($request->account_id, $request->amount, 'debit');
+            // Utility::bankAccountBalance($request->account_id, $request->amount, 'debit');
 
             // Send Email
             $setings = Utility::settings();
@@ -896,8 +903,8 @@ class PurchaseController extends Controller
                 $purchase->status = 2;
             }
 
-            Utility::userBalance('vendor', $purchase->vender_id, $payment->amount, 'credit');
-            Utility::bankAccountBalance($payment->account_id, $payment->amount, 'credit');
+            // Utility::updateUserBalance('vendor', $purchase->vender_id, $payment->amount, 'credit');
+            // Utility::bankAccountBalance($payment->account_id, $payment->amount, 'credit');
 
             $purchase->save();
             $type = 'Partial';

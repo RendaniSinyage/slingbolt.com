@@ -666,7 +666,7 @@ class JobApplicationController extends Controller
 
     function employeeNumber()
     {
-        $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest('employee_id')->first();
         if(!$latest)
         {
             return 1;

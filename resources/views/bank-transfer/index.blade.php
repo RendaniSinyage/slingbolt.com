@@ -145,3 +145,23 @@
     </div>
 @endsection
 
+@push('script-page')
+<script>
+    function updateDropdowns() {
+        const fromVal = $('#from_account').val();
+        const toVal = $('#to_account').val();
+
+        $('#to_account option, #from_account option').prop('disabled', false);
+
+        if (fromVal) {
+            $('#to_account option[value="' + fromVal + '"]').prop('disabled', true);
+        }
+        if (toVal) {
+            $('#from_account option[value="' + toVal + '"]').prop('disabled', true);
+        }
+    }
+
+    $(document).on('change', '#from_account, #to_account', updateDropdowns);
+
+</script>
+@endpush

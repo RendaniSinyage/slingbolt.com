@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -321,6 +322,13 @@ class MercadoPaymentController extends Controller
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
 
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','mercado')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Mercado Pago.'));
+        }
+        
         $user      = User::find($invoice->created_by);
         $this->invoiceData = $invoice;
 
@@ -426,7 +434,7 @@ class MercadoPaymentController extends Controller
             $invoice    = Invoice::find($invoice_id);
 
             $orderID  = strtoupper(str_replace('.', '', uniqid('', true)));
-            $settings = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
+            $settings = Utility::settingsById($invoice->created_by);
 
 
             if($invoice && $request->has('status'))
@@ -436,11 +444,13 @@ class MercadoPaymentController extends Controller
 
                     if($request->status == 'approved' && $request->flag == 'success')
                     {
+                        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','mercado')->first();
                         $payments = InvoicePayment::create(
                             [
                                 'invoice_id' => $invoice_id,
                                 'date' => date('Y-m-d'),
                                 'amount' => $request->has('amount') ? $request->amount : 0,
+                                'account_id' => $account->id,
                                 'payment_method' => 1,
                                 'order_id' => $orderID,
                                 'payment_type' => __('Mercado'),
@@ -461,8 +471,12 @@ class MercadoPaymentController extends Controller
                             Invoice::change_status($invoice->id, 3);
                         }
 
+                        Utility::addOnlinePaymentData($payments , $invoice , 'mercado');                        
+                        
                         //for customer balance update
                         Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                        //for bank balance update
+                        Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
 
                         //For Notification
@@ -517,7 +531,7 @@ class MercadoPaymentController extends Controller
                 }
                 catch(\Exception $e)
                 {
-                    return redirect()-route('invoice.link.copy', Crypt::encrypt($invoice->id))->with('error', __('Invoice not found!'));
+                    return redirect()->route('invoice.link.copy', Crypt::encrypt($invoice->id))->with('error', __('Invoice not found!'));
                 }
             }
             else

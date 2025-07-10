@@ -46,6 +46,7 @@ class XSS
 
                     Utility::addNewData();
                     User::defaultEmail();
+                    Utility::addNewAccountData();
 
                     $users = User::where('type', 'company')->get();
                     foreach($users as $user)

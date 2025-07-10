@@ -488,32 +488,34 @@
                             </div>
                             <div class="card-body">
                                 <div class="table-responsive">
-                                    @if(count($announcements) > 0)
-                                        <table class="table align-items-center">
-                                            <thead>
+                                    <table class="table align-items-center">
+                                        <thead>
+                                        <tr>
+                                            <th>{{__('Title')}}</th>
+                                            <th>{{__('Start Date')}}</th>
+                                            <th>{{__('End Date')}}</th>
+                                            <th>{{__('description')}}</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody class="list">
+                                        @forelse($announcements as $announcement)
                                             <tr>
-                                                <th>{{__('Title')}}</th>
-                                                <th>{{__('Start Date')}}</th>
-                                                <th>{{__('End Date')}}</th>
-
+                                                <td>{{ $announcement->title }}</td>
+                                                <td>{{ \Auth::user()->dateFormat($announcement->start_date)  }}</td>
+                                                <td>{{ \Auth::user()->dateFormat($announcement->end_date) }}</td>
+                                                <td>{{ $announcement->description }}</td>
                                             </tr>
-                                            </thead>
-                                            <tbody class="list">
-                                            @foreach($announcements as $announcement)
-                                                <tr>
-                                                    <td>{{ $announcement->title }}</td>
-                                                    <td>{{ \Auth::user()->dateFormat($announcement->start_date) }}</td>
-                                                    <td>{{ \Auth::user()->dateFormat($announcement->end_date) }}</td>
-
-                                                </tr>
-                                            @endforeach
-                                            </tbody>
-                                        </table>
-                                    @else
-                                        <div class="p-2">
-                                            {{__('No accouncement present yet.')}}
-                                        </div>
-                                    @endif
+                                        @empty
+                                            <tr>
+                                                <td colspan="4">
+                                                    <div class="text-center">
+                                                        <h6>{{__('There is no Announcement List')}}</h6>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endforelse
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>

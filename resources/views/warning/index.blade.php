@@ -83,3 +83,24 @@
         </div>
     </div>
 @endsection
+
+@push('script-page')
+<script>
+    function updateDropdowns() {
+        const byVal = $('#warning_by').val();
+        const toVal = $('#warning_to').val();
+
+        $('#warning_to option, #warning_by option').prop('disabled', false);
+
+        if (byVal) {
+            $('#warning_to option[value="' + byVal + '"]').prop('disabled', true);
+        }
+        if (toVal) {
+            $('#warning_by option[value="' + toVal + '"]').prop('disabled', true);
+        }
+    }
+
+    $(document).on('change', '#warning_by, #warning_to', updateDropdowns);
+
+</script>
+@endpush

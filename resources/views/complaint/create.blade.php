@@ -14,10 +14,10 @@
     @endif
     {{-- end for ai module--}}
     <div class="row">
-        @if(\Auth::user()->type !='employee')
+        @if(\Auth::user()->type !='Employee')
             <div class="form-group col-md-6 col-lg-6 ">
                 {{ Form::label('complaint_from', __('Complaint From'),['class'=>'form-label'])}}<x-required></x-required>
-                {{ Form::select('complaint_from', $employees,null, array('class' => 'form-control  select','required'=>'required')) }}
+                {{ Form::select('complaint_from', $employees,null, array('class' => 'form-control  select', 'id' => 'complaint_from', 'required'=>'required')) }}
                 <div class="text-xs mt-1">
                     {{ __('Create complaint from here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create complaint from') }}</b></a>
                 </div>
@@ -25,7 +25,7 @@
         @endif
         <div class="form-group col-md-6 col-lg-6">
             {{Form::label('complaint_against',__('Complaint Against'),['class'=>'form-label'])}}<x-required></x-required>
-            {{Form::select('complaint_against',$employees,null,array('class'=>'form-control select','required'=>'required'))}}
+            {{Form::select('complaint_against',$employees,null,array('class'=>'form-control select', 'id' => 'complaint_against','required'=>'required'))}}
             <div class="text-xs mt-1">
                 {{ __('Create complaint against here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create complaint against') }}</b></a>
             </div>

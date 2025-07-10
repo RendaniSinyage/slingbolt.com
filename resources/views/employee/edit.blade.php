@@ -92,7 +92,7 @@
 
                                 <div class="form-group col-md-6">
                                     {{ Form::label('branch_id', __('Branch'), ['class' => 'form-label']) }}<x-required></x-required>
-                                    {{ Form::select('branch_id', $branches, null, ['class' => 'form-control select', 'required' => 'required', 'id' => 'branch_id']) }}
+                                    {{ Form::select('branch_id', $branches, $employee->branch_id, ['class' => 'form-control select', 'required' => 'required', 'id' => 'branch_id']) }}
                                     <div class="text-xs mt-1">
                                         {{ __('Create branch here.') }} <a href="{{ route('branch.index') }}"><b>{{ __('Create branch') }}</b></a>
                                     </div>
@@ -380,18 +380,21 @@
                 success: function(data) {
                     $('#department_id').empty();
                     $('#department_id').append(
-                        '<option value="" disabled>{{ __('Select any Department') }}</option>');
+                        '<option value="" disabled>{{ __('Select Department') }}</option>');
 
                     $.each(data, function(key, value) {
-                        $('#department_id').append('<option value="' + key + '">' + value +
+                        var selected = '';
+                        if (key == '{{ $employee->department_id }}') {
+                            selected = 'selected';
+                        }
+
+                        $('#department_id').append('<option value="' + key + '"  ' + selected + '>' + value +
                             '</option>');
                     });
-                    $('#department_id').val('');
                 }
             });
         }
-    </script>
-    <script type="text/javascript">
+
         function getDesignation(did) {
             $.ajax({
                 url: '{{ route('employee.json') }}',
@@ -402,7 +405,7 @@
                 },
                 success: function(data) {
                     $('#designation_id').empty();
-                    $('#designation_id').append('<option value="">Select any Designation</option>');
+                    $('#designation_id').append('<option value="">Select Designation</option>');
                     $.each(data, function(key, value) {
                         var select = '';
                         if (key == '{{ $employee->designation_id }}') {
@@ -417,8 +420,10 @@
         }
 
         $(document).ready(function() {
+            var b_id = $('#branch_id').val();
             var d_id = $('#department_id').val();
             var designation_id = '{{ $employee->designation_id }}';
+            getDepartment(b_id);
             getDesignation(d_id);
         });
 

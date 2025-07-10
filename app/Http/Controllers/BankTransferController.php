@@ -55,6 +55,7 @@ class BankTransferController extends Controller
         if(\Auth::user()->can('create bank transfer'))
         {
             $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $bankAccount->prepend(__('Select Bank'), '');
 
             return view('bank-transfer.create', compact('bankAccount'));
         }
@@ -74,6 +75,7 @@ class BankTransferController extends Controller
                                    'to_account' => 'required|numeric',
                                    'amount' => 'required|numeric',
                                    'date' => 'required',
+                                   'description' => 'required'
                                ]
             );
             if($validator->fails())
@@ -81,6 +83,11 @@ class BankTransferController extends Controller
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
+            }
+
+            $from_bank = BankAccount::where('id', $request->from_account)->where('created_by', \Auth::user()->creatorId())->first();
+            if (isset($from_bank->opening_balance) && $from_bank->opening_balance < $request->amount) {
+                return redirect()->back()->with('error', __('You cannot transfer more than the available balance in the from account.'));
             }
 
             $transfer                 = new BankTransfer();
@@ -117,7 +124,8 @@ class BankTransferController extends Controller
         {
             $transfer = BankTransfer::where('id',$id)->first();
             $bankAccount = BankAccount::select('*', \DB::raw("CONCAT(bank_name,' ',holder_name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-
+            $bankAccount->prepend(__('Select Bank'), '');
+            
             return view('bank-transfer.edit', compact('bankAccount', 'transfer'));
         }
         else
@@ -137,6 +145,7 @@ class BankTransferController extends Controller
                                    'to_account' => 'required|numeric',
                                    'amount' => 'required|numeric',
                                    'date' => 'required',
+                                   'description' => 'required'
                                ]
             );
             if($validator->fails())
@@ -144,6 +153,11 @@ class BankTransferController extends Controller
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
+            }
+
+            $from_bank = BankAccount::where('id', $request->from_account)->where('created_by', \Auth::user()->creatorId())->first();
+            if (isset($from_bank->opening_balance) && $from_bank->opening_balance < $request->amount) {
+                return redirect()->back()->with('error', __('You cannot transfer more than the available balance in the from account.'));
             }
 
             Utility::bankAccountBalance($transfer->from_account, $transfer->amount, 'credit');

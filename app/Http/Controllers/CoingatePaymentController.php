@@ -13,6 +13,7 @@ use App\Models\UserCoupon;
 use App\Models\Utility;
 // use CoinGate\CoinGate;
 use App\Coingate\Coingate;
+use App\Models\BankAccount;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
@@ -272,12 +273,19 @@ class CoingatePaymentController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','coingate')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with CoinGate.'));
+        }
+
         $this->invoiceData = $invoice;
         $user      = User::find($invoice->created_by);
 
         $payment   = $this->companyPaymentConfig();
 
-        $settings  = DB::table('settings')->where('created_by', '=',$invoice->created_by)->get()->pluck('value', 'name');
+        $settings  = Utility::settingsById($invoice->created_by);
 
 
         if($invoice)
@@ -355,11 +363,13 @@ class CoingatePaymentController extends Controller
         $result    = array();
         if($invoice)
         {
+            $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','coingate')->first();
             $payments = InvoicePayment::create(
                 [
                     'invoice_id' => $invoice->id,
                     'date' => date('Y-m-d'),
                     'amount' => $request->amount,
+                    'account_id' => $account->id,
                     'payment_method' => 1,
                     'order_id' => $orderID,
                     'payment_type' => __('Coingate'),
@@ -381,8 +391,12 @@ class CoingatePaymentController extends Controller
                 Invoice::change_status($invoice->id, 3);
             }
 
+            Utility::addOnlinePaymentData($payments , $invoice , 'coingate');                        
+
             //for customer balance update
             Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+            //for bank balance update
+            Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
             //For Notification
             $setting  = Utility::settingsById($invoice->created_by);

@@ -30,7 +30,7 @@ class PosController extends Controller
     public function index($id = 0)
     {
         if (Auth::user()->can('manage pos')) {
-            session()->forget('pos');
+            // session()->forget('pos');
             $customers = Customer::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'name');
             $customers->prepend('Walk-in-customer', '');
             $warehouses = warehouse::select('*', \DB::raw("CONCAT(name) AS name"))->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
@@ -324,7 +324,7 @@ class PosController extends Controller
     public function invoicePosNumber()
     {
         if (Auth::user()->can('manage pos')) {
-            $latest = Pos::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+            $latest = Pos::where('created_by', '=', \Auth::user()->creatorId())->latest('pos_id')->first();
 
             return $latest ? $latest->pos_id + 1 : 1;
         } else {
@@ -460,6 +460,8 @@ class PosController extends Controller
             $total = $subtotal - $discount;
             $total = \Auth::user()->priceFormat($total);
         }
+        
+        // session()->put('pos-discount', $discount);
 
         return response()->json(['total' => $total], '200');
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -245,6 +246,13 @@ class PaystackPaymentController extends Controller
 
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paystack')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Paystack.'));
+        }
+        
         $user      = User::find($invoice->created_by);
         $this->invoiceData = $invoice;
         $payment = $this->companyPaymentConfig();
@@ -288,8 +296,7 @@ class PaystackPaymentController extends Controller
         $this->invoiceData = $invoice;
         $payment           = $this->companyPaymentConfig();
         $orderID           = strtoupper(str_replace('.', '', uniqid('', true)));
-        $settings          = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
-
+        $settings          = Utility::settingsById($invoice->created_by);
 
         $result = array();
 
@@ -317,12 +324,13 @@ class PaystackPaymentController extends Controller
 
                 if(isset($result['status']) && $result['status'] == true)
                 {
-
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','paystack')->first();
                     $payments = InvoicePayment::create(
                         [
                             'invoice_id' => $invoice->id,
                             'date' => date('Y-m-d'),
                             'amount' => $request->amount,
+                            'account_id' => $account->id,
                             'payment_method' => 1,
                             'order_id' => $orderID,
                             'payment_type' => __('Paystack'),
@@ -343,9 +351,12 @@ class PaystackPaymentController extends Controller
                         Invoice::change_status($invoice->id, 3);
                     }
 
+                    Utility::addOnlinePaymentData($payments , $invoice , 'paystack');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);
@@ -400,7 +411,7 @@ class PaystackPaymentController extends Controller
             }
             catch(\Exception $e)
             {
-
+                dd($e);
                 return redirect()->route('invoice.link.copy', Crypt::encrypt($invoice->id))->with('error', __('Transaction has been failed.'));
             }
         }

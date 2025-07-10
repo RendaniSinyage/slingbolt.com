@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
@@ -240,6 +241,13 @@ class YooKassaController extends Controller
     {
         $invoice_id = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','yookassa')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Yookassa.'));
+        }
+        
         $this->invoiceData = $invoice;
         $user = User::find($invoice->created_by);
         $company_payment_setting = Utility::getCompanyPaymentSetting($user->id);
@@ -326,11 +334,12 @@ class YooKassaController extends Controller
                     Session::forget('yookassa_payment_id');
                     if (isset($payment) && $payment->status == "succeeded") {
 
+                    $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','yookassa')->first();
                     $invoice_payment                 = new InvoicePayment();
                     $invoice_payment->invoice_id     = $request->invoice_id;
                     $invoice_payment->date           = Date('Y-m-d');
                     $invoice_payment->amount         = $request->amount;
-                    $invoice_payment->account_id         = 0;
+                    $invoice_payment->account_id         = $account->id;
                     $invoice_payment->payment_method         = 0;
                     $invoice_payment->order_id      =$orderID;
                     $invoice_payment->payment_type   = 'Yookasa';
@@ -354,8 +363,13 @@ class YooKassaController extends Controller
                         $invoice->status = 3;
                         $invoice->save();
                     }
+
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'yookassa');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);

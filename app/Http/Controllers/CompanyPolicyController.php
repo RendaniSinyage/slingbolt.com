@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\CompanyPolicy;
+use App\Models\Employee;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 
@@ -14,8 +15,14 @@ class CompanyPolicyController extends Controller
     {
         if(\Auth::user()->can('manage company policy'))
         {
-            $companyPolicy = CompanyPolicy::where('created_by', '=', \Auth::user()->creatorId())->with('branches')->get();
 
+            $employee_branch = Employee::where('user_id', \Auth::user()->id)->pluck('branch_id');
+            if(\Auth::user()->type=='Employee' && count($employee_branch) > 0) {
+                $companyPolicy = CompanyPolicy::where('created_by', '=', \Auth::user()->creatorId())->where('branch',$employee_branch)->with('branches')->get();
+            } else {
+                $companyPolicy = CompanyPolicy::where('created_by', '=', \Auth::user()->creatorId())->with('branches')->get();
+            }
+            
             return view('companyPolicy.index', compact('companyPolicy'));
         }
         else

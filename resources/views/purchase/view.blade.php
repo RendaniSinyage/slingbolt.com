@@ -44,10 +44,12 @@
                                     <h5 class="mb-2">{{ __('Create Purchase') }}</h5>
                                     <p class="text-muted mb-2">{{ __('Created on ') }}{{ \Auth::user()->dateFormat($purchase->purchase_date) }}</p>
                                     @can('edit purchase')
-                                        <a href="{{ route('purchase.edit', \Crypt::encrypt($purchase->id)) }}"
-                                            class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip"
-                                            data-original-title="{{ __('Edit') }}"><i
-                                                class="ti ti-pencil"></i>{{ __('Edit') }}</a>
+                                        @if ($purchase->status != 3 && $purchase->status != 4)
+                                            <a href="{{ route('purchase.edit', \Crypt::encrypt($purchase->id)) }}"
+                                                class="btn btn-sm d-inline-flex align-items-center gap-2" data-bs-toggle="tooltip"
+                                                data-original-title="{{ __('Edit') }}"><i
+                                                    class="ti ti-pencil"></i>{{ __('Edit') }}</a>
+                                        @endif
                                     @endcan
                                 </div>
                             </div>
@@ -261,7 +263,6 @@
                                                 <th class="text-end text-dark" width="12%">{{__('Price')}}<br>
                                                     <small class="text-danger font-weight-bold">{{__('after tax & discount')}}</small>
                                                 </th>
-                                                <th></th>
                                             </tr>
                                             @php
                                                 $totalQuantity=0;
@@ -335,7 +336,8 @@
                                                 <td><b>{{\Auth::user()->priceFormat($totalRate)}}</b></td>
                                                 <td><b>{{\Auth::user()->priceFormat($totalDiscount)}}</b></td>
                                                 <td><b>{{\Auth::user()->priceFormat($totalTaxPrice)}}</b></td>
-
+                                                <td></td>
+                                                <td></td>
 
                                             </tr>
                                             <tr>

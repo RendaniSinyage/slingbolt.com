@@ -6,54 +6,45 @@ use App\Models\CreditNote;
 use App\Models\Invoice;
 use App\Models\Utility;
 use App\Models\Customer;
+use App\Models\CustomerCreditNotes;
+use App\Traits\updateNotesStatus;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class CreditNoteController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
-
-    public function index()
-    {
-
-        if(\Auth::user()->can('manage credit note'))
-        {
-            $invoices = Invoice::where('created_by', \Auth::user()->creatorId())->get();
-
-            return view('creditNote.index', compact('invoices'));
-        }
-        else
-        {
-            return redirect()->back()->with('error', __('Permission denied.'));
-        }
-    }
+    use updateNotesStatus;
 
     public function create($invoice_id)
     {
-
         if(\Auth::user()->can('create credit note'))
         {
+            $invoiceDue  = Invoice::where('id', $invoice_id)->first();
+            $customer    = Customer::where('id', $invoiceDue->customer_id)->first();
 
-            $invoiceDue = Invoice::where('id', $invoice_id)->first();
-
-            return view('creditNote.create', compact('invoiceDue', 'invoice_id'));
+            $creditNotes = CustomerCreditNotes::whereHas('invoices', function ($query) use ($invoiceDue) {
+                $query->where('customer_id', $invoiceDue->customer_id)
+                      ->where('created_by', \Auth::user()->creatorId());
+            })
+            ->where('status', '!=', '2')
+            ->with(['custom_customer', 'invoices'])
+            ->get()
+            ->pluck('credit_id', 'id');
+            return view('creditNote.create', compact('customer', 'invoice_id' , 'creditNotes'));
         }
         else
         {
-            return redirect()->back()->with('error', __('Permission denied.'));
+            return response()->json(['error' => __('Permission denied.')], 401);
         }
     }
 
     public function store(Request $request, $invoice_id)
     {
-
         if(\Auth::user()->can('create credit note'))
         {
-            $validator = \Validator::make(
+            $validator = Validator::make(
                 $request->all(), [
-                                   'amount' => 'required|numeric',
+                                   'amount' => 'required|numeric|gt:0',
                                    'date' => 'required',
                                ]
             );
@@ -63,34 +54,36 @@ class CreditNoteController extends Controller
 
                 return redirect()->back()->with('error', $messages->first());
             }
+
             $invoiceDue = Invoice::where('id', $invoice_id)->first();
+
             if($request->amount > $invoiceDue->getDue())
             {
-                return redirect()->back()->with('error', 'Maximum ' . \Auth::user()->priceFormat($invoiceDue->getDue()) . ' credit limit of this invoice.');
+                return redirect()->back()->with('error', 'Maximum ' .\Auth::user()->priceFormat($invoiceDue->getDue()) . ' credit limit of this invoice.');
             }
-            $invoice = Invoice::where('id', $invoice_id)->first();
+
 
             $credit              = new CreditNote();
             $credit->invoice     = $invoice_id;
-            $credit->customer    = $invoice->customer_id;
+            $credit->credit_note = $request->credit_note;
+            $credit->customer    = 0;
             $credit->date        = $request->date;
             $credit->amount      = $request->amount;
-            $credit->description = $request->description;
+            $credit->description = isset($request->description) ? $request->description : '--';
             $credit->save();
 
-            $customer = Customer::find($invoice->customer_id);
-            $balance = 0;
-            if($customer->credit_balance != 0)
+            if($invoiceDue->getDue() <= 0)
             {
-                $balance = $customer->credit_balance + $request->amount;
+                $invoiceDue->status = 4;
+                $invoiceDue->save();
+            } else {
+                $invoiceDue->status = 3;
+                $invoiceDue->save();
             }
+            
+            $this->updateCreditNoteStatus($credit);
 
-            $customer->credit_balance = $balance;
-            $customer->save();
-
-            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
-            return redirect()->back()->with('success', __('Credit Note successfully created.'));
+            return redirect()->back()->with('success', __('The credit note has been created successfully.'));
         }
         else
         {
@@ -98,140 +91,92 @@ class CreditNoteController extends Controller
         }
     }
 
-
     public function edit($invoice_id, $creditNote_id)
     {
         if(\Auth::user()->can('edit credit note'))
         {
-
             $creditNote = CreditNote::find($creditNote_id);
 
             return view('creditNote.edit', compact('creditNote'));
         }
         else
         {
-            return redirect()->back()->with('error', __('Permission denied.'));
+            return response()->json(['error' => __('Permission denied.')], 401);
         }
     }
 
-
     public function update(Request $request, $invoice_id, $creditNote_id)
     {
-
         if(\Auth::user()->can('edit credit note'))
         {
-
-            $validator = \Validator::make(
+            $validator = Validator::make(
                 $request->all(), [
                                    'amount' => 'required|numeric',
                                    'date' => 'required',
                                ]
             );
-
             if($validator->fails())
             {
                 $messages = $validator->getMessageBag();
 
                 return redirect()->back()->with('error', $messages->first());
             }
-
             $invoiceDue = Invoice::where('id', $invoice_id)->first();
+
             $credit = CreditNote::find($creditNote_id);
-            if($request->amount > $invoiceDue->getDue()+$credit->amount)
+            if($request->amount > $invoiceDue->getDue() + $credit->amount)
             {
-                return redirect()->back()->with('error', 'Maximum ' . \Auth::user()->priceFormat($invoiceDue->getDue()) . ' credit limit of this invoice.');
+                return redirect()->back()->with('error', 'Maximum ' .\Auth::user()->priceFormat($invoiceDue->getDue() + $credit->amount ) . ' credit limit of this invoice.');
             }
 
-
-            Utility::updateUserBalance('customer', $invoiceDue->customer_id, $credit->amount, 'credit');
+            if(($invoiceDue->getDue() + $credit->amount ) - $request->amount <= 0)
+            {
+                $invoiceDue->status = 4;
+                $invoiceDue->save();
+            } else {
+                $invoiceDue->status = 3;
+                $invoiceDue->save();
+            }
 
             $credit->date        = $request->date;
             $credit->amount      = $request->amount;
             $credit->description = $request->description;
             $credit->save();
 
-            Utility::updateUserBalance('customer', $invoiceDue->customer_id, $request->amount, 'debit');
+            $this->updateCreditNoteStatus($credit);
 
-
-            return redirect()->back()->with('success', __('Credit Note successfully updated.'));
+            return redirect()->back()->with('success', __('The credit note details are updated successfully.'));
         }
         else
         {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
-
 
     public function destroy($invoice_id, $creditNote_id)
     {
         if(\Auth::user()->can('delete credit note'))
         {
-
             $creditNote = CreditNote::find($creditNote_id);
-            $creditNote->delete();
-
-            Utility::updateUserBalance('customer', $creditNote->customer, $creditNote->amount, 'credit');
-
-            return redirect()->back()->with('success', __('Credit Note successfully deleted.'));
-
-        }
-        else
-        {
-            return redirect()->back()->with('error', __('Permission denied.'));
-        }
-    }
-
-    public function customCreate()
-    {
-        if(\Auth::user()->can('create credit note'))
-        {
-
-            $invoices = Invoice::where('created_by', \Auth::user()->creatorId())->get()->pluck('invoice_id', 'id');
-
-            return view('creditNote.custom_create', compact('invoices'));
-        }
-        else
-        {
-            return redirect()->back()->with('error', __('Permission denied.'));
-        }
-    }
-
-    public function customStore(Request $request)
-    {
-        if(\Auth::user()->can('create credit note'))
-        {
-            $validator = \Validator::make(
-                $request->all(), [
-                                   'invoice' => 'required|numeric',
-                                   'amount' => 'required|numeric',
-                                   'date' => 'required',
-                               ]
-            );
-            if($validator->fails())
+            if($creditNote)
             {
-                $messages = $validator->getMessageBag();
+                $invoice = Invoice::find($creditNote->invoice);
+                $invoiceDue = $invoice->getDue() + $creditNote->amount;
+                $total   = $invoice->getTotal();
 
-                return redirect()->back()->with('error', $messages->first());
+                if ( $invoiceDue > 0 && $invoiceDue != $total) {
+                    $invoice->status = 3;
+                } elseif($invoiceDue == $total) {
+                    $invoice->status = 2;
+                }
+                $invoice->save();
+
+                $this->updateCreditNoteStatus($creditNote , 'delete');
+                $creditNote->delete();
+
+                return redirect()->back()->with('success', __('The credit note has been deleted.'));
             }
-            $invoice_id = $request->invoice;
-            $invoiceDue = Invoice::where('id', $invoice_id)->first();
-
-            if($request->amount > $invoiceDue->getDue())
-            {
-                return redirect()->back()->with('error', 'Maximum ' . \Auth::user()->priceFormat($invoiceDue->getDue()) . ' credit limit of this invoice.');
-            }
-            $invoice             = Invoice::where('id', $invoice_id)->first();
-            $credit              = new CreditNote();
-            $credit->invoice     = $invoice_id;
-            $credit->customer    = $invoice->customer_id;
-            $credit->date        = $request->date;
-            $credit->amount      = $request->amount;
-            $credit->description = $request->description;
-            $credit->save();
-
-            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
-
-            return redirect()->back()->with('success', __('Credit Note successfully created.'));
+            return redirect()->back()->with('error', __('Credit note not found!'));
         }
         else
         {
@@ -239,11 +184,12 @@ class CreditNoteController extends Controller
         }
     }
 
-    public function getinvoice(Request $request)
+    public function getPrice(Request $request)
     {
-        $invoice = Invoice::where('id', $request->id)->first();
+        $creditNote = CustomerCreditNotes::find($request->credit_note);
+        $price      = !empty($creditNote) ? ($creditNote->amount + $request->amount) - $creditNote->usedCreditNote() : 0;
 
-        echo json_encode($invoice->getDue());
+        return response()->json($price);
     }
 
 }

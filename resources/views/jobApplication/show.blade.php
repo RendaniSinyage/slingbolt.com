@@ -255,7 +255,7 @@
 
                     </dl>
                     <div class='rating-stars text-right'>
-                        <ul id='stars mb-0'>
+                        <ul id='stars' class="mb-0">
                             <li class='star {{ in_array($jobApplication->rating, [1, 2, 3, 4, 5]) == true ? 'selected' : '' }}'
                                 data-bs-toggle="tooltip" data-bs-title="Poor" data-value='1'>
                                 <i class='fas fa-star fa-fw'></i>

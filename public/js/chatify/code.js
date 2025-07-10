@@ -622,19 +622,19 @@ function checkInternet(state, selector) {
             });
             net_errs = 1;
             break;
-        // case 'disconnected':
-        //     if (net_errs < 1) {
-        //         messengerTitle.text(messengerTitleDefault);
-        //         selector.addClass('successBG-rgba');
-        //         selector.find('span').hide();
-        //         selector.slideDown('fast', function () {
-        //             selector.find('.ic-connected').show();
-        //         });
-        //         setTimeout(function () {
-        //             $('.internet-connection').slideUp('fast');
-        //         }, 3000);
-        //     }
-        //     break;
+        case 'disconnected':
+            if (net_errs < 1) {
+                messengerTitle.text(messengerTitleDefault);
+                selector.addClass('successBG-rgba');
+                selector.find('span').hide();
+                selector.slideDown('fast', function () {
+                    selector.find('.ic-connected').show();
+                });
+                setTimeout(function () {
+                    $('.internet-connection').slideUp('fast');
+                }, 3000);
+            }
+            break;
         // Not connected
         default:
             messengerTitle.text($('.ic-noInternet').text());

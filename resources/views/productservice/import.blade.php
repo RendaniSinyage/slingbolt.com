@@ -14,7 +14,6 @@
                     <input type="file" class="form-control" name="file" id="file" data-filename="upload_file" required>
                 </label>
                 <p class="upload_file"></p>
-                <input type="hidden" class="form-control" name="table" id="table" value="product_services">
             </div>
         </div>
 
@@ -24,7 +23,7 @@
 <div class="modal-footer">
     <input type="button" value="{{__('Cancel')}}" class="btn  btn-secondary" data-bs-dismiss="modal">
     <input type="submit" value="{{__('Upload')}}" class="btn  btn-primary">
-    <a href="" data-url="" data-ajax-popup-over="true" title="{{ __('Create') }}" data-size="xl" data-title="{{ __('Import product services CSV Data') }}"  class="d-none import_modal_show"></a>
+    <a href="" data-url="{{ route('productservice.import.modal') }}" data-ajax-popup-over="true" title="{{ __('Create') }}" data-size="xl" data-title="{{ __('Import product services CSV Data') }}"  class="d-none import_modal_show"></a>
 </div>
 {{Form::close()}}
 
@@ -33,9 +32,8 @@
         event.preventDefault();
         let data = new FormData(this);
         data.append('_token', "{{ csrf_token() }}");
-        let table = $("#table").val();
         $.ajax({
-            url: "{{ route('csv.import') }}",
+            url: "{{ route('productservice.import') }}",
             method: "POST",
             data: data,
             dataType: 'json',
@@ -46,15 +44,11 @@
                 if (data.error != '')
                 {
                     show_toastr('Error',data.error, 'error');
-                }
-                else
-                {
-                    let url = "{{ route('csv.import.modal') }}";
+                } else {
                     $('#commonModal').modal('hide');
-                    $(".import_modal_show").attr("data-url", url + "?&table=" + table + "&status=" + true);
                     $(".import_modal_show").trigger( "click");
                     setTimeout(function() {
-                        SetDynamicData(data.output, data.fields);
+                        SetData(data.output);
                     }, 700);
                 }
             }

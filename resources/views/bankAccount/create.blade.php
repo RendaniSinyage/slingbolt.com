@@ -3,18 +3,39 @@
     <div class="row">
         <div class="form-group col-md-6">
             {{ Form::label('chart_account_id', __('Account'),['class'=>'form-label']) }}<x-required></x-required>
-            <select name="chart_account_id" class="form-control" required="required">
-                @foreach ($chartAccounts as $key => $chartAccount)
-                    <option value="{{ $key }}" class="subAccount">{{ $chartAccount }}</option>
-                    @foreach ($subAccounts as $subAccount)
-                        @if ($key == $subAccount['account'])
-                            <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp; {{ $subAccount['code_name'] }}</option>
-                        @endif
-                    @endforeach
+            <select name="chart_account_id" class="form-control" required>
+                <option value="">{{ __('Select Chart of Account') }}</option>
+                @foreach ($chartAccounts as $typeName => $subtypes)
+                    <optgroup label="{{ $typeName }}">
+                        @foreach ($subtypes as $subtypeId => $subtypeData)
+                            <option disabled style="color: #000; font-weight: bold;">{{ $subtypeData['account_name'] }}</option>
+                            @foreach ($subtypeData['chart_of_accounts'] as $chartOfAccount)
+                                <option value="{{ $chartOfAccount['id'] }}">
+                                    &nbsp;&nbsp;&nbsp;{{ $chartOfAccount['account_name'] }}
+                                </option>
+                                @foreach ($subtypeData['subAccounts'] as $subAccount)
+                                    @if ($chartOfAccount['id'] == $subAccount['parent_account'])
+                                    <option value="{{ $subAccount['id'] }}" class="ms-5"> &nbsp; &nbsp;&nbsp;&nbsp; {{' - '. $subAccount['account_name'] }}</option>
+                                    @endif
+                                @endforeach
+                            @endforeach
+                        @endforeach
+                    </optgroup>
                 @endforeach
             </select>
             <div class="text-xs mt-1">
                 {{ __('Create account here.') }} <a href="{{ route('chart-of-account.index') }}"><b>{{ __('Create account') }}</b></a>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-group">
+                {{ Form::label('payment_name', __('Payment Gateway'), ['class' => 'form-label']) }}<x-required></x-required>
+                <select name="payment_name" class="form-control" required="required">
+                    <option value="" disabled selected>{{ __('Select Type') }}</option>
+                    @foreach ($payments as $key => $value)
+                        <option value="{{ $key }}">{{ $value }}</option>
+                    @endforeach
+                </select>
             </div>
         </div>
         <div class="form-group col-md-6">

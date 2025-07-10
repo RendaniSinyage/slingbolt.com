@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -254,6 +255,13 @@ class MolliePaymentController extends Controller
     {
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice   = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','mollie')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Mollie.'));
+        }
+        
         $this->invoiceData = $invoice;
 
         $payment   = $this->companyPaymentConfig();
@@ -315,7 +323,7 @@ class MolliePaymentController extends Controller
         $payment = $this->companyPaymentConfig();
 
         $orderID  = strtoupper(str_replace('.', '', uniqid('', true)));
-        $settings = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
+        $settings = Utility::settingsById($invoice->created_by);
 
 
         $result    = array();
@@ -334,12 +342,13 @@ class MolliePaymentController extends Controller
                     if($payment->isPaid())
                     {
 
-
+                        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','mollie')->first();
                         $payments = InvoicePayment::create(
                             [
                                 'invoice_id' => $invoice->id,
                                 'date' => date('Y-m-d'),
                                 'amount' => $request->amount,
+                                'account_id' => $account->id,
                                 'payment_method' => 1,
                                 'order_id' => $orderID,
                                 'payment_type' => __('Mollie'),
@@ -359,8 +368,13 @@ class MolliePaymentController extends Controller
                         {
                             Invoice::change_status($invoice->id, 3);
                         }
+
+                        Utility::addOnlinePaymentData($payments , $invoice , 'mollie');                        
+
                         //for customer balance update
                         Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                        //for bank balance update
+                        Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
                         //For Notification
                         $setting  = Utility::settingsById($invoice->created_by);

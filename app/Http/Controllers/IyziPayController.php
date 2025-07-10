@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BankAccount;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Models\InvoicePayment;
@@ -174,6 +175,13 @@ class IyziPayController extends Controller
     {
         $invoiceID = \Illuminate\Support\Facades\Crypt::decrypt($request->invoice_id);
         $invoice = Invoice::find($invoiceID);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','iyzipay')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Iyzipay.'));
+        }
+        
         $this->invoiceData = $invoice;
         $authuser      = User::find($invoice->created_by);
         $companyPaymentSettings = Utility::getCompanyPaymentSetting($authuser->id);
@@ -275,20 +283,18 @@ class IyziPayController extends Controller
     {
 
         $invoice = Invoice::find($invoice_id);
-        $this->invoiceData = $invoice;
-//        $settings  = DB::table('settings')->where('created_by', '=', $invoice->created_by)->get()->pluck('value', 'name');
         $settings  = Utility::settingsById($invoice->created_by);
         $orderID  = strtoupper(str_replace('.', '', uniqid('', true)));
         try
         {
-
+                $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','iyzipay')->first();
                 $payments = InvoicePayment::create(
                     [
 
                         'invoice_id' => $invoice->id,
                         'date' => date('Y-m-d'),
                         'amount' => $amount,
-                        'account_id' => 0,
+                        'account_id' => $account->id,
                         'payment_method' => 0,
                         'order_id' => $orderID,
                         'payment_type' => __('Iyzipay'),
@@ -312,11 +318,14 @@ class IyziPayController extends Controller
                 $invoicePayment->description = 'Invoice ' . Utility::invoiceNumberFormat($settings, $invoice->invoice_id);
                 $invoicePayment->account     = 0;
 
+                Utility::addOnlinePaymentData($payments , $invoice , 'iyzipay');                        
 
                 \App\Models\Transaction::addTransaction($invoicePayment);
 
-            //for customer balance update
-            Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                //for customer balance update
+                Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                //for bank balance update
+                Utility::bankAccountBalance($account->id, $request->amount, 'credit');
 
 
                 //For Notification

@@ -204,7 +204,13 @@ class DashboardController extends Controller
                 ];
 
                 // Total Tasks
-                $complete_task = ProjectTask::where('is_complete', '=', 1)->whereRaw("find_in_set('" . $user->id . "',assign_to)")->whereIn('project_id', $user_projects)->count();
+                if(Auth::user()->type == 'company')
+                {
+                    $complete_task = ProjectTask::where('is_complete', '=', 1)->whereIn('project_id', $user_projects)->count();
+                }
+                else{
+                    $complete_task = ProjectTask::where('is_complete', '=', 1)->whereRaw("find_in_set('" . $user->id . "',assign_to)")->whereIn('project_id', $user_projects)->count();
+                }
                 $home_data['total_task'] = [
                     'total' => $project_tasks->count(),
                     'percentage' => Utility::getPercentage($complete_task, $project_tasks->count()),
@@ -281,7 +287,7 @@ class DashboardController extends Controller
                 if ($user->type != 'client' && $user->type != 'company') {
                     $emp = Employee::where('user_id', '=', $user->id)->first();
 
-                    $announcements = Announcement::orderBy('announcements.id', 'desc')->take(5)->leftjoin('announcement_employees', 'announcements.id', '=', 'announcement_employees.announcement_id')->where('announcement_employees.employee_id', '=', $emp->id)->orWhere(function ($q) use ($emp) {
+                    $announcements = Announcement::where('announcements.end_date', '>=', date('Y-m-d'))->orderBy('announcements.id', 'desc')->take(5)->leftjoin('announcement_employees', 'announcements.id', '=', 'announcement_employees.announcement_id')->where('announcement_employees.employee_id', '=', $emp->id)->orWhere(function ($q) use ($emp) {
                         $q->where('announcements.department_id', '["0"]')
                         ->where('announcements.employee_id', '["0"]')
                         ->where('announcement_employees.employee_id', $emp->id);
@@ -355,7 +361,7 @@ class DashboardController extends Controller
                         $arrEvents[] = $arr;
                     }
 
-                    $announcements = Announcement::orderBy('announcements.id', 'desc')->take(5)->where('created_by', '=', \Auth::user()->creatorId())->get();
+                    $announcements = Announcement::where('end_date', '>=', date('Y-m-d'))->orderBy('announcements.id', 'desc')->take(5)->where('created_by', '=', \Auth::user()->creatorId())->get();
 
                     // $emp           = User::where('type', '!=', 'client')->where('type', '!=', 'company')->where('created_by', '=', \Auth::user()->creatorId())->get();
                     // $countEmployee = count($emp);

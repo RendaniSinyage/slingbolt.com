@@ -113,6 +113,7 @@ class VenderController extends Controller
                     $vender->shipping_zip     = $request->shipping_zip;
                     $vender->shipping_address = $request->shipping_address;
                     $vender->lang             = !empty($default_language) ? $default_language->value : '';
+                    $vender->balance          = $request->balance ?? 0;
                     $vender->save();
                     CustomField::saveData($vender, $request->customField);
                 }
@@ -155,6 +156,7 @@ class VenderController extends Controller
 
         $id     = \Crypt::decrypt($ids);
         $vendor = Vender::find($id);
+        $vendor->customField = CustomField::getShowData($vendor, 'vendor');
 
         return view('vender.show', compact('vendor'));
     }
@@ -215,6 +217,7 @@ class VenderController extends Controller
             $vender->shipping_phone   = $request->shipping_phone;
             $vender->shipping_zip     = $request->shipping_zip;
             $vender->shipping_address = $request->shipping_address;
+            $vender->balance          = $request->balance ?? 0;
             $vender->save();
             CustomField::saveData($vender, $request->customField);
 
@@ -250,7 +253,7 @@ class VenderController extends Controller
 
     function venderNumber()
     {
-        $latest = Vender::where('created_by', '=', \Auth::user()->creatorId())->latest()->first();
+        $latest = Vender::where('created_by', '=', \Auth::user()->creatorId())->latest('vender_id')->first();
         if(!$latest)
         {
             return 1;

@@ -129,18 +129,19 @@ class ContractController extends Controller
             if($setings['new_contract'] == 1) {
 
                 $client = \App\Models\User::find($request->client_name);
-                $contractArr = [
-                    'contract_subject' => $request->subject,
-                    'contract_client' => $client->name,
-                    'contract_value' => \Auth::user()->priceFormat($request->value),
-                    'contract_start_date' => \Auth::user()->dateFormat($request->start_date),
-                    'contract_end_date' => \Auth::user()->dateFormat($request->end_date),
-                    'contract_description' => $request->description,
-                ];
+                if ($client) {
+                    $contractArr = [
+                        'contract_subject' => $request->subject,
+                        'contract_client' => $client->name,
+                        'contract_value' => \Auth::user()->priceFormat($request->value),
+                        'contract_start_date' => \Auth::user()->dateFormat($request->start_date),
+                        'contract_end_date' => \Auth::user()->dateFormat($request->end_date),
+                        'contract_description' => $request->description,
+                    ];
 
-                // Send Email
-                $resp = Utility::sendEmailTemplate('new_contract', [$client->id => $client->email], $contractArr);
-
+                    // Send Email
+                    $resp = Utility::sendEmailTemplate('new_contract', [$client->id => $client->email], $contractArr);
+                }
             }
 
             //For Notification
@@ -198,7 +199,7 @@ class ContractController extends Controller
         {
             $contract =Contract::find($id);
 
-            if($contract->created_by == \Auth::user()->creatorId())
+            if(!empty($contract) && $contract->created_by == \Auth::user()->creatorId())
             {
                 $client   = $contract->client;
                 return view('contract.show', compact('contract', 'client'));
@@ -437,10 +438,15 @@ class ContractController extends Controller
 
     public function contract_status_edit(Request $request, $id)
     {
-        $contract = Contract::find($id);
-        $contract->status   = $request->status;
-        $contract->save();
+        try {
+            $contract = Contract::findOrFail($id);
+            $contract->status   = $request->status;
+            $contract->save();
 
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
     }
     public function commentStore(Request $request ,$id)
     {

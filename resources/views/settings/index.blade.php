@@ -897,7 +897,7 @@
                                 <div class="col-12">
                                     <div class="row">
                                         <div class="col-md-6 form-group">
-                                            <label class="col-form-label">{{ __('Currency') }} *</label>
+                                            <label class="col-form-label">{{ __('Currency') }}</label>
 
                                             {{ Form::text('currency', isset($admin_payment_setting['currency']) ? $admin_payment_setting['currency'] : '', ['class' => 'form-control font-style', 'required', 'placeholder' => __('Enter Currency')]) }}
                                             <small class="text-xs mt-1 d-block">
@@ -4141,9 +4141,12 @@
                                     {{ Form::label('chat_gpt_key', __('Chat GPT key'), ['class' => 'col-form-label']) }}
                                     {{ Form::text('chat_gpt_key', isset($settings['chat_gpt_key']) ? $settings['chat_gpt_key'] : '', ['class' => 'form-control', 'placeholder' => __('Enter Chat GPT API Key'), 'required' => 'required']) }}
                                 </div>
+                                @php
+                                    $ai_models = Utility::getAiModelName();
+                                @endphp
                                 <div class="form-group mb-0 col-md-12">
                                     {{ Form::label('chat_gpt_model', __('Chat GPT Model Name'), ['class' => 'col-form-label']) }}
-                                    {{ Form::text('chat_gpt_model', isset($settings['chat_gpt_model']) ? $settings['chat_gpt_model'] : '', ['class' => 'form-control', 'placeholder' => __('Enter Chat GPT Modal Name'), 'required' => 'required']) }}
+                                    {{ Form::select('chat_gpt_model', $ai_models, isset($settings['chat_gpt_model']) ? $settings['chat_gpt_model'] : '', ['class' => 'form-control', 'placeholder' => __('Select Chat GPT Model'), 'required' => 'required']) }}
                                 </div>
                             </div>
                         </div>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Khalti\Khalti;
+use App\Models\BankAccount;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\Invoice;
@@ -154,6 +155,13 @@ class KhaltiController extends Controller
     {
         $invoice_id = decrypt($request->invoice_id);
         $invoice = Invoice::find($invoice_id);
+
+        $account = BankAccount::where('created_by' , $invoice->created_by)->where('payment_name','khalti')->first();
+        if(!$account)
+        {
+            return redirect()->back()->with('error', __('Bank account not connected with Khalti.'));
+        }
+        
         $user = User::find($invoice->created_by);
         $company_payment_setting = Utility::getCompanyPaymentSetting($user->id);
         $payload = $request->payload;
@@ -171,7 +179,7 @@ class KhaltiController extends Controller
                     $invoice_payment->invoice_id     = $invoice->id;
                     $invoice_payment->date           = Date('Y-m-d');
                     $invoice_payment->amount         = $amount;
-                    $invoice_payment->account_id         = 0;
+                    $invoice_payment->account_id         = $account->id;
                     $invoice_payment->payment_method         = 0;
                     $invoice_payment->order_id      = $orderID;
                     $invoice_payment->payment_type   = 'Khalti';
@@ -190,8 +198,13 @@ class KhaltiController extends Controller
                         $invoice->status = 3;
                         $invoice->save();
                     }
+                    Utility::addOnlinePaymentData($invoice_payment , $invoice , 'khalti');                        
+
                     //for customer balance update
                     Utility::updateUserBalance('customer', $invoice->customer_id, $request->amount, 'debit');
+                    //for bank balance update
+                    Utility::bankAccountBalance($account->id, $request->amount, 'credit');
+                    
                     //For Notification
                     $setting  = Utility::settingsById($invoice->created_by);
                     $customer = Customer::find($invoice->customer_id);

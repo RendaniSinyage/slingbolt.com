@@ -56,7 +56,6 @@ class Invoice extends Model
 
     public function getTotal()
     {
-
         return ($this->getSubTotal() -$this->getTotalDiscount()) + $this->getTotalTax();
     }
 
@@ -80,12 +79,9 @@ class Invoice extends Model
         $totalTax = 0;
         foreach($this->items as $product)
         {
-            // $taxes = Utility::totalTaxRate($product->tax);
-
             $taxArr = explode(',', $product->tax);
             $taxes = 0;
             foreach ($taxArr as $tax) {
-                // $tax = TaxRate::find($tax);
                 $taxes += !empty($taxData[$tax]['rate']) ? $taxData[$tax]['rate'] : 0;
             }
 
@@ -138,7 +134,12 @@ class Invoice extends Model
 
     public function invoiceTotalCreditNote()
     {
-        return $this->creditNote->sum('amount');
+        return $this->hasMany(CreditNote::class, 'invoice', 'id')->sum('amount');
+    }
+
+    public function invoiceTotalCustomerCreditNote()
+    {
+        return $this->hasMany(CustomerCreditNotes::class, 'invoice', 'id')->sum('amount');
     }
 
     public function lastPayments()
