@@ -99,7 +99,7 @@
         <body class="{{ $themeColor }}">
 @endif
 <!-- [ Header ] start -->
-<header class="main-header">
+<header class="main-header bg-primary" style="position: sticky !important; top: 0; z-index: 9999;">
     @if ($settings['topbar_status'] == 'on')
         <div class="announcement bg-dark text-center p-2">
             <p class="mb-0">{!! $settings['topbar_notification_msg'] !!}</p>
@@ -200,13 +200,11 @@
                         @if ($settings['home_live_demo_link'])
                             <a href="{{ $settings['home_live_demo_link'] }}" class="btn btn-outline-dark">
                                 {{ __('Live Demo') }}
-                                <i data-feather="play-circle" class="ms-2"></i>
                             </a>
                         @endif
                         @if ($settings['home_buy_now_link'])
                             <a href="{{ $settings['home_buy_now_link'] }}"
-                                class="btn btn-outline-dark">{{ __('Buy Now') }} <i data-feather="lock"
-                                    class="ms-2"></i></a>
+                                class="btn btn-outline-dark">{{ __('Buy Now') }}</a>
                         @endif
                     </div>
                 </div>
@@ -220,28 +218,37 @@
                 </div>
             </div>
         </div>
-            <div class="container">
-                <div class="row g-0 gy-2 mt-4 align-items-center">
-                    <div class="col-xxl-3">
-                        <p class="mb-0">{{ __('Trusted by') }} <b class="fw-bold">{{ $settings['home_trusted_by'] }}</b></p>
-                    </div>
-                    <div class="col-xxl-9">
-                        <div class="row gy-3 row-cols-9">
-                            @foreach (explode(',', $settings['home_logo']) as $k => $home_logo )
+            @php
+    $homeLogos = array_filter(explode(',', $settings['home_logo'] ?? ''), function($logo) {
+        return !empty(trim($logo));
+    });
+@endphp
 
-                            <div class="col-auto">
-                                <img src="{{ $logo.'/'. $home_logo }}" alt="" class="landing_logo"
+@if(!empty($homeLogos) && !empty($settings['home_trusted_by']))
+<div class="container">
+    <div class="row g-0 gy-2 mt-4 align-items-center">
+        <div class="col-xxl-3">
+            <p class="mb-0">{{ __('Trusted by') }} <b class="fw-bold">{{ $settings['home_trusted_by'] }}</b></p>
+        </div>
+        <div class="col-xxl-9">
+            <div class="row gy-3 row-cols-9">
+                @foreach ($homeLogos as $k => $home_logo)
+                    @if(file_exists(public_path($logo.'/'.$home_logo)))
+                        <div class="col-auto">
+                            <img src="{{ $logo.'/'.$home_logo }}" alt="" class="landing_logo"
                                 style="width: 130px;">
-                            </div>
-                            @endforeach
                         </div>
-                    </div>
-                </div>
+                    @endif
+                @endforeach
             </div>
+        </div>
+    </div>
+</div>
+@endif
 
     </section>
 @endif
-<!-- [ Banner ] start -->
+<!-- [ Banner ] end -->
 <!-- [ features ] start -->
 @if ($settings['feature_status'] == 'on')
     <section class="features-section section-gap bg-dark" id="features">
@@ -393,20 +400,6 @@
                 @endif
 
             </div>
-            <div class="d-flex flex-column justify-content-center flex-sm-row gap-3 mt-3">
-                @if ($settings['discover_live_demo_link'])
-                    <a href="{{ $settings['discover_live_demo_link'] }}"
-                        class="btn btn-outline-light rounded-pill">{{ __('Live Demo') }}
-                        <i data-feather="play-circle" class="ms-2"></i>
-                    </a>
-                @endif
-
-                @if ($settings['discover_buy_now_link'])
-                    <a href="{{ $settings['discover_buy_now_link'] }}"
-                        class="btn btn-primary rounded-pill">{{ __('Buy Now ') }} <i data-feather="lock"
-                            class="ms-2"></i> </a>
-                @endif
-            </div>
         </div>
     </section>
 @endif
@@ -456,112 +449,369 @@
                     </div>
                 </div>
             </div>
-            <div class="row justify-content-center">
 
-                @php
-                    $collection = \App\Models\Plan::orderBy('price', 'ASC')->get();
-                    $admin_payment_setting = Utility::getAdminPaymentSetting();
-                @endphp
-                @foreach ($collection as $key => $value)
-                    @if($value->is_disable == 1)
-                        <div class="col-xxl-3 col-lg-4 col-md-6">
-                            <div class="card price-card shadow-none {{ $key == 2 ? 'bg-dark' : '' }}">
-                                <div class="card-body">
-                                    <span class="price-badge bg-dark">{{ $value->name }}</span>
-                                    <span
-                                        class="mb-4 f-w-00 p-price">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ intval($value->price) }}<small
-                                            class="text-sm">/{{ $value->duration }}</small></span>
-                                    <p>
-                                        {!! $value->description !!}
-                                    </p>
-                                    <ul class="list-unstyled my-3">
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->max_users == -1 ? 'Unlimited' : $value->max_users }}
-                                                    {{ __('User') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->max_customers == -1 ? 'Unlimited' : $value->max_customers }}
-                                                    {{ __('Customer') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->max_venders == -1 ? 'Unlimited' : $value->max_venders }}
-                                                    {{ __('Vendors') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->max_clients == -1 ? 'Unlimited' : $value->max_clients }}
-                                                    {{ __('Clients') }}</label>
-                                            </div>
-                                        </li>
+            @php
+                $monthly_plans = \App\Models\Plan::where('price', '>', 0)->where('name', 'not like', '%(yearly)%')->where('is_disable', 1)->orderBy('price', 'ASC')->get();
+                $yearly_plans = \App\Models\Plan::where('price', '>', 0)->where('name', 'like', '%(yearly)%')->where('is_disable', 1)->orderBy('price', 'ASC')->get();
+                $admin_payment_setting = Utility::getAdminPaymentSetting();
+                $has_yearly_plans = $yearly_plans->count() > 0;
+                
+                // Parse features for monthly plans
+                $monthly_categories = [];
+                foreach($monthly_plans as $plan) {
+                    $lines = explode("\n", $plan->description);
+                    $current_category = 'General';
+                    
+                    foreach($lines as $line) {
+                        $line = trim($line);
+                        if(empty($line)) continue;
+                        
+                        if(str_starts_with($line, '##')) {
+                            $current_category = trim(str_replace('##', '', $line));
+                            if(!isset($monthly_categories[$current_category])) {
+                                $monthly_categories[$current_category] = [];
+                            }
+                        } else {
+                            if(!isset($monthly_categories[$current_category])) {
+                                $monthly_categories[$current_category] = [];
+                            }
+                            if(!in_array($line, $monthly_categories[$current_category])) {
+                                $monthly_categories[$current_category][] = $line;
+                            }
+                        }
+                    }
+                }
 
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->account == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('Account') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->crm == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('CRM') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->hrm == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('HRM') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->project == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('Project') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->pos == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('POS') }}</label>
-                                            </div>
-                                        </li>
-                                        <li>
-                                            <div class="form-check text-start">
-                                                <label class="form-check-label"
-                                                    for="customCheckc1">{{ $value->chatgpt == 1 ? 'Enable' : 'Disable' }}
-                                                    {{ __('ChatGPT') }}</label>
-                                            </div>
-                                        </li>
+                // Parse features for yearly plans
+                $yearly_categories = [];
+                foreach($yearly_plans as $plan) {
+                    $lines = explode("\n", $plan->description);
+                    $current_category = 'General';
+                    
+                    foreach($lines as $line) {
+                        $line = trim($line);
+                        if(empty($line)) continue;
+                        
+                        if(str_starts_with($line, '##')) {
+                            $current_category = trim(str_replace('##', '', $line));
+                            if(!isset($yearly_categories[$current_category])) {
+                                $yearly_categories[$current_category] = [];
+                            }
+                        } else {
+                            if(!isset($yearly_categories[$current_category])) {
+                                $yearly_categories[$current_category] = [];
+                            }
+                            if(!in_array($line, $yearly_categories[$current_category])) {
+                                $yearly_categories[$current_category][] = $line;
+                            }
+                        }
+                    }
+                }
+            @endphp
 
-                                    </ul>
-                                    <div class="d-grid">
-                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($value->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($value->id)]) }}"
-                                            class="btn btn-primary rounded-pill">{{ __('Start with Starter') }} <i
-                                                data-feather="log-in" class="ms-2"></i> </a>
+            <!-- Toggle for yearly/monthly (only show if yearly plans exist) -->
+            @if($has_yearly_plans)
+                <div class="row justify-content-center mb-4">
+                    <div class="col-auto">
+                        <div class="btn-group bg-white rounded-pill p-1" role="group" style="box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                            <button type="button" class="btn btn-outline-dark rounded-pill px-4" id="monthly-btn">Pay monthly</button>
+                            <button type="button" class="btn btn-dark rounded-pill px-4" id="yearly-btn">Pay yearly (save 25%)*</button>
+                        </div>
+                    </div>
+                </div>
+            @endif
+
+            <!-- Monthly Plans (hidden by default) -->
+            <div id="monthly-plans" class="plans-container" style="display: none;">
+                @if(!empty($monthly_categories))
+                    <div class="row justify-content-center">
+                        <div class="col-12">
+                            <div style="position: relative;">
+                                
+                                <!-- Beautiful Large Most Popular Label for Monthly Plans -->
+                                @if(count($monthly_plans) > 1)
+                                    <div class="position-relative" style="height: 30px; margin-bottom: -1px;">
+                                        <div class="position-absolute" style="top: 0; left: {{ 40 + (60 / count($monthly_plans) * 1.5) }}%; width: {{ 60 / count($monthly_plans) }}%; transform: translateX(-50%); z-index: 1000;">
+                                            <div class="text-center px-3 py-2 text-white fw-bold" style="
+                                                background: linear-gradient(135deg, #ff6b35, #f7931e);
+                                                border-radius: 25px 25px 0 0;
+                                                position: relative;
+                                                box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                                                overflow: hidden;
+                                            ">
+                                                <span style="position: relative; z-index: 2; font-size: 0.9rem; letter-spacing: 0.5px;">MOST POPULAR</span>
+                                                <div style="
+                                                    position: absolute;
+                                                    bottom: -20px;
+                                                    left: -10px;
+                                                    right: -10px;
+                                                    height: 20px;
+                                                    background: linear-gradient(135deg, #ff6b35, #f7931e);
+                                                    border-radius: 0 0 25px 25px;
+                                                "></div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+                                
+                                <!-- First table with prices -->
+                                @php $first_category = array_key_first($monthly_categories); @endphp
+                                <div class="table-responsive" style="margin-bottom: 8px;">
+                                    <table class="table shadow-none mb-0" style="border-radius: 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                        <thead>
+                                            <tr>
+                                                <th class="text-start fw-bold" style="width: 40%; background-color: #e9ecef; color: var(--bs-body-color, inherit); border: transparent;">{{ $first_category }}</th>
+                                                @foreach($monthly_plans as $key => $plan)
+                                                    @php
+                                                        $display_name = str_replace(' (yearly)', '', $plan->name);
+                                                        $monthly_price = intval($plan->price);
+                                                    @endphp
+                                                    <th class="text-center fw-bold" style="background-color: {{ $key == 1 ? '#f7931e' : '#e9ecef' }}; color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }}; width: {{ 60 / count($monthly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                        <div class="plan-header">
+                                                            <h5 class="mb-1" style="color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }};">{{ $display_name }}</h5>
+                                                            <h3 class="mb-0" style="color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }};">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ $monthly_price }}</h3>
+                                                            <small class="{{ $key == 1 ? 'text-light' : 'text-muted' }}">/{{ $plan->duration }}</small>
+                                                        </div>
+                                                    </th>
+                                                @endforeach
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($monthly_categories[$first_category] as $feature)
+                                                <tr>
+                                                    <td class="text-start" style="width: 40%; color: var(--bs-body-color, inherit); border: transparent;">{{ $feature }}</td>
+                                                    @foreach($monthly_plans as $key => $plan)
+                                                        <td class="text-center" style="background-color: {{ $key == 1 ? '#fef5f0' : 'inherit' }}; width: {{ 60 / count($monthly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                            @if(str_contains($plan->description, $feature))
+                                                                <i class="ti ti-circle-check text-success fs-4"></i>
+                                                            @else
+                                                                <i class="ti ti-circle-x text-muted fs-4"></i>
+                                                            @endif
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <!-- Other monthly tables -->
+                                @foreach($monthly_categories as $category_name => $features)
+                                    @if($category_name !== $first_category)
+                                        <div class="table-responsive" style="margin-bottom: 8px;">
+                                            <table class="table shadow-none mb-0" style="border-radius: 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                                <thead>
+                                                    <tr>
+                                                        <th class="text-start fw-bold" style="width: 40%; background-color: #e9ecef; color: var(--bs-body-color, inherit); border: transparent;">{{ $category_name }}</th>
+                                                        @foreach($monthly_plans as $key => $plan)
+                                                            @php $display_name = str_replace(' (yearly)', '', $plan->name); @endphp
+                                                            <th class="text-center fw-bold" style="background-color: {{ $key == 1 ? '#f7931e' : '#e9ecef' }}; color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }}; width: {{ 60 / count($monthly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">{{ $display_name }}</th>
+                                                        @endforeach
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($features as $feature)
+                                                        <tr>
+                                                            <td class="text-start" style="width: 40%; color: var(--bs-body-color, inherit); border: transparent;">{{ $feature }}</td>
+                                                            @foreach($monthly_plans as $key => $plan)
+                                                                <td class="text-center" style="background-color: {{ $key == 1 ? '#fef5f0' : 'inherit' }}; width: {{ 60 / count($monthly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                                    @if(str_contains($plan->description, $feature))
+                                                                        <i class="ti ti-circle-check text-success fs-4"></i>
+                                                                    @else
+                                                                        <i class="ti ti-circle-x text-muted fs-4"></i>
+                                                                    @endif
+                                                                </td>
+                                                            @endforeach
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    @endif
+                                @endforeach
+
+                                <!-- Monthly buttons -->
+                                <div class="table-responsive">
+                                    <table class="table shadow-none mb-0" style="border-radius: 0 0 15px 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-start" style="width: 40%; background-color: #e9ecef; border: transparent;"></td>
+                                                @foreach($monthly_plans as $key => $plan)
+                                                    <td class="text-center py-3" style="background-color: {{ $key == 1 ? '#fef5f0' : '#e9ecef' }}; width: {{ 60 / count($monthly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}" 
+                                                           class="btn btn-dark rounded-pill px-4" style="background-color: #000; border: none;">Try for free</a>
+                                                    </td>
+                                                @endforeach
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Yearly Plans (shown by default) -->
+            @if($has_yearly_plans)
+                <div id="yearly-plans" class="plans-container">
+                    @if(!empty($yearly_categories))
+                        <div class="row justify-content-center">
+                            <div class="col-12">
+                                <div style="position: relative;">
+                                    
+                                    <!-- Beautiful Large Most Popular Label for Yearly Plans -->
+                                    @if(count($yearly_plans) > 1)
+                                        <div class="position-relative" style="height: 30px; margin-bottom: -1px;">
+                                            <div class="position-absolute" style="top: 0; left: {{ 40 + (60 / count($yearly_plans) * 1.5) }}%; width: {{ 60 / count($yearly_plans) }}%; transform: translateX(-50%); z-index: 1000;">
+                                                <div class="text-center px-3 py-2 text-white fw-bold" style="
+                                                    background: linear-gradient(135deg, #ff6b35, #f7931e);
+                                                    border-radius: 25px 25px 0 0;
+                                                    position: relative;
+                                                    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+                                                    overflow: hidden;
+                                                ">
+                                                    <span style="position: relative; z-index: 2; font-size: 0.9rem; letter-spacing: 0.5px;">MOST POPULAR</span>
+                                                    <div style="
+                                                        position: absolute;
+                                                        bottom: -20px;
+                                                        left: -10px;
+                                                        right: -10px;
+                                                        height: 20px;
+                                                        background: linear-gradient(135deg, #ff6b35, #f7931e);
+                                                        border-radius: 0 0 25px 25px;
+                                                    "></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    @endif
+                                    
+                                    <!-- First yearly table with prices -->
+                                    @php $first_yearly_category = array_key_first($yearly_categories); @endphp
+                                    <div class="table-responsive" style="margin-bottom: 8px;">
+                                        <table class="table shadow-none mb-0" style="border-radius: 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                            <thead>
+                                                <tr>
+                                                    <th class="text-start fw-bold" style="width: 40%; background-color: #e9ecef; color: var(--bs-body-color, inherit); border: transparent;">{{ $first_yearly_category }}</th>
+                                                    @foreach($yearly_plans as $key => $plan)
+                                                        @php
+                                                            $display_name = str_replace(' (yearly)', '', $plan->name);
+                                                            $monthly_price = round($plan->price / 12, 2);
+                                                        @endphp
+                                                        <th class="text-center fw-bold" style="background-color: {{ $key == 1 ? '#f7931e' : '#e9ecef' }}; color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }}; width: {{ 60 / count($yearly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                            <div class="plan-header">
+                                                                <h5 class="mb-1" style="color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }};">{{ $display_name }}</h5>
+                                                                <h3 class="mb-0" style="color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }};">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ $monthly_price }}</h3>
+                                                                <small class="{{ $key == 1 ? 'text-light' : 'text-muted' }}">/month<br><span style="font-size: 0.8em;">billed once yearly</span></small>
+                                                            </div>
+                                                        </th>
+                                                    @endforeach
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                @foreach($yearly_categories[$first_yearly_category] as $feature)
+                                                    <tr>
+                                                        <td class="text-start" style="width: 40%; color: var(--bs-body-color, inherit); border: transparent;">{{ $feature }}</td>
+                                                        @foreach($yearly_plans as $key => $plan)
+                                                            <td class="text-center" style="background-color: {{ $key == 1 ? '#fef5f0' : 'inherit' }}; width: {{ 60 / count($yearly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                                @if(str_contains($plan->description, $feature))
+                                                                    <i class="ti ti-circle-check text-success fs-4"></i>
+                                                                @else
+                                                                    <i class="ti ti-circle-x text-muted fs-4"></i>
+                                                                @endif
+                                                            </td>
+                                                        @endforeach
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    <!-- Other yearly tables -->
+                                    @foreach($yearly_categories as $category_name => $features)
+                                        @if($category_name !== $first_yearly_category)
+                                            <div class="table-responsive" style="margin-bottom: 8px;">
+                                                <table class="table shadow-none mb-0" style="border-radius: 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                                    <thead>
+                                                        <tr>
+                                                            <th class="text-start fw-bold" style="width: 40%; background-color: #e9ecef; color: var(--bs-body-color, inherit); border: transparent;">{{ $category_name }}</th>
+                                                            @foreach($yearly_plans as $key => $plan)
+                                                                @php $display_name = str_replace(' (yearly)', '', $plan->name); @endphp
+                                                                <th class="text-center fw-bold" style="background-color: {{ $key == 1 ? '#f7931e' : '#e9ecef' }}; color: {{ $key == 1 ? 'white' : 'var(--bs-body-color, inherit)' }}; width: {{ 60 / count($yearly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">{{ $display_name }}</th>
+                                                            @endforeach
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach($features as $feature)
+                                                            <tr>
+                                                                <td class="text-start" style="width: 40%; color: var(--bs-body-color, inherit); border: transparent;">{{ $feature }}</td>
+                                                                @foreach($yearly_plans as $key => $plan)
+                                                                    <td class="text-center" style="background-color: {{ $key == 1 ? '#fef5f0' : 'inherit' }}; width: {{ 60 / count($yearly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                                        @if(str_contains($plan->description, $feature))
+                                                                            <i class="ti ti-circle-check text-success fs-4"></i>
+                                                                        @else
+                                                                            <i class="ti ti-circle-x text-muted fs-4"></i>
+                                                                        @endif
+                                                                    </td>
+                                                                @endforeach
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        @endif
+                                    @endforeach
+
+                                    <!-- Yearly buttons -->
+                                    <div class="table-responsive">
+                                        <table class="table shadow-none mb-0" style="border-radius: 0 0 15px 15px; overflow: hidden; background-color: var(--bs-body-bg, white); border: transparent;">
+                                            <tbody>
+                                                <tr>
+                                                    <td class="text-start" style="width: 40%; background-color: #e9ecef; border: transparent;"></td>
+                                                    @foreach($yearly_plans as $key => $plan)
+                                                        <td class="text-center py-3" style="background-color: {{ $key == 1 ? '#fef5f0' : '#e9ecef' }}; width: {{ 60 / count($yearly_plans) }}%; border: transparent; {{ $key == 0 ? 'border-left: 2px solid #dee2e6;' : '' }}">
+                                                            <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}" 
+                                                               class="btn btn-dark rounded-pill px-4" style="background-color: #000; border: none;">Try for free</a>
+                                                        </td>
+                                                    @endforeach
+                                                </tr>
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     @endif
-                @endforeach
-
-            </div>
+                </div>
+            @endif
         </div>
     </section>
+
+    <!-- JavaScript for toggle -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const monthlyBtn = document.getElementById('monthly-btn');
+            const yearlyBtn = document.getElementById('yearly-btn');
+            const monthlyPlans = document.getElementById('monthly-plans');
+            const yearlyPlans = document.getElementById('yearly-plans');
+
+            if (monthlyBtn && yearlyBtn && monthlyPlans && yearlyPlans) {
+                monthlyBtn.addEventListener('click', function() {
+                    monthlyBtn.className = 'btn btn-dark rounded-pill px-4';
+                    yearlyBtn.className = 'btn btn-outline-dark rounded-pill px-4';
+                    monthlyPlans.style.display = 'block';
+                    yearlyPlans.style.display = 'none';
+                });
+
+                yearlyBtn.addEventListener('click', function() {
+                    yearlyBtn.className = 'btn btn-dark rounded-pill px-4';
+                    monthlyBtn.className = 'btn btn-outline-dark rounded-pill px-4';
+                    monthlyPlans.style.display = 'none';
+                    yearlyPlans.style.display = 'block';
+                });
+            }
+        });
+    </script>
 @endif
 <!-- [ subscription ] end -->
 <!-- [ FAqs ] start -->

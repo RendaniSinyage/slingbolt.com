@@ -497,94 +497,193 @@ class SystemController extends Controller
     }
 
     public function companyIndex(Request $request)
-    {
-        if (\Auth::user()->can('manage company settings')) {
+{
+    if (\Auth::user()->can('manage company settings')) {
 
-            if ($request->offerlangs) {
-                $offerlang = $request->offerlangs;
-            } else {
-                $offerlang = "en";
-            }
-            if ($request->joininglangs) {
-                $joininglang = $request->joininglangs;
-            } else {
-                $joininglang = "en";
-            }
-            if ($request->explangs) {
-                $explang = $request->explangs;
-            } else {
-                $explang = "en";
-            }
-            if ($request->noclangs) {
-                $noclang = $request->noclangs;
-            } else {
-                $noclang = "en";
-            }
-
-            $offerlangName = Language::languageData($offerlang);
-            $joininglangName = Language::languageData($joininglang);
-            $explangName = Language::languageData($explang);
-            $noclangName = Language::languageData($noclang);
-
-            $setting = Utility::settingsById(\Auth::user()->id);
-            $comSetting = DB::table('settings')->where('created_by', '=', \Auth::user()->id)->pluck('value', 'name')->toArray();
-
-            $timezones = config('timezones');
-            $company_payment_setting = Utility::getCompanyPaymentSetting(\Auth::user()->creatorId());
-
-
-            $EmailTemplates = EmailTemplate::all();
-            $ips = IpRestrict::where('created_by', \Auth::user()->creatorId())->get();
-
-            //offer letter
-            $Offerletter = GenerateOfferLetter::all();
-            $currOfferletterLang = GenerateOfferLetter::where('created_by', \Auth::user()->id)->where('lang', $offerlang)->first();
-
-            //joining letter
-            $Joiningletter = JoiningLetter::all();
-            $currjoiningletterLang = JoiningLetter::where('created_by', \Auth::user()->id)->where('lang', $joininglang)->first();
-
-            //Experience Certificate
-            $experience_certificate = ExperienceCertificate::all();
-            $curr_exp_cetificate_Lang = ExperienceCertificate::where('created_by', \Auth::user()->id)->where('lang', $explang)->first();
-
-            //NOC
-            $noc_certificate = NOC::all();
-            $currnocLang = NOC::where('created_by', \Auth::user()->id)->where('lang', $noclang)->first();
-
-            $emailSetting = DB::table('settings')->where('created_by', '=', \Auth::user()->id)->pluck('value', 'name')->toArray();
-
-            $post = $request->all();
-
-            return view('settings.company', compact(
-                'setting',
-                'company_payment_setting',
-                'timezones',
-                'ips',
-                'EmailTemplates',
-                'currOfferletterLang',
-                'Offerletter',
-                'offerlang',
-                'Joiningletter',
-                'currjoiningletterLang',
-                'joininglang',
-                'experience_certificate',
-                'curr_exp_cetificate_Lang',
-                'explang',
-                'noc_certificate',
-                'currnocLang',
-                'noclang',
-                'offerlangName',
-                'joininglangName',
-                'explangName',
-                'noclangName',
-                'emailSetting',
-                'comSetting',
-            ));
+        if ($request->offerlangs) {
+            $offerlang = $request->offerlangs;
         } else {
-            return redirect()->back()->with('error', 'Permission denied.');
+            $offerlang = "en";
         }
+        if ($request->joininglangs) {
+            $joininglang = $request->joininglangs;
+        } else {
+            $joininglang = "en";
+        }
+        if ($request->explangs) {
+            $explang = $request->explangs;
+        } else {
+            $explang = "en";
+        }
+        if ($request->noclangs) {
+            $noclang = $request->noclangs;
+        } else {
+            $noclang = "en";
+        }
+
+        $offerlangName = Language::languageData($offerlang);
+        $joininglangName = Language::languageData($joininglang);
+        $explangName = Language::languageData($explang);
+        $noclangName = Language::languageData($noclang);
+
+        $setting = Utility::settingsById(\Auth::user()->id);
+        $comSetting = DB::table('settings')->where('created_by', '=', \Auth::user()->id)->pluck('value', 'name')->toArray();
+
+        $timezones = config('timezones');
+        $company_payment_setting = Utility::getCompanyPaymentSetting(\Auth::user()->creatorId());
+
+        $EmailTemplates = EmailTemplate::all();
+        $ips = IpRestrict::where('created_by', \Auth::user()->creatorId())->get();
+
+        //offer letter
+        $Offerletter = GenerateOfferLetter::all();
+        $currOfferletterLang = GenerateOfferLetter::where('created_by', \Auth::user()->id)->where('lang', $offerlang)->first();
+
+        //joining letter
+        $Joiningletter = JoiningLetter::all();
+        $currjoiningletterLang = JoiningLetter::where('created_by', \Auth::user()->id)->where('lang', $joininglang)->first();
+
+        //Experience Certificate
+        $experience_certificate = ExperienceCertificate::all();
+        $curr_exp_cetificate_Lang = ExperienceCertificate::where('created_by', \Auth::user()->id)->where('lang', $explang)->first();
+
+        //NOC
+        $noc_certificate = NOC::all();
+        $currnocLang = NOC::where('created_by', \Auth::user()->id)->where('lang', $noclang)->first();
+
+        $emailSetting = DB::table('settings')->where('created_by', '=', \Auth::user()->id)->pluck('value', 'name')->toArray();
+
+        // Get super admin enabled gateways for filtering
+        $enabledGateways = [];
+        if (\Auth::user()->type !== 'super admin') {
+            // Get super admin user
+            $superAdmin = User::where('type', 'super admin')->first();
+            
+            if ($superAdmin) {
+                // Get super admin's payment settings
+                $superAdminSettings = DB::table('admin_payment_settings')
+                    ->where('created_by', $superAdmin->id)
+                    ->pluck('value', 'name')
+                    ->toArray();
+
+                // List of all payment gateways to check
+                $paymentGateways = [
+                    'is_stripe_enabled',
+                    'is_paypal_enabled',
+                    'is_paystack_enabled',
+                    'is_flutterwave_enabled',
+                    'is_razorpay_enabled',
+                    'is_mercado_enabled',
+                    'is_paytm_enabled',
+                    'is_mollie_enabled',
+                    'is_skrill_enabled',
+                    'is_coingate_enabled',
+                    'is_paymentwall_enabled',
+                    'is_toyyibpay_enabled',
+                    'is_payfast_enabled',
+                    'is_iyzipay_enabled',
+                    'is_sspay_enabled',
+                    'is_paytab_enabled',
+                    'is_benefit_enabled',
+                    'is_cashfree_enabled',
+                    'is_aamarpay_enabled',
+                    'is_paytr_enabled',
+                    'is_yookassa_enabled',
+                    'is_midtrans_enabled',
+                    'is_xendit_enabled',
+                    'is_nepalste_enabled',
+                    'is_paiementpro_enabled',
+                    'is_cinetpay_enabled',
+                    'is_fedapay_enabled',
+                    'is_payhere_enabled',
+                    'tap_payment_is_on',
+                    'authorizenet_payment_is_on',
+                    'khalti_payment_is_on',
+                    'easebuzz_payment_is_on',
+                    'company_ozow_payment_is_enabled',
+                    'is_bank_transfer_enabled',
+                    'is_manually_payment_enabled'
+                ];
+
+                foreach ($paymentGateways as $gateway) {
+                    if (isset($superAdminSettings[$gateway]) && $superAdminSettings[$gateway] === 'on') {
+                        $enabledGateways[$gateway] = true;
+                    }
+                }
+            }
+        } else {
+            // Super admin can see all gateways
+            $enabledGateways = [
+                'is_stripe_enabled' => true,
+                'is_paypal_enabled' => true,
+                'is_paystack_enabled' => true,
+                'is_flutterwave_enabled' => true,
+                'is_razorpay_enabled' => true,
+                'is_mercado_enabled' => true,
+                'is_paytm_enabled' => true,
+                'is_mollie_enabled' => true,
+                'is_skrill_enabled' => true,
+                'is_coingate_enabled' => true,
+                'is_paymentwall_enabled' => true,
+                'is_toyyibpay_enabled' => true,
+                'is_payfast_enabled' => true,
+                'is_iyzipay_enabled' => true,
+                'is_sspay_enabled' => true,
+                'is_paytab_enabled' => true,
+                'is_benefit_enabled' => true,
+                'is_cashfree_enabled' => true,
+                'is_aamarpay_enabled' => true,
+                'is_paytr_enabled' => true,
+                'is_yookassa_enabled' => true,
+                'is_midtrans_enabled' => true,
+                'is_xendit_enabled' => true,
+                'is_nepalste_enabled' => true,
+                'is_paiementpro_enabled' => true,
+                'is_cinetpay_enabled' => true,
+                'is_fedapay_enabled' => true,
+                'is_payhere_enabled' => true,
+                'tap_payment_is_on' => true,
+                'authorizenet_payment_is_on' => true,
+                'khalti_payment_is_on' => true,
+                'easebuzz_payment_is_on' => true,
+                'company_ozow_payment_is_enabled' => true,
+                'is_bank_transfer_enabled' => true,
+                'is_manually_payment_enabled' => true
+            ];
+        }
+
+        $post = $request->all();
+
+        return view('settings.company', compact(
+            'setting',
+            'company_payment_setting',
+            'timezones',
+            'ips',
+            'EmailTemplates',
+            'currOfferletterLang',
+            'Offerletter',
+            'offerlang',
+            'Joiningletter',
+            'currjoiningletterLang',
+            'joininglang',
+            'experience_certificate',
+            'curr_exp_cetificate_Lang',
+            'explang',
+            'noc_certificate',
+            'currnocLang',
+            'noclang',
+            'offerlangName',
+            'joininglangName',
+            'explangName',
+            'noclangName',
+            'emailSetting',
+            'comSetting',
+            'enabledGateways'  // Pass enabled gateways to view
+        ));
+    } else {
+        return redirect()->back()->with('error', 'Permission denied.');
     }
+}
 
     public function saveCompanyPaymentSettings(Request $request)
     {

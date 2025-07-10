@@ -81,6 +81,71 @@
         :root {
             --color-customColor: <?=$color ?>;
         }
+
+        /* ADD THIS CSS TO FIX EMPTY PAGE */
+    @page {
+        margin: 10mm;
+        size: A4;
+    }
+    
+    body {
+        height: auto !important;
+        min-height: auto !important;
+        overflow-x: hidden;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+    
+    .container {
+        max-height: none !important;
+        height: auto !important;
+        min-height: auto !important;
+    }
+    
+    .main-content {
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        overflow: visible;
+    }
+    
+    .card.invoice {
+        page-break-inside: avoid;
+        max-height: none !important;
+        height: auto !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    /* Remove problematic heights from Bootstrap */
+    .min-vh-100, .vh-100, .h-100, .min-h-screen, .h-screen {
+        height: auto !important;
+        min-height: auto !important;
+    }
+    
+    /* Hide footer completely for PDF */
+    #footer-main {
+        display: none !important;
+    }
+    
+    /* Prevent table breaks */
+    .table-responsive table {
+        page-break-inside: avoid;
+    }
+    
+    /* Remove any forced page breaks */
+    .page-break {
+        display: none !important;
+    }
+    
+    /* Compact spacing for PDF */
+    .row {
+        margin: 0 !important;
+    }
+    
+    .col-12, .col-md-6 {
+        padding: 5px !important;
+    }
     </style>
 
     <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">

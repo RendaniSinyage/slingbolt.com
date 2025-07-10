@@ -79,8 +79,8 @@ class Utility extends Model
         }
 
         $settings = [
-            "site_currency" => "USD",
-            "site_currency_symbol" => "$",
+            "site_currency" => "ZAR",
+            "site_currency_symbol" => "R",
             "site_currency_symbol_position" => "pre",
             "site_date_format" => "M j, Y",
             "site_time_format" => "g:i A",
@@ -92,7 +92,7 @@ class Utility extends Model
             "company_zipcode" => "",
             "company_country" => "",
             "company_telephone" => "",
-            "invoice_prefix" => "#INVO",
+            "invoice_prefix" => "#INV",
             "journal_prefix" => "#JUR",
             "invoice_color" => "ffffff",
             "proposal_prefix" => "#PROP",
@@ -101,7 +101,7 @@ class Utility extends Model
             "expense_prefix" => "#EXP",
             "bill_color" => "ffffff",
             "customer_prefix" => "#CUST",
-            "vender_prefix" => "#VEND",
+            "vender_prefix" => "#SUP",
             "footer_title" => "",
             "footer_notes" => "",
             "invoice_template" => "template1",
@@ -128,7 +128,7 @@ class Utility extends Model
             "employee_prefix" => "#EMP00",
             'leave_status' => '1',
             "bug_prefix" => "#ISSUE",
-            'title_text' => 'ErpGo Saas',
+            'title_text' => 'JuvoONE',
             'footer_text' => '',
             "company_start_time" => "09:00",
             "company_end_time" => "18:00",
@@ -300,8 +300,8 @@ class Utility extends Model
         $data = Utility::getSettingById($user_id);
 
         $settings = [
-            "site_currency" => "USD",
-            "site_currency_symbol" => "$",
+            "site_currency" => "ZAR",
+            "site_currency_symbol" => "R",
             "site_currency_symbol_position" => "pre",
             "site_date_format" => "M j, Y",
             "site_time_format" => "g:i A",
@@ -312,7 +312,7 @@ class Utility extends Model
             "company_zipcode" => "",
             "company_country" => "",
             "company_telephone" => "",
-            "invoice_prefix" => "#INVO",
+            "invoice_prefix" => "#INV",
             "invoice_color" => "ffffff",
             "proposal_prefix" => "#PROP",
             "proposal_color" => "ffffff",
@@ -320,7 +320,7 @@ class Utility extends Model
             "expense_prefix" => "#EXP",
             "bill_color" => "ffffff",
             "customer_prefix" => "#CUST",
-            "vender_prefix" => "#VEND",
+            "vender_prefix" => "#SUP",
             "footer_title" => "",
             "footer_notes" => "",
             "invoice_template" => "template1",
@@ -348,7 +348,7 @@ class Utility extends Model
             "employee_prefix" => "#EMP00",
             'leave_status' => '1',
             "bug_prefix" => "#ISSUE",
-            'title_text' => 'ErpGo Saas',
+            'title_text' => 'JuvoONE',
             'footer_text' => '',
             "company_start_time" => "09:00",
             "company_end_time" => "18:00",
@@ -611,17 +611,17 @@ class Utility extends Model
             '000',
         ];
         $arr['templates'] = [
-            "template1" => "New York",
-            "template2" => "Toronto",
-            "template3" => "Rio",
-            "template4" => "London",
-            "template5" => "Istanbul",
-            "template6" => "Mumbai",
-            "template7" => "Hong Kong",
-            "template8" => "Tokyo",
-            "template9" => "Sydney",
-            "template10" => "Paris",
-        ];
+         "template1" => "Tshwane",
+         "template2" => "Lagos",
+         "template3" => "Cape Town",
+         "template4" => "Cairo",
+         "template5" => "Johannesburg",
+         "template6" => "Nairobi",
+         "template7" => "Durban",
+         "template8" => "Casablanca",
+         "template9" => "Accra",
+         "template10" => "Addis Ababa",
+];
 
         return $arr;
     }
