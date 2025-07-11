@@ -8,16 +8,16 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
       - name: Deploy via Rsync
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
           rsync -avz \
+            --delete \
             --exclude '.git*' \
             --exclude 'node_modules/' \
             --exclude 'vendor/' \
             --exclude 'storage/*.log' \
             -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
             ./ \
-            root@s1.juvo.app:/var/www/fastuser/data/www/one.juvo.app/
+            root@s1.juvo.app:/var/www/fastuser/data/www/slingbolt.com/

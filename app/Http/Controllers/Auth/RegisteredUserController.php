@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Spatie\Permission\Models\Role;
+use App\Services\CompanyClonerService;
 
 class RegisteredUserController extends Controller
 {
@@ -111,27 +112,12 @@ class RegisteredUserController extends Controller
                 $user->sendEmailVerificationNotification();
 
                 $role_r = Role::findByName('company');
-                $user->assignRole($role_r);
-                $user->userDefaultDataRegister($user->id);
-                $user->userWarehouseRegister($user->id);
+		$user->assignRole($role_r);
 
-                //default bank account for new company
-                $user->userDefaultBankAccount($user->id);
-
-                Utility::chartOfAccountTypeData($user->id);
-                // Utility::chartOfAccountData($user);
-                // default chart of account for new company
-                Utility::chartOfAccountData1($user->id);
-
-                Utility::pipeline_lead_deal_Stage($user->id);
-                Utility::project_task_stages($user->id);
-                Utility::labels($user->id);
-                Utility::sources($user->id);
-                Utility::jobStage($user->id);
-                GenerateOfferLetter::defaultOfferLetterRegister($user->id);
-                ExperienceCertificate::defaultExpCertificatRegister($user->id);
-                JoiningLetter::defaultJoiningLetterRegister($user->id);
-                NOC::defaultNocCertificateRegister($user->id);
+		// Clone all defaults from template company
+		\Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+		$user->cloneCompanyDefaults($user->id);
+		\Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
             } catch (\Exception $e) {
 
@@ -150,21 +136,12 @@ class RegisteredUserController extends Controller
             $user->email_verified_at = date('h:i:s');
             $user->save();
             $role_r = Role::findByName('company');
-            $user->assignRole($role_r);
-            $user->userDefaultData($user->id);
-            $user->userDefaultDataRegister($user->id);
-            //default bank account for new company
-            $user->userDefaultBankAccount($user->id);
+		$user->assignRole($role_r);
 
-            Utility::chartOfAccountTypeData($user->id);
-            // Utility::chartOfAccountData($user);
-            // default chart of account for new company
-            Utility::chartOfAccountData1($user->id);
-
-            GenerateOfferLetter::defaultOfferLetterRegister($user->id);
-            ExperienceCertificate::defaultExpCertificatRegister($user->id);
-            JoiningLetter::defaultJoiningLetterRegister($user->id);
-            NOC::defaultNocCertificateRegister($user->id);
+		// Clone all defaults from template company  
+		\Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+		$user->cloneCompanyDefaults($user->id);
+		\Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
             $userArr = [
                 'email' => $user->email,

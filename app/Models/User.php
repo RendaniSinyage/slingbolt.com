@@ -12,6 +12,8 @@ use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Lab404\Impersonate\Models\Impersonate;
+use App\Services\CompanyClonerService;
+
 
 class User extends Authenticatable implements MustVerifyEmail
 {
@@ -4067,30 +4069,28 @@ class User extends Authenticatable implements MustVerifyEmail
     public static function userDefaultWarehouse()
     {
         warehouse::create(
-            [
-                'name' => 'North Warehouse',
-                'address' => '723 N. Tillamook Street Portland, OR Portland, United States',
-                'city' => 'Portland',
-                'city_zip' => 97227,
-                'created_by' => 2,
-            ]
-        );
-
-    }
+        [
+            'name' => 'Default Warehouse',
+            'address' => '',
+            'city' => '',
+            'city_zip' => null,
+            'created_by' => 2,
+        ]
+    );
+}
 
     public function userWarehouseRegister($user_id)
     {
-        warehouse::create(
-            [
-                'name' => 'North Warehouse',
-                'address' => '723 N. Tillamook Street Portland, OR Portland, United States',
-                'city' => 'Portland',
-                'city_zip' => 97227,
-                'created_by' => $user_id,
-            ]
-        );
-
-    }
+       warehouse::create(
+        [
+            'name' => 'Default Warehouse',
+            'address' => '',
+            'city' => '',
+            'city_zip' => null,
+            'created_by' => $user_id,
+        ]
+    );
+}
 
     //default bank account for new company
     public function userDefaultBankAccount($user_id)
@@ -4202,4 +4202,59 @@ class User extends Authenticatable implements MustVerifyEmail
         return Employee::where('created_by', '=', $this->creatorId())->count();
     }
 
+/**
+ * Clone all company defaults from first company
+ */
+public function cloneCompanyDefaults($user_id, $sourceCompanyId = null)
+{
+    try {
+        // Force log messages to show
+        \Log::channel('single')->info("=== STARTING COMPANY CLONING FOR USER: {$user_id} ===");
+        
+        $cloner = new CompanyClonerService($user_id, $sourceCompanyId);
+        $result = $cloner->cloneAllCompanyData();
+        
+        \Log::channel('single')->info("=== SUCCESSFULLY COMPLETED CLONING FOR USER: {$user_id} ===");
+        return $result;
+    } catch (\Exception $e) {
+        \Log::channel('single')->error("=== CLONING FAILED FOR USER {$user_id} ===");
+        \Log::channel('single')->error("Error: " . $e->getMessage());
+        \Log::channel('single')->error("Stack trace: " . $e->getTraceAsString());
+        
+        // Fallback to original method if cloning fails
+        \Log::channel('single')->info("=== FALLING BACK TO ORIGINAL METHODS FOR USER: {$user_id} ===");
+        $this->createFallbackDefaults($user_id);
+        return false;
+    }
+}
+
+/**
+ * Fallback method using original defaults if cloning fails
+ */
+private function createFallbackDefaults($user_id)
+{
+    try {
+        // Original methods as fallback
+        $this->userDefaultDataRegister($user_id);
+        $this->userWarehouseRegister($user_id);
+        $this->userDefaultBankAccount($user_id);
+        
+        Utility::chartOfAccountTypeData($user_id);
+        Utility::chartOfAccountData1($user_id);
+        Utility::pipeline_lead_deal_Stage($user_id);
+        Utility::project_task_stages($user_id);
+        Utility::labels($user_id);
+        Utility::sources($user_id);
+        Utility::jobStage($user_id);
+        
+        GenerateOfferLetter::defaultOfferLetterRegister($user_id);
+        ExperienceCertificate::defaultExpCertificatRegister($user_id);
+        JoiningLetter::defaultJoiningLetterRegister($user_id);
+        NOC::defaultNocCertificateRegister($user_id);
+        
+        \Log::info("Fallback defaults created for user: {$user_id}");
+    } catch (\Exception $e) {
+        \Log::error("Error creating fallback defaults: " . $e->getMessage());
+    }
+}
 }
