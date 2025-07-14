@@ -228,7 +228,7 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
 
                 $event->sheet->getDelegate()->setCellValue('A1', 'Balance Sheet - ' . $this->companyName)->getStyle('A1')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A2', 'Print Out Date : ' . date('Y-m-d H:i'));
-                $event->sheet->getDelegate()->setCellValue('A3', 'Date : ' . $this->startDate . ' - ' . $this->endDate);
+      		$event->sheet->getDelegate()->setCellValue('A3', ($this->startDate !== '1900-01-01' ? 'Period: ' . date('d M Y', strtotime($this->startDate)) . ' to ' : 'As of: ') . date('d F Y', strtotime($this->endDate)));
 
                 $event->sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                 $event->sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);

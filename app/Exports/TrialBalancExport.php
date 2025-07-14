@@ -149,7 +149,7 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
 
                 $event->sheet->getDelegate()->setCellValue('A2', 'Trial Balance - ' . $this->companyName)->getStyle('A2')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A3', 'Print Out Date : ' . date('Y-m-d H:i'));
-                $event->sheet->getDelegate()->setCellValue('A4', 'Date : ' . $this->startDate . ' - ' . $this->endDate);
+                $event->sheet->getDelegate()->setCellValue('A3', ($this->startDate !== '1900-01-01' ? 'Period: ' . date('d M Y', strtotime($this->startDate)) . ' to ' : 'As of: ') . date('d F Y', strtotime($this->endDate)));
 
                 $lastRow = $event->sheet->getHighestRow();
 

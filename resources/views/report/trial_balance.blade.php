@@ -126,7 +126,7 @@
             <div class="card">
                 <div class="card-body {{ $view == 'expand' ? 'collapse-view' : '' }}">
                     <div class="account-main-title">
-                        <h5 class="mb-3">{{ 'Trial Balance of ' . $user->name . ' as of ' . $filter['startDateRange'] . ' to ' . $filter['endDateRange'] }}
+                        <h5 class="mb-3">{{ 'Trial Balance of ' . $user->name . ' as of ' . $filter['endDateRange'] }}
                             </h5>
                     </div>
                     <div

@@ -683,7 +683,13 @@ Route::group(['middleware' => ['verified']], function () {
             Route::get('report/sales', [DoubleEntryReportController::class, 'salesReport'])->name('report.sales');
             Route::post('export/sales', [DoubleEntryReportController::class, 'salesReportExport'])->name('sales.export');
             Route::get('report/receivables', [DoubleEntryReportController::class, 'ReceivablesReport'])->name('report.receivables');
+	    Route::post('report/receivables/export', [DoubleEntryReportController::class, 'receivablesExport'])->name('report.receivables.export');
             Route::get('report/payables', [DoubleEntryReportController::class, 'PayablesReport'])->name('report.payables');
+	    Route::post('report/payables/export', [DoubleEntryReportController::class, 'payableExport'])->name('report.payables.export');
+	    // ADD THESE NEW ASSETS REGISTER ROUTES:
+    	    Route::get('/assets-register-report', [DoubleEntryReportController::class, 'assetsRegister'])->name('reports.assets.register');
+	    Route::post('/assets-register-report/export', [DoubleEntryReportController::class, 'assetsRegisterExport'])->name('reports.assets.register.export');
+    
         }
     );
 

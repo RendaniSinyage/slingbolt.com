@@ -128,7 +128,7 @@
             <div class="col-md-10">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . $filter['startDateRange'] . ' to ' . $filter['endDateRange'] }}
+                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . $filter['endDateRange'] }}
                         </h5>
                     </div>
                     <div class="card-body {{ $collapseview == 'expand' ? 'collapse-view' : '' }} overflow-auto">

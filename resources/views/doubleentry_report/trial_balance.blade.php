@@ -119,7 +119,7 @@
         <div class="col-md-10">
             <div class="card">
             <div class="card-header">
-                <h5>{{'Trial Balance of ' . $user->name . ' as of ' . $filter['startDateRange'] . ' to ' . $filter['endDateRange'] }}
+                <h5>{{'Trial Balance of ' . $user->name . ' as of ' . $filter['endDateRange'] }}
                 </h5>
             </div>
             <div class="card-body {{ $view == 'collapse' ? 'collapse-view' : '' }} overflow-auto">

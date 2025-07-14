@@ -1019,6 +1019,11 @@
                                                         href="{{ route('trial.balance') }}">{{ __('Trial Balance') }}</a>
                                                 </li>
                                             @endcan
+@if(Gate::check('manage assets') || Gate::check('balance sheet report'))
+    <li class="dash-item {{ Request::route()->getName() == 'reports.assets.register' ? ' active' : '' }}">
+        <a class="dash-link" href="{{ route('reports.assets.register') }}">{{ __('Assets Register') }}</a>
+    </li>
+@endif
                                         </ul>
                                     </li>
                                 @endif
