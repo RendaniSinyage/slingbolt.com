@@ -36,7 +36,7 @@
                             </tr>
                             </thead>
                             <tbody>
-                            @foreach ($journalEntries as $journalEntry)
+                            @foreach ($journalEntries->reverse() as $journalEntry)
                                 <tr>
                                     <td class="Id">
                                         <a href="{{ route('journal-entry.show',$journalEntry->id) }}" class="btn btn-outline-primary">{{ AUth::user()->journalNumberFormat($journalEntry->journal_id) }}</a>

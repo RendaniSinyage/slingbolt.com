@@ -150,7 +150,7 @@
         <div class="row mt-3">
             <div class="col mb-4">
                 <input type="hidden"
-                    value="{{ __('Account Statement') . ' ' . $filter['type'] . ' ' . 'Report of' . ' ' . $filter['startDateRange'] . ' to ' . $filter['endDateRange'] }}"
+                    value="{{ __('Account Statement') . ' ' . $filter['type'] . ' ' . 'Report of' . ' ' . \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}"
                     id="filename">
                 <div class="card report-card h-100 mb-0">
                     <div class="card-body d-flex align-items-center gap-3">
@@ -238,7 +238,7 @@
                         </div>
                         <div class="report-info flex-1">
                             <h5 class="mb-1">{{ __('Duration') }} :</h5>
-                            <p class="text-muted mb-0">{{ $filter['endDateRange'] . ' to ' . $filter['startDateRange'] }}
+                            <p class="text-muted mb-0">{{ \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
                             </p>
                         </div>
                     </div>

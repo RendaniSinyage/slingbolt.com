@@ -98,8 +98,8 @@ class DoubleEntryReportController extends Controller
                 $start = $request->start_date;
                 $end = $request->end_date;
             } else {
-                $start = '1900-01-01';
-                $end = date('d F Y');
+                 $start = '1900-01-01';
+                $end = date('Y-m-d');
             }
             $types = ChartOfAccountType::where('created_by', \Auth::user()->creatorId())->whereIn('name', ['Assets', 'Liabilities', 'Equity'])->get();
             $totalAccounts = [];
@@ -184,7 +184,7 @@ class DoubleEntryReportController extends Controller
         $companyName = User::where('id', \Auth::user()->creatorId())->first();
         $companyName = $companyName->name;
 
-        $name = 'balance_sheet_' . date('d F Y i:h:s');
+        $name = 'balance_sheet_' . date('Y-m-d i:h:s');
         $data = Excel::download(new BalanceSheetExport($totalAccounts, $start, $end, $companyName), $name . '.xlsx');
         ob_end_clean();
 
@@ -198,15 +198,15 @@ class DoubleEntryReportController extends Controller
                 $start = $request->start_date;
                 $end = $request->end_date;
             } else {
-               // For current tax year (1 March to current date)
-               if (date('n') >= 3) {
-                   // We're in March-December, so current tax year started this year
-                   $start = date('Y-03-01');
-               } else {
-                   // We're in Jan-Feb, so current tax year started last year
-                   $start = date('Y-03-01', strtotime('-1 year'));
-               }
-                $end = date('d F Y');
+                 // For current tax year (1 March to current date)
+                           if (date('n') >= 3) {
+                               // We're in March-December, so current tax year started this year
+                               $start = date('Y-03-01');
+                           } else {
+                               // We're in Jan-Feb, so current tax year started last year
+                               $start = date('Y-03-01', strtotime('-1 year'));
+                           }
+                $end = date('Y-m-d');
             }
             $types = ChartOfAccountType::where('created_by', \Auth::user()->creatorId())->whereIn('name', ['Income', 'Expenses', 'Costs of Goods Sold'])->get();
 
@@ -229,15 +229,8 @@ class DoubleEntryReportController extends Controller
             $start = $request->start_date;
             $end = $request->end_date;
         } else {
-            // For current tax year (1 March to current date)
-            if (date('n') >= 3) {
-                // We're in March-December, so current tax year started this year
-                $start = date('Y-03-01');
-            } else {
-                // We're in Jan-Feb, so current tax year started last year
-                $start = date('Y-03-01', strtotime('-1 year'));
-            }
-            $end = date('d F Y');
+            $start = date('Y-01-01');
+            $end = date('Y-m-d');
         }
 
         $types = ChartOfAccountType::where('created_by', \Auth::user()->creatorId())->whereIn('name', ['Income', 'Expenses', 'Costs of Goods Sold'])->get();
@@ -247,7 +240,7 @@ class DoubleEntryReportController extends Controller
         $companyName = User::where('id', \Auth::user()->creatorId())->first();
         $companyName = $companyName->name;
 
-        $name = 'profit & loss_' . date('d F Y i:h:s');
+        $name = 'profit & loss_' . date('Y-m-d i:h:s');
         $data = Excel::download(new ProfitLossExport($totalAccounts, $start, $end, $companyName), $name . '.xlsx');
         ob_end_clean();
 
@@ -263,7 +256,7 @@ class DoubleEntryReportController extends Controller
                 $end = $request->end_date;
             } else {
                 $start = '1900-01-01';
-                $end = date('d F Y');
+                $end = date('Y-m-d');
             }
 
             $types = $this->getAccountTypes();
@@ -283,7 +276,7 @@ class DoubleEntryReportController extends Controller
             $end = $request->end_date;
         } else {
             $start = '1900-01-01';
-            $end = date('d F Y');
+            $end = date('Y-m-d');
         }
 
         $types         = $this->getAccountTypes();
@@ -292,12 +285,13 @@ class DoubleEntryReportController extends Controller
         $companyName = User::where('id', \Auth::user()->creatorId())->first();
         $companyName = $companyName->name;
 
-        $name = 'trial_balance_' . date('d F Y i:h:s');
+        $name = 'trial_balance_' . date('Y-m-d i:h:s');
         $data = Excel::download(new TrialBalancExport($totalAccounts, $start, $end, $companyName), $name . '.xlsx');
         ob_end_clean();
 
         return $data;
     }
+
 
     public function salesReport(Request $request)
     {
@@ -305,15 +299,15 @@ class DoubleEntryReportController extends Controller
             $start = $request->start_date;
             $end = $request->end_date;
         } else {
-           // For current tax year (1 March to current date)
-           if (date('n') >= 3) {
-               // We're in March-December, so current tax year started this year
-               $start = date('Y-03-01');
-           } else {
-               // We're in Jan-Feb, so current tax year started last year
-               $start = date('Y-03-01', strtotime('-1 year'));
-           }
-            $end = date('d F Y');
+             // For current tax year (1 March to current date)
+                       if (date('n') >= 3) {
+                           // We're in March-December, so current tax year started this year
+                           $start = date('Y-03-01');
+                       } else {
+                           // We're in Jan-Feb, so current tax year started last year
+                           $start = date('Y-03-01', strtotime('-1 year'));
+                       }
+            $end = date('Y-m-d');
         }
 
         $invoiceItems     = $this->getInvoiceItems($start, $end);
@@ -325,21 +319,22 @@ class DoubleEntryReportController extends Controller
         return view('doubleentry_report.sales_report', compact('filter', 'invoiceItems', 'invoiceCustomers'));
     }
 
+
     public function salesReportExport(Request $request)
     {
         if (!empty($request->start_date) && !empty($request->end_date)) {
             $start = $request->start_date;
             $end = $request->end_date;
         } else {
-            // For current tax year (1 March to current date)
-            if (date('n') >= 3) {
-                // We're in March-December, so current tax year started this year
-                $start = date('Y-03-01');
-            } else {
-                // We're in Jan-Feb, so current tax year started last year
-                $start = date('Y-03-01', strtotime('-1 year'));
-            }
-            $end = date('d F Y');
+             // For current tax year (1 March to current date)
+                       if (date('n') >= 3) {
+                           // We're in March-December, so current tax year started this year
+                           $start = date('Y-03-01');
+                       } else {
+                           // We're in Jan-Feb, so current tax year started last year
+                           $start = date('Y-03-01', strtotime('-1 year'));
+                       }
+            $end = date('Y-m-d');
         }
         if ($request->report == '#item') {
             $invoiceItems     = $this->getInvoiceItems($start, $end);
@@ -351,7 +346,7 @@ class DoubleEntryReportController extends Controller
         $companyName = User::where('id', \Auth::user()->creatorId())->first();
         $companyName = $companyName->name;
 
-        $name = 'Sales By ' . $reportName . '_ ' . date('d F Y i:h:s');
+        $name = 'Sales By ' . $reportName . '_ ' . date('Y-m-d i:h:s');
         $data = Excel::download(new SalesReportExport($invoiceItems, $start, $end, $companyName, $reportName), $name . '.xlsx');
         ob_end_clean();
 
@@ -372,7 +367,7 @@ public function assetsRegister(Request $request)
         } else {
             // Assets register should show from inception (all assets ever purchased)
             $start = '1900-01-01';
-            $end = date('d F Y');
+            $end = date('Y-m-d');
         }
 
         // Get all asset accounts
@@ -445,7 +440,7 @@ public function assetsRegisterExport(Request $request)
             $end = $request->end_date;
         } else {
             $start = '1900-01-01';
-            $end = date('d F Y');
+            $end = date('Y-m-d');
         }
 
         // Get all asset accounts (same logic as assetsRegister method)
@@ -500,7 +495,7 @@ public function assetsRegisterExport(Request $request)
 
         // Get company name for the export
         $companyName = User::where('id', \Auth::user()->creatorId())->first()->name;
-        $name = 'assets_register_' . date('d F Y_H-i-s');
+        $name = 'assets_register_' . date('Y-m-d i:h:s');
 
         // Create the export data structure
         $exportData = [
@@ -559,7 +554,7 @@ private function getFirstTransactionDate($accountId)
             $end = $request->end_date;
         } else {
             $start = '1900-01-01';
-            $end = date('d F Y');
+            $end = date('Y-m-d');
         }
 
         $customers           = $this->getCustomers();
@@ -589,7 +584,14 @@ public function receivableExport(Request $request)
             $start = $request->start_date;
             $end = $request->end_date;
         } else {
-            $start = date('Y-01-01');
+             // For current tax year (1 March to current date)
+                        if (date('n') >= 3) {
+                            // We're in March-December, so current tax year started this year
+                            $start = date('Y-03-01');
+                        } else {
+                            // We're in Jan-Feb, so current tax year started last year
+                            $start = date('Y-03-01', strtotime('-1 year'));
+                        }
             $end = date('Y-m-d');
         }
 
@@ -652,6 +654,8 @@ public function receivableExport(Request $request)
     }
 }
 
+
+
     public function PayablesReport(Request $request)
     {
         if (!empty($request->start_date) && !empty($request->end_date)) {
@@ -659,7 +663,7 @@ public function receivableExport(Request $request)
             $end = $request->end_date;
         } else {
             $start = '1900-01-01';
-            $end = date('d F Y');
+            $end = date('Y-m-d');
         }
 
         $vendor           = $this->getVendor();
@@ -681,9 +685,7 @@ public function receivableExport(Request $request)
         return view('doubleentry_report.payable_report', compact('filter', 'payableVendors','payableSummaries', 'payableDetails', 'agingSummaries', 'moreThan45', 'days31to45', 'days16to30', 'days1to15', 'currents', 'vendor'));
     }
 
-    // Add this method to your DoubleEntryReportController
-
-    public function payableExport(Request $request)
+public function payableExport(Request $request)
     {
         if(\Auth::user()->can('manage receivables'))
         {

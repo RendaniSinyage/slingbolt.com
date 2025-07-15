@@ -131,7 +131,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . $filter['endDateRange'] }}
+                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
                         </h5>
                     </div>
                     <div class="card-body {{ $collapseview == 'expand' ? 'collapse-view' : '' }}">

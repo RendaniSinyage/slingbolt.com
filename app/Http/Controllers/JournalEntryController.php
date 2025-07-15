@@ -36,7 +36,8 @@ class JournalEntryController extends Controller
             foreach ($accountTypes as $type) {
                 $accountTypes = ChartOfAccountSubType::where('type', $type->id)
                     ->where('created_by', '=', \Auth::user()->creatorId())
-                    ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
+                    // ADDED: Exclude AR/AP from journal entry interface (same as edit method)
+                    ->whereNotIn('name', ['Accounts Receivable', 'Accounts Payable'])
                     ->get();
 
                 $temp = [];
@@ -47,8 +48,8 @@ class JournalEntryController extends Controller
                         ->get();
 
                     $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
-                    ->where('created_by', '=', \Auth::user()->creatorId())
-                    ->get();
+                        ->where('created_by', '=', \Auth::user()->creatorId())
+                        ->get();
 
                     $tempData = [
                         'account_name'      => $accountType->name,
@@ -80,7 +81,7 @@ class JournalEntryController extends Controller
 
             $journalId = $this->journalNumber();
 
-            return view('journalEntry.create', compact('chartAccounts' , 'journalId'));
+            return view('journalEntry.create', compact('chartAccounts', 'journalId'));
         } else {
             return response()->json(['error' => __('Permission denied.')], 401);
         }
@@ -88,7 +89,6 @@ class JournalEntryController extends Controller
 
     public function store(Request $request)
     {
-
         if (\Auth::user()->can('create invoice')) {
             $validator = \Validator::make(
                 $request->all(), [
@@ -98,7 +98,6 @@ class JournalEntryController extends Controller
             );
             if ($validator->fails()) {
                 $messages = $validator->getMessageBag();
-
                 return redirect()->back()->with('error', $messages->first());
             }
 
@@ -112,7 +111,6 @@ class JournalEntryController extends Controller
                 $totalDebit += $debit;
                 $totalCredit += $credit;
             }
-            // $totalDebit += $debit;
 
             if ($totalCredit != $totalDebit) {
                 return redirect()->back()->with('error', __('Debit and Credit must be Equal.'));
@@ -135,6 +133,7 @@ class JournalEntryController extends Controller
                 $journalItem->credit = isset($accounts[$i]['credit']) ? $accounts[$i]['credit'] : 0;
                 $journalItem->save();
 
+                // Update bank account balances if applicable
                 $bankAccounts = BankAccount::where('chart_account_id', '=', $accounts[$i]['account'])->get();
                 if (!empty($bankAccounts)) {
                     foreach ($bankAccounts as $bankAccount) {
@@ -151,7 +150,9 @@ class JournalEntryController extends Controller
                         }
                     }
                 }
-                if (isset($accounts[$i]['debit'])) {
+
+                // Record transaction lines for the specified accounts only
+                if (isset($accounts[$i]['debit']) && $accounts[$i]['debit'] > 0) {
                     $data = [
                         'account_id'         => $accounts[$i]['account'],
                         'transaction_type'   => 'debit',
@@ -162,35 +163,12 @@ class JournalEntryController extends Controller
                         'date'               => $journal->date,
                     ];
                     Utility::addTransactionLines($data);
+                }
 
-                    $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
-                    $data    = [
-                        'account_id'         => !empty($account) ? $account->id : 0,
-                        'transaction_type'   => 'credit',
-                        'transaction_amount' => $accounts[$i]['debit'],
-                        'reference'          => 'Journal Entry',
-                        'reference_id'       => $journal->id,
-                        'reference_sub_id'   => $journalItem->id,
-                        'date'               => $journal->date,
-                    ];
-                    Utility::addTransactionLines($data);
-
-                } else {
+                if (isset($accounts[$i]['credit']) && $accounts[$i]['credit'] > 0) {
                     $data = [
                         'account_id'         => $accounts[$i]['account'],
                         'transaction_type'   => 'credit',
-                        'transaction_amount' => $accounts[$i]['credit'],
-                        'reference'          => 'Journal Entry',
-                        'reference_id'       => $journal->id,
-                        'reference_sub_id'   => $journalItem->id,
-                        'date'               => $journal->date,
-                    ];
-                    Utility::addTransactionLines($data);
-
-                    $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
-                    $data    = [
-                        'account_id'         => !empty($account) ? $account->id : 0,
-                        'transaction_type'   => 'debit',
                         'transaction_amount' => $accounts[$i]['credit'],
                         'reference'          => 'Journal Entry',
                         'reference_id'       => $journal->id,
@@ -199,6 +177,9 @@ class JournalEntryController extends Controller
                     ];
                     Utility::addTransactionLines($data);
                 }
+
+                // REMOVED: All automatic Accounts Payable/Receivable creation logic
+                // Journal entries now only record what the user actually specifies
             }
 
             return redirect()->route('journal-entry.index')->with('success', __('Journal entry successfully created.'));
@@ -293,7 +274,6 @@ class JournalEntryController extends Controller
                 );
                 if ($validator->fails()) {
                     $messages = $validator->getMessageBag();
-
                     return redirect()->back()->with('error', $messages->first());
                 }
 
@@ -317,6 +297,7 @@ class JournalEntryController extends Controller
                 $journalEntry->created_by = \Auth::user()->creatorId();
                 $journalEntry->save();
 
+                // Clean up existing transaction lines for this journal entry
                 AddTransactionLine::where('reference_id',$journalEntry->id)->where('reference', 'Journal Entry')->delete();
 
                 for ($i = 0; $i < count($accounts); $i++) {
@@ -336,6 +317,7 @@ class JournalEntryController extends Controller
                     $journalItem->credit = isset($accounts[$i]['credit']) ? $accounts[$i]['credit'] : 0;
                     $journalItem->save();
 
+                    // Update bank account balances if applicable
                     $bankAccounts = BankAccount::where('chart_account_id', '=', $accounts[$i]['account'])->get();
                     if (!empty($bankAccounts)) {
                         foreach ($bankAccounts as $bankAccount) {
@@ -352,7 +334,9 @@ class JournalEntryController extends Controller
                             }
                         }
                     }
-                    if (isset($accounts[$i]['debit'])) {
+
+                    // Record transaction lines for the specified accounts only
+                    if (isset($accounts[$i]['debit']) && $accounts[$i]['debit'] > 0) {
                         $data = [
                             'account_id'         => $accounts[$i]['account'],
                             'transaction_type'   => 'debit',
@@ -363,34 +347,12 @@ class JournalEntryController extends Controller
                             'date'               => $journalEntry->date,
                         ];
                         Utility::addTransactionLines($data);
-    
-                        $account = ChartOfAccount::where('name','Accounts Payable')->where('created_by' , \Auth::user()->creatorId())->first();
-                        $data    = [
-                            'account_id'         => !empty($account) ? $account->id : 0,
-                            'transaction_type'   => 'credit',
-                            'transaction_amount' => $accounts[$i]['debit'],
-                            'reference'          => 'Journal Entry',
-                            'reference_id'       => $journalEntry->id,
-                            'reference_sub_id'   => $journalItem->id,
-                            'date'               => $journalEntry->date,
-                        ];
-                        Utility::addTransactionLines($data);
-                    } else {
+                    }
+
+                    if (isset($accounts[$i]['credit']) && $accounts[$i]['credit'] > 0) {
                         $data = [
                             'account_id'         => $accounts[$i]['account'],
                             'transaction_type'   => 'credit',
-                            'transaction_amount' => $accounts[$i]['credit'],
-                            'reference'          => 'Journal Entry',
-                            'reference_id'       => $journalEntry->id,
-                            'reference_sub_id'   => $journalItem->id,
-                            'date'               => $journalEntry->date,
-                        ];
-                        Utility::addTransactionLines($data);
-    
-                        $account = ChartOfAccount::where('name','Accounts Receivable')->where('created_by' , \Auth::user()->creatorId())->first();
-                        $data    = [
-                            'account_id'         => !empty($account) ? $account->id : 0,
-                            'transaction_type'   => 'debit',
                             'transaction_amount' => $accounts[$i]['credit'],
                             'reference'          => 'Journal Entry',
                             'reference_id'       => $journalEntry->id,
@@ -399,6 +361,9 @@ class JournalEntryController extends Controller
                         ];
                         Utility::addTransactionLines($data);
                     }
+
+                    // REMOVED: All automatic Accounts Payable/Receivable creation logic
+                    // Journal entries now only record what the user actually specifies
                 }
 
                 return redirect()->route('journal-entry.index')->with('success', __('Journal entry successfully updated.'));

@@ -115,7 +115,7 @@
         <div class="col-md-12">
             <div class="card">
             <div class="card-header">
-                <h5>{{ 'Profit & Loss ' . Auth::user()->name . ' as of ' . $filter['startDateRange'] . ' to ' . $filter['endDateRange'] }}
+                <h5>{{ 'Profit & Loss of ' . Auth::user()->name . ' as of ' . \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
                 </h5>
             </div>
                 <div class="card-body {{ $collapseView == 'expand' ? 'collapse-view' : '' }}">

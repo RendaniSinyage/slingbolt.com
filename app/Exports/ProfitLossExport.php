@@ -15,90 +15,84 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyles, WithColumnWidths, WithCustomStartCell, WithMapping
 {
-    /**
-    * @return \Illuminate\Support\Collection
-    */
-
     public $data;       
     public $companyName;
     public $startDate;  
     public $endDate;    
 
-    public function __construct($data , $startDate, $endDate, $companyName)
+    public function __construct($data, $startDate, $endDate, $companyName)
     {
         $formattedData = [];
-        $totalIncome = 0; $totalCosts = 0; $totalExpense =0;
+        $totalIncome = 0; 
+        $totalCosts = 0; 
+        $totalExpense = 0;
 
-        foreach ($data  as $category)
-        {
-            if($category['Type'] == 'Income' || $category['Type'] == 'Costs of Goods Sold')
-            {
+        foreach ($data as $category) {
+            if($category['Type'] == 'Income' || $category['Type'] == 'Costs of Goods Sold') {
+                $formattedData[] = [
+                    'Account Name' => '',
+                    'Account No'   => '',
+                    'Total'        => ''
+                ];
 
-            $formattedData[] = [
-                'Account Name' => '',
-                'Account No'   => '',
-                'Total'        => ''
-            ];
+                $formattedData[] = [
+                    'Account Name' => $category['Type'],
+                    'Account No'   => '',
+                    'Total'        => ''
+                ];
 
-            $formattedData[] = [
-                'Account Name' => $category['Type'],
-                'Account No'   => '',
-                'Total'        => ''
-            ];
+                if (isset($category['account']) && is_array($category['account'])) {
+                    foreach($category['account'] as $accounts) {
+                        if (is_array($accounts)) {
+                            foreach($accounts as $account) {
+                                if (isset($account['netAmount']) && $account['netAmount'] != 0) {
+                                    $netAmount = abs($account['netAmount']);
+                                    $accountName = isset($account['account_name']) ? $account['account_name'] : '';
+                                    $accountCode = isset($account['account_code']) ? $account['account_code'] : '';
+                                    
+                                    if(isset($account['account']) && $account['account'] == 'subAccount') {
+                                        $formattedData[] = [
+                                            'Account Name' => '       ' . $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    } elseif (isset($account['account']) && ($account['account'] == 'parent' || $account['account'] == 'parentTotal') || !preg_match('/\btotal\b/i', $accountName)) {
+                                        $formattedData[] = [
+                                            'Account Name' => '   ' . $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    } else {
+                                        $formattedData[] = [
+                                            'Account Name' => $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    }
 
-                foreach($category['account'] as $accounts)
-                {
-                    foreach($accounts as $account)
-                    {
-                    if($account['netAmount'] > 0)
-                    {
-                        $netAmount = $account['netAmount'];
-                    }
-                    else
-                    {
-                        $netAmount = -$account['netAmount'];
-                    }
-                    if($account['account'] == 'subAccount')
-                    {
-                        $formattedData[] = [
-                            'Account Name' => '       ' . $account['account_name'],
-                            'Account No'   => $account['account_code'],
-                            'Total'        => $netAmount
-                        ];
-                    }
-                    elseif ($account['account'] == 'parent' || $account['account'] == 'parentTotal' || !preg_match('/\btotal\b/i', $account['account_name']))
-                    {
-                        $formattedData[] = [
-                            'Account Name' => '   ' . $account['account_name'],
-                            'Account No'   => $account['account_code'],
-                            'Total'        => $netAmount
-                        ];
-                    }
-                    else
-                    {
-                        $formattedData[] = [
-                            'Account Name' => $account['account_name'],
-                            'Account No'   => $account['account_code'],
-                            'Total'        => $netAmount
-                        ];
-                    }
-    
-                    if($account['account_name'] == 'Total Income')
-                    {
-                        $totalIncome = $netAmount;
-                    }
-    
-                    if($account['account_name'] == 'Total Costs of Goods Sold')
-                    {
-                        $totalCosts = $netAmount;
+                                    // Capture totals for calculations
+                                    if($accountName == 'Total Income') {
+                                        $totalIncome = $netAmount;
+                                    }
+
+                                    if($accountName == 'Total Costs of Goods Sold') {
+                                        $totalCosts = $netAmount;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-            }
-            
             }
         }
 
         $grossProfit = $totalIncome - $totalCosts;
+        
+        $formattedData[] = [
+            'Account Name' => '',
+            'Account No'   => '',
+            'Total'        => ''
+        ];
         
         $formattedData[] = [
             'Account Name' => 'Gross Profit',
@@ -106,71 +100,75 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
             'Total'        => $grossProfit
         ];
 
-        foreach ($data  as $category)
-        {
+        // Process Expenses
+        foreach ($data as $category) {
+            if($category['Type'] == 'Expenses') {
+                $formattedData[] = [
+                    'Account Name' => '',
+                    'Account No'   => '',
+                    'Total'        => ''
+                ];
 
-            if($category['Type'] == 'Expenses')
-            {
-            $formattedData[] = [
-                'Account Name' => '',
-                'Account No'   => '',
-                'Total'        => ''
-            ];
+                $formattedData[] = [
+                    'Account Name' => $category['Type'],
+                    'Account No'   => '',
+                    'Total'        => ''
+                ];
 
-            $formattedData[] = [
-                'Account Name' => $category['Type'],
-                'Account No'   => '',
-                'Total'        => ''
-            ];
+                if (isset($category['account']) && is_array($category['account'])) {
+                    foreach($category['account'] as $accounts) {
+                        if (is_array($accounts)) {
+                            foreach($accounts as $account) {
+                                if (isset($account['netAmount']) && $account['netAmount'] != 0) {
+                                    $netAmount = abs($account['netAmount']);
+                                    $accountName = isset($account['account_name']) ? $account['account_name'] : '';
+                                    $accountCode = isset($account['account_code']) ? $account['account_code'] : '';
 
-            foreach($category['account'] as $accounts)
-            {
-                foreach($accounts as $account)
-                {
-                if($account['netAmount'] > 0)
-                {
-                    $netAmount = $account['netAmount'];
+                                    if (isset($account['account']) && $account['account'] == 'subAccount') {
+                                        $formattedData[] = [
+                                            'Account Name' => '        ' . $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    } elseif (!preg_match('/\btotal\b/i', $accountName) || (isset($account['account']) && ($account['account'] == 'parent' || $account['account'] == 'parentTotal'))) {
+                                        $formattedData[] = [
+                                            'Account Name' => '   ' . $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    } else {
+                                        $formattedData[] = [
+                                            'Account Name' => $accountName,
+                                            'Account No'   => $accountCode,
+                                            'Total'        => $netAmount
+                                        ];
+                                    }
+                                    
+                                    if($accountName == 'Total Expenses') {
+                                        $totalExpense = $netAmount;
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-                else
-                {
-                    $netAmount = -$account['netAmount'];
-                }
-
-                if ($account['account'] == 'subAccount')
-                {
-                    $formattedData[] = [
-                        'Account Name' => '        ' . $account['account_name'],
-                        'Account No'   => $account['account_code'],
-                        'Total'        => $netAmount
-                    ];
-                }
-                elseif (!preg_match('/\btotal\b/i', $account['account_name']) || $account['account'] == 'parent' || $account['account'] == 'parentTotal')
-                {
-                    $formattedData[] = [
-                        'Account Name' => '   ' . $account['account_name'],
-                        'Account No'   => $account['account_code'],
-                        'Total'        => $netAmount
-                    ];
-                }
-                else
-                {
-                    $formattedData[] = [
-                        'Account Name' => $account['account_name'],
-                        'Account No'   => $account['account_code'],
-                        'Total'        => $netAmount
-                    ];
-                }
-                $totalExpense = $netAmount;
             }
-            }
+        }
 
-            $formattedData[] = [
-                'Account Name' => 'Net Profit/Loss',
-                'Account No'   => '',
-                'Total'        => $grossProfit -  $totalExpense
-            ];
-        }
-        }
+        // Add Net Profit/Loss
+        $netProfitLoss = $grossProfit - $totalExpense;
+        $formattedData[] = [
+            'Account Name' => '',
+            'Account No'   => '',
+            'Total'        => ''
+        ];
+        
+        $formattedData[] = [
+            'Account Name' => 'Net Profit/Loss',
+            'Account No'   => '',
+            'Total'        => $netProfitLoss
+        ];
+
         $this->data        = $formattedData;
         $this->companyName = $companyName;
         $this->startDate   = $startDate;
@@ -179,10 +177,21 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
 
     public function map($row): array
     {
+        $total = $row['Total'];
+        
+        // Format currency for non-empty values
+        if ($total !== '' && $total !== 0 && $total !== 0.0) {
+            $total = 'R' . number_format($total, 2);
+        } elseif ($total === 0 || $total === 0.0) {
+            $total = 'R0.00';
+        } else {
+            $total = '';
+        }
+        
         return [
             $row['Account Name'],
             $row['Account No'],
-            ($row['Total'] === 0 || $row['Total'] === 0.0) ? '0' : $row['Total'],
+            $total,
         ];
     }
 
@@ -197,6 +206,7 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
             'A' => 30,
             'B' => 15,
             'C' => 15,
+            'D' => 15,
         ];
     }
 
@@ -212,15 +222,14 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
 
     public function array(): array
     {
-        return $this->data ;
+        return $this->data;
     }
-
 
     public function registerEvents(): array
     {
         return [
             BeforeWriting::class => function (BeforeWriting $event) {
-
+                // Event handling if needed
             },
 
             AfterSheet::class => function (AfterSheet $event) {
@@ -230,7 +239,11 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
 
                 $event->sheet->getDelegate()->setCellValue('A1', 'Profit & Loss - ' . $this->companyName)->getStyle('A1')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A2', 'Print Out Date : ' . date('Y-m-d H:i'));
-                $event->sheet->getDelegate()->setCellValue('A3', 'Date : ' . $this->startDate . ' - ' . $this->endDate);
+                
+                // Format the date range properly to match UI display
+                $startFormatted = date('Y-m-d', strtotime($this->startDate));
+                $endFormatted = date('Y-m-d', strtotime($this->endDate));
+                $event->sheet->getDelegate()->setCellValue('A3', 'Period: ' . $startFormatted . ' to ' . $endFormatted);
 
                 $event->sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
                 $event->sheet->getStyle('A2')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
@@ -241,7 +254,6 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
 
                 $data = $this->data;
                 foreach ($data as $index => $row) {
-
                     if (isset($row['Account Name']) && ($row['Account Name'] == 'Total Costs of Goods Sold' || $row['Account Name'] == 'Total Income' || $row['Account Name'] == 'Income'
                        || $row['Account Name'] == 'Costs of Goods Sold' || $row['Account Name'] == 'Expenses' || $row['Account Name'] == 'Total Expenses')) {
                         $rowIndex = $index + 6; // Adjust for 1-based indexing and header row
@@ -250,11 +262,9 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
                                 'font' => [
                                     'bold' => true,
                                 ],
-
                             ]);
                     }
-                    elseif(isset($row['Account Name']) && ($row['Account Name'] == 'Gross Profit' || $row['Account Name'] == 'Net Profit/Loss'))
-                    {
+                    elseif(isset($row['Account Name']) && ($row['Account Name'] == 'Gross Profit' || $row['Account Name'] == 'Net Profit/Loss')) {
                         $rowIndex = $index + 6; // Adjust for 1-based indexing and header row
                         $event->sheet->getStyle('A' . $rowIndex . ':C' . $rowIndex)
                             ->applyFromArray([
@@ -267,10 +277,8 @@ class ProfitLossExport implements FromArray, WithEvents, WithHeadings, WithStyle
                                 ],
                             ]);
                         $event->sheet->mergeCells('A' . $rowIndex . ':B' . $rowIndex);
-
                     }
                 }
-
             },
         ];
     }

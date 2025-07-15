@@ -12,6 +12,7 @@ use Maatwebsite\Excel\Events\AfterSheet;
 use Maatwebsite\Excel\Events\BeforeWriting;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use App\Models\Utility;
 
 class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithStyles, WithColumnWidths, WithCustomStartCell, WithMapping
 {
@@ -23,9 +24,12 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
     public $companyName;
     public $startDate;
     public $endDate;
+    public $settings;
 
     public function __construct($data, $startDate, $endDate, $companyName)
     {
+        // Get currency settings
+        $this->settings = Utility::settings();
 
         $formattedData = [];
         $liabilitiesOrEquityEncountered = false;
@@ -99,26 +103,29 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
                     foreach ($account as $key => $record) {
                     $sub_type = !empty($subCategory['subType']) ? $subCategory['subType'] : '';
                     if (($record['netAmount'] != null && $record['account_name'] == 'Total ' . $sub_type) || $record['account_name'] == 'Current Year Earnings') {
+                        $amount = $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'];
                         $formattedData[] = [
                             'Account Name' => '    ' . $record['account_name'],
                             'Account No' => $record['account_code'],
-                            'Total' => $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'],
+                            'Total' => $amount,
                         ];
 
-                        $amountTotal += $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'];
+                        $amountTotal += $amount;
                     } 
                     elseif ($record['account'] == 'parent' || $record['account'] == 'parentTotal') {
+                        $amount = $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'];
                         $formattedData[] = [
                             'Account Name' => '       ' . $record['account_name'],
                             'Account No' => $record['account_code'],
-                            'Total' => $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'],
+                            'Total' => $amount,
                         ];
                     }
                     elseif ($record['netAmount'] != null && !preg_match('/\bTotal\b/i', $record['account_name'])) {
+                        $amount = $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'];
                         $formattedData[] = [
                             'Account Name' => '         ' . $record['account_name'],
                             'Account No' => $record['account_code'],
-                            'Total' => $category == 'Assets' ? -$record['netAmount'] : $record['netAmount'],
+                            'Total' => $amount,
                         ];
 
                     }
@@ -176,10 +183,20 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
 
     public function map($row): array
     {
+        // Format currency for non-empty total values
+        $formattedTotal = '';
+        if ($row['Total'] !== '' && is_numeric($row['Total'])) {
+            if ($row['Total'] == 0 || $row['Total'] == 0.0) {
+                $formattedTotal = Utility::priceFormat($this->settings, 0);
+            } else {
+                $formattedTotal = Utility::priceFormat($this->settings, $row['Total']);
+            }
+        }
+
         return [
             $row['Account Name'],
             $row['Account No'],
-            ($row['Total'] === 0 || $row['Total'] === 0.0) ? '0' : $row['Total'],
+            $formattedTotal,
         ];
     }
 
@@ -191,11 +208,9 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
     public function columnWidths(): array
     {
         return [
-            'A' => 30,
-            'B' => 15,
-            'C' => 15,
-            'D' => 15,
-
+            'A' => 45,  // Increased from 30 to 45 for account names
+            'B' => 15,  // Account No
+            'C' => 20,  // Total - increased for currency formatting
         ];
     }
 
@@ -204,9 +219,9 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
         $sheet->getStyle('A5')->getFont()->setBold(true);
         $sheet->getStyle('B5')->getFont()->setBold(true);
         $sheet->getStyle('C5')->getFont()->setBold(true);
-        $sheet->getStyle('D5')->getFont()->setBold(true);
-        $sheet->getStyle('E5')->getFont()->setBold(true);
-        $sheet->getStyle('F5')->getFont()->setBold(true);
+        
+        // Right align the Total column
+        $sheet->getStyle('C:C')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
     }
 
     public function array(): array
@@ -222,9 +237,9 @@ class BalanceSheetExport implements FromArray, WithEvents, WithHeadings, WithSty
             },
 
             AfterSheet::class => function (AfterSheet $event) {
-                $event->sheet->getDelegate()->mergeCells('A1:F1');
-                $event->sheet->getDelegate()->mergeCells('A2:F2');
-                $event->sheet->getDelegate()->mergeCells('A3:F3');
+                $event->sheet->getDelegate()->mergeCells('A1:C1');
+                $event->sheet->getDelegate()->mergeCells('A2:C2');
+                $event->sheet->getDelegate()->mergeCells('A3:C3');
 
                 $event->sheet->getDelegate()->setCellValue('A1', 'Balance Sheet - ' . $this->companyName)->getStyle('A1')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A2', 'Print Out Date : ' . date('Y-m-d H:i'));

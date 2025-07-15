@@ -119,7 +119,7 @@
         <div class="col-md-10">
             <div class="card">
             <div class="card-header">
-                <h5>{{'Trial Balance of ' . $user->name . ' as of ' . $filter['endDateRange'] }}
+                <h5>{{'Trial Balance of ' . $user->name . ' as of ' . \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
                 </h5>
             </div>
             <div class="card-body {{ $view == 'collapse' ? 'collapse-view' : '' }} overflow-auto">

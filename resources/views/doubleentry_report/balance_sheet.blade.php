@@ -128,7 +128,7 @@
             <div class="col-md-10">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . $filter['endDateRange'] }}
+                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
                         </h5>
                     </div>
                     <div class="card-body {{ $collapseview == 'expand' ? 'collapse-view' : '' }} overflow-auto">
@@ -251,14 +251,14 @@
                                                             <div
                                                                 class="account-inner d-flex align-items-center justify-content-between ps-md-5 ps-3">
                                                                 <p class="mb-2 ms-3">
-                                                                @if($record['account_name'] == 'Current Year Earnings')                                           
+                                                                @if($record['account_name'] == 'Current Year Earnings')
                                                                     <a
                                                                         href="{{ route('report.profit.loss') }}"
                                                                         class="text-primary">{{ $record['account_name'] }}</a>
-                                                                @else    
+                                                                @else
                                                                     <a
                                                                         href="{{ route('report.ledger', $record['account_id']) }}?account={{ $record['account_id'] }}"
-                                                                        class="text-primary">{{ $record['account_name'] }}</a> 
+                                                                        class="text-primary">{{ $record['account_name'] }}</a>
                                                                 @endif
                                                                 </p>
                                                                 <p class="mb-2 text-center">{{ $record['account_code'] }}
@@ -336,7 +336,7 @@
                 url: '{{ route("report.balance.sheet", "vertical") }}',
                 type: 'GET',
                 data: {
-                    "view": view,                    
+                    "view": view,
                 },
                 success: function(data) {
                     return false;
