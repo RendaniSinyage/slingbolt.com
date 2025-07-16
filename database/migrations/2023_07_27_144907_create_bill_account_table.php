@@ -15,11 +15,11 @@ return new class extends Migration
     {
         Schema::create('bill_accounts', function (Blueprint $table) {
             $table->id();
-            $table->integer('chart_account_id')->default('0.00');
+            $table->integer('chart_account_id')->default(0);  // Fixed: removed quotes around 0
             $table->decimal('price',15,2)->default('0.00');
             $table->string('description')->nullable();
             $table->string('type');
-            $table->integer('ref_id')->default('0');
+            $table->integer('ref_id')->default(0);  // Fixed: removed quotes around 0  
             $table->timestamps();
         });
     }
