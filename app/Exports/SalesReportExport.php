@@ -109,7 +109,7 @@ class SalesReportExport implements FromArray, WithHeadings, WithStyles, WithCust
 
                 $event->sheet->getDelegate()->setCellValue('A2', 'Sales By ' . $this->reportName . ' - ' . $this->companyName)->getStyle('A2')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A3', 'Print Out Date : ' . date('Y-m-d H:i'));
-                $event->sheet->getDelegate()->setCellValue('A4', 'Date : ' . $this->startDate . ' - ' . $this->endDate);
+                $event->sheet->getDelegate()->setCellValue('A4', 'Date : ' . \Carbon::parse($filter['startDate']->format('d F Y') . ' - ' . \Carbon::parse($filter['endDate']->format('d F Y'));
 
                 $startRow = 2;
                 $lastRow = $event->sheet->getHighestRow();

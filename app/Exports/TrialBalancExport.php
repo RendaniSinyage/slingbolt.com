@@ -18,10 +18,10 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
     * @return \Illuminate\Support\Collection
     */
 
-    public $data;         
-    public $startDate;    
-    public $endDate;      
-    public $companyName;  
+    public $data;
+    public $startDate;
+    public $endDate;
+    public $companyName;
 
     public function __construct($data , $startDate, $endDate, $companyName)
     {
@@ -127,7 +127,7 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
     {
         return $this->data;
     }
-    
+
     public function headings(): array
     {
         return [
@@ -149,7 +149,7 @@ class TrialBalancExport implements FromArray , WithHeadings , WithStyles, WithCu
 
                 $event->sheet->getDelegate()->setCellValue('A2', 'Trial Balance - ' . $this->companyName)->getStyle('A2')->getFont()->setBold(true);
                 $event->sheet->getDelegate()->setCellValue('A3', 'Print Out Date : ' . date('Y-m-d H:i'));
-                $event->sheet->getDelegate()->setCellValue('A3', ($this->startDate !== '1900-01-01' ? 'Period: ' . date('d M Y', strtotime($this->startDate)) . ' to ' : 'As of: ') . date('d F Y', strtotime($this->endDate)));
+                $event->sheet->getDelegate()->setCellValue('A4', 'Date : ' . \Carbon::parse($filter['startDate']->format('d F Y') . ' - ' . \Carbon::parse($filter['endDate']->format('d F Y'));
 
                 $lastRow = $event->sheet->getHighestRow();
 
