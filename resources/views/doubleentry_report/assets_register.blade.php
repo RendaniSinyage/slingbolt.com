@@ -121,7 +121,7 @@
             <div class="col-md-10">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{ 'Assets Register of ' . Auth::user()->name . ' as of ' . $filter['endDateRange'] }}
+                      <h5>{{ 'Assets Register of ' . Auth::user()->name . ' as of ' . \Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') }}</h5>
                         </h5>
                     </div>
                     <div class="card-body overflow-auto">
@@ -140,7 +140,7 @@
                                 @php
                                     $currentAssets = [];
                                     $nonCurrentAssets = [];
-                                    
+
                                     foreach($assetAccounts as $asset) {
                                         if($asset['sub_type'] == 'Current Asset') {
                                             $currentAssets[] = $asset;
@@ -154,7 +154,7 @@
                                 @if(count($currentAssets) > 0)
                                     <div class="account-main-inner py-2">
                                         <p class="fw-bold ps-2 mb-2">{{ __('Current Assets') }}</p>
-                                        
+
                                         @foreach($currentAssets as $asset)
                                             @php
                                                 $currentValue = $asset['is_depreciation'] ? 0 : $asset['balance'];
@@ -163,7 +163,7 @@
                                             @endphp
                                             <div class="account-inner d-flex align-items-center justify-content-between ps-md-5 ps-3 border-bottom py-2">
                                                 <p class="mb-2">
-                                                    <a href="{{ route('report.ledger', $asset['account_id']) }}?account={{ $asset['account_id'] }}" 
+                                                    <a href="{{ route('report.ledger', $asset['account_id']) }}?account={{ $asset['account_id'] }}"
                                                        class="text-primary">{{ $asset['account_name'] }}</a>
                                                 </p>
                                                 <p class="mb-2 text-center">{{ $asset['account_code'] }}</p>
@@ -187,7 +187,7 @@
                                 @if(count($nonCurrentAssets) > 0)
                                     <div class="account-main-inner py-2">
                                         <p class="fw-bold ps-2 mb-2">{{ __('Non-Current Assets') }}</p>
-                                        
+
                                         @foreach($nonCurrentAssets as $asset)
                                             @php
                                                 $currentValue = $asset['is_depreciation'] ? 0 : $asset['balance'];
@@ -196,7 +196,7 @@
                                             @endphp
                                             <div class="account-inner d-flex align-items-center justify-content-between ps-md-5 ps-3 border-bottom py-2">
                                                 <p class="mb-2">
-                                                    <a href="{{ route('report.ledger', $asset['account_id']) }}?account={{ $asset['account_id'] }}" 
+                                                    <a href="{{ route('report.ledger', $asset['account_id']) }}?account={{ $asset['account_id'] }}"
                                                        class="text-primary">{{ $asset['account_name'] }}</a>
                                                 </p>
                                                 <p class="mb-2 text-center">{{ $asset['account_code'] }}</p>

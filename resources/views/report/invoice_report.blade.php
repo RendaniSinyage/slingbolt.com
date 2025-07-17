@@ -227,8 +227,8 @@
     <div id="printableArea">
         <div class="row mt-3">
             <div class="col mb-4">
-                <input type="hidden" value="{{$filter['status'].' '.__('Invoice').' '.'Report of'.' '. \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') .' '.__('of').' '.$filter['customer']}}" id="filename">
-                <div class="card report-card h-100 mb-0">
+                <input type="hidden" value="{{$filter['status'] . ' ' . __('Invoice') . ' ' . 'Report of' . ' ' . \Carbon\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') . ' ' . __('of') . ' ' . $filter['customer']}}" id="filename">
+                 <div class="card report-card h-100 mb-0">
                     <div class="card-body d-flex align-items-center gap-3">
                         <div class="report-icon">
                             <svg width="26" height="26" viewBox="0 0 26 26" fill="none"
@@ -308,7 +308,7 @@
                         </div>
                         <div class="report-info flex-1">
                             <h5 class="mb-1">{{__('Duration')}} :</h5>
-                            <p class="text-muted mb-0">{{ \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
+                            <p class="text-muted mb-0">{{ \Carbon\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') }}</p>
                             </p>
                         </div>
                     </div>
