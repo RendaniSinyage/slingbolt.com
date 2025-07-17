@@ -27,7 +27,7 @@ class CreateLeadsTable extends Migration
             $table->string('products')->nullable();
             $table->text('notes')->nullable();
             $table->string('labels')->nullable();
-            $table->integer('sort_order')->default(0);
+            $table->integer('order')->default(0);
             $table->integer('created_by');
             $table->integer('is_active')->default(1);
             $table->integer('is_converted')->default(0);

@@ -26,7 +26,7 @@ class CreateDealsTable extends Migration
             $table->text('notes')->nullable();
             $table->string('labels')->nullable();
             $table->string('status')->nullable();
-            $table->integer('sort_order')->default(0);
+            $table->integer('order')->default(0);
             $table->integer('created_by');
             $table->integer('is_active')->default(1);
             $table->timestamps();

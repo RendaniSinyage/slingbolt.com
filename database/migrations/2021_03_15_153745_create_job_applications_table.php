@@ -29,7 +29,7 @@ class CreateJobApplicationsTable extends Migration
             $table->string('state')->nullable();
             $table->string('city')->nullable();
             $table->integer('stage')->default(1);
-            $table->integer('sort_order')->default(0);
+            $table->integer('order')->default(0);
             $table->text('skill')->nullable();
             $table->integer('rating')->default(0);
             $table->integer('is_archive')->default(0);

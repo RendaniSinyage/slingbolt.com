@@ -17,7 +17,7 @@ class CreateBugStatusesTable extends Migration
             $table->bigIncrements('id');
             $table->string('title');
             $table->integer('created_by')->default(0);
-            $table->integer('sort_order')->default(0);
+            $table->integer('order')->default(0);
             $table->timestamps();
         });
     }

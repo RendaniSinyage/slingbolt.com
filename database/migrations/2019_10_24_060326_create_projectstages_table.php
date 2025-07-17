@@ -19,7 +19,7 @@ class CreateProjectstagesTable extends Migration
             $table->string('name');
             $table->string('color', 15)->nullable();
             $table->integer('created_by')->default(0);
-            $table->integer('sort_order')->default(0);;
+            $table->integer('order')->default(0);;
             $table->timestamps();
         }
         );
