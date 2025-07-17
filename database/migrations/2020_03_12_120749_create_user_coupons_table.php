@@ -18,7 +18,7 @@ class CreateUserCouponsTable extends Migration
             $table->bigIncrements('id');
             $table->integer('user');
             $table->integer('coupon');
-            $table->string('order')->nullable();
+            $table->string('sort_order')->nullable();
             $table->timestamps();
         }
         );
