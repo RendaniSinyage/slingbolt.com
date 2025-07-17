@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 @section('page-title')
     {{ __('Balance Sheet') }}
 @endsection
@@ -128,7 +128,7 @@
             <div class="col-md-10">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}
+                        <h5>{{ 'Balance Sheet of ' . Auth::user()->name . ' as of ' . \Carbon\Carbon::parse($filter['endDateRange']->format('d F Y') }}
                         </h5>
                     </div>
                     <div class="card-body {{ $collapseview == 'expand' ? 'collapse-view' : '' }} overflow-auto">

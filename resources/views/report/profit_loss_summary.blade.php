@@ -110,7 +110,7 @@
     <div id="printableArea">
         <div class="row mt-3">
             <div class="col">
-                <input type="hidden" value="{{__('Profit & Loss Summary').' '.'Report of'.' '. \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}" id="filename">
+                <input type="hidden" value="{{__('Profit & Loss Summary').' '.'Report of'.' '. \\Carbon\\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \\Carbon\\Carbon::parse($filter['endDateRange'])->format('d F Y') }}" id="filename">
                 <div class="card p-4 mb-4">
                     <h7 class="report-text gray-text mb-0">{{__('Report')}} :</h7>
                     <h6 class="report-text mb-0">{{__('Profit & Loss Summary')}}</h6>
@@ -119,7 +119,7 @@
             <div class="col">
                 <div class="card p-4 mb-4">
                     <h7 class="report-text gray-text mb-0">{{__('Duration')}} :</h7>
-                    <h6 class="report-text mb-0">{{ \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}</h6>
+                    <h6 class="report-text mb-0">{{ \\Carbon\\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \\Carbon\\Carbon::parse($filter['endDateRange'])->format('d F Y') }}</h6>
                 </div>
             </div>
         </div>

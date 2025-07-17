@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 @section('page-title')
     {{ __('Income Vs Expense Summary') }}
 @endsection
@@ -243,7 +243,7 @@
         <div class="row">
             <div class="col mb-4">
                 <input type="hidden"
-                    value="{{ $filter['category'] . ' ' . __('Income Vs Expense Summary') . ' ' . 'Report of' . ' ' . \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}"
+                    value="{{ $filter['category'] . ' ' . __('Income Vs Expense Summary') . ' ' . 'Report of' . ' ' . \\Carbon\\Carbon\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \\Carbon\\Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') }}"
                     id="filename">
                 <div class="card report-card h-100 mb-0">
                     <div class="card-body d-flex align-items-center gap-3">
@@ -349,7 +349,7 @@
                                         {{ array_key_last($yearList) . ' to ' . array_key_first($yearList) }}</p>
                                 @else
                                     <p class="text-muted mb-0">
-                                        {{ \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}</p>
+                                        {{ \\Carbon\\Carbon\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \\Carbon\\Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') }}</p>
                                 @endif
                             </div>
                         </div>

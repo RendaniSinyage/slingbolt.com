@@ -1,4 +1,4 @@
-@extends('layouts.admin')
+﻿@extends('layouts.admin')
 @section('page-title')
     {{__('Tax Summary')}}
 @endsection
@@ -102,7 +102,7 @@
     <div id="printableArea">
         <div class="row">
             <div class="col mb-4">
-                <input type="hidden" value="{{__('Tax Summary').' '.'Report of'.' '. \Carbon::parse($filter['startDateRange']->format('d F Y') . ' to ' . \Carbon::parse($filter['endDateRange']->format('d F Y') }}" id="filename">
+                <input type="hidden" value="{{__('Tax Summary').' '.'Report of'.' '. \\Carbon\\Carbon\Carbon::parse($filter['startDateRange'])->format('d F Y') . ' to ' . \\Carbon\\Carbon\Carbon::parse($filter['endDateRange'])->format('d F Y') }}" id="filename">
                 <div class="card report-card h-100 mb-0">
                     <div class="card-body d-flex align-items-center gap-3">
                         <div class="report-icon">
