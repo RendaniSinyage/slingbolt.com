@@ -20,7 +20,7 @@ class CreateTaskStagesTable extends Migration
             $table->boolean('complete')->default(0);
             $table->unsignedBigInteger('project_id')->default(0);
             $table->string('color', 15)->nullable();
-            $table->integer('order')->default(0);
+            $table->integer('"order"')->default(0);
             $table->integer('created_by')->default(0);
             $table->timestamps();
         }

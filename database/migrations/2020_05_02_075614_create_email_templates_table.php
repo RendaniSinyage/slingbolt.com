@@ -17,7 +17,7 @@ class CreateEmailTemplatesTable extends Migration
             'email_templates', function (Blueprint $table){
             $table->bigIncrements('id');
             $table->string('name');
-            $table->string('from')->nullable();
+            $table->string('"from"')->nullable();
             $table->string('slug')->nullable();
             $table->integer('created_by');
             $table->timestamps();
