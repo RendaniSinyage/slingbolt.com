@@ -18,7 +18,7 @@ class CreateGoalsTable extends Migration
             $table->bigIncrements('id');
             $table->string('name');
             $table->string('type');
-            $table->string('"from"')->nullable();
+            $table->string('from')->nullable();
             $table->string('to')->nullable();
             $table->decimal('amount', 15, 2)->default(0.00);
             $table->integer('is_display')->default(1);

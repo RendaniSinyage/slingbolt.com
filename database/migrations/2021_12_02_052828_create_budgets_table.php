@@ -17,7 +17,7 @@ class CreateBudgetsTable extends Migration
             $table->id();
             $table->string('name');
             $table->string('period');
-            $table->string('"from"')->nullable();
+            $table->string('from')->nullable();
             $table->string('to')->nullable();
             $table->text('income_data')->nullable();
             $table->text('expense_data')->nullable();

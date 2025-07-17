@@ -17,7 +17,7 @@ class CreateJobStagesTable extends Migration
             'job_stages', function (Blueprint $table){
             $table->id();
             $table->string('title');
-            $table->integer('"order"')->default(0);
+            $table->integer('order')->default(0);
             $table->integer('created_by');
             $table->timestamps();
         }

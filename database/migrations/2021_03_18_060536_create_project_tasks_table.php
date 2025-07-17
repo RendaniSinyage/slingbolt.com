@@ -27,7 +27,7 @@ class CreateProjectTasksTable extends Migration
                 $table->integer('project_id')->default(0);
                 $table->integer('milestone_id')->default(0);
                 $table->integer('stage_id')->default(0);
-                $table->integer('"order"')->default(0);
+                $table->integer('order')->default(0);
                 $table->integer('created_by')->default(0);
                 $table->integer('is_favourite')->default(0);
                 $table->integer('is_complete')->default(0);

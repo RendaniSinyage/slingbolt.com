@@ -24,7 +24,7 @@ class CreateBugsTable extends Migration
             $table->date('due_date')->nullable();
             $table->text('description')->nullable();
             $table->string('status')->nullable();
-            $table->string('"order"')->default(0);
+            $table->string('order')->default(0);
             $table->string('assign_to')->nullable();
             $table->integer('created_by')->default(0);
             $table->timestamps();

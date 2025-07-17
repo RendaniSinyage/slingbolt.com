@@ -18,7 +18,7 @@ class CreateStagesTable extends Migration
             $table->string('name');
             $table->integer('pipeline_id');
             $table->integer('created_by');
-            $table->integer('"order"')->default(0);
+            $table->integer('order')->default(0);
             $table->timestamps();
         });
     }
