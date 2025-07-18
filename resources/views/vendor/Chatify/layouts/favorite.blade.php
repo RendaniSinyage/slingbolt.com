@@ -1,12 +1,8 @@
 <div class="favorite-list-item">
-    @if(!empty($user->avatar))
+    @if($user)
         <div data-id="{{ $user->id }}" data-action="0" class="avatar av-m"
-             style="background-image: url('{{ asset('/storage/'.config('chatify.user_avatar.folder').'/'.$user->avatar) }}');">
+            style="background-image: url('{{ Chatify::getUserWithAvatar($user)->avatar }}');">
         </div>
-    @else
-        <div data-id="{{ $user->id }}" data-action="0" class="avatar av-m"
-             style="background-image: url('{{ asset('/storage/'.config('chatify.user_avatar.folder').'/avatar.png') }}');">
-        </div>
+        <p>{{ strlen($user->name) > 5 ? substr($user->name,0,6).'..' : $user->name }}</p>
     @endif
-    <p>{{ strlen($user->name) > 5 ? substr($user->name,0,6).'..' : $user->name }}</p>
 </div>

@@ -155,6 +155,7 @@ use App\Http\Controllers\PayHereController;
 use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReferralProgramController;
 use App\Http\Controllers\TapController;
+use App\Http\Controllers\OAuth2Controller;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
@@ -180,6 +181,30 @@ require __DIR__ . '/auth.php';
 
 
 
+// OAuth2 authentication routes
+                Route::get('/oauth/{provider}', [App\Http\Controllers\OAuth2Controller::class, 'redirectToProvider'])
+                    ->name('oauth.redirect')
+                    ->where('provider', 'google|slack|zoom');
+
+                // OAuth2 callback routes (separate routes for each provider)
+                Route::get('/oauth/google/callback', [App\Http\Controllers\OAuth2Controller::class, 'handleGoogleCallback'])
+                    ->name('oauth.google.callback');
+
+                Route::get('/oauth/slack/callback', [App\Http\Controllers\OAuth2Controller::class, 'handleSlackCallback'])
+                    ->name('oauth.slack.callback');
+
+                Route::get('/oauth/zoom/callback', [App\Http\Controllers\OAuth2Controller::class, 'handleZoomCallback'])
+                    ->name('oauth.zoom.callback');
+
+                // Disconnect routes
+                Route::delete('/oauth/{provider}/disconnect', [App\Http\Controllers\OAuth2Controller::class, 'disconnect'])
+                    ->name('oauth.disconnect')
+                    ->where('provider', 'google|slack|zoom');
+
+                // Test connection routes
+                Route::post('/oauth/{provider}/test', [App\Http\Controllers\OAuth2Controller::class, 'testConnection'])
+                    ->name('oauth.test')
+                    ->where('provider', 'google|slack|zoom');
 
 
 ///copy link
@@ -322,6 +347,8 @@ Route::post('/form_view_store', [FormBuilderController::class, 'formViewStore'])
 Route::get('/', [DashboardController::class, 'landingpage'])->middleware(['XSS', 'revalidate']);
 
 
+
+
 // cache
 Route::get('/config-cache', function () {
     Artisan::call('cache:clear');
@@ -413,6 +440,7 @@ Route::group(['middleware' => ['verified']], function () {
             Route::post('company-payment-setting', [SystemController::class, 'saveCompanyPaymentSettings'])->name('company.payment.settings');
             Route::post('currency-settings', [SystemController::class, 'saveCurrencySettings'])->name('currency.settings');
             Route::post('company-preview', [SystemController::class, 'currencyPreview'])->name('currency.preview');
+
 
 
             Route::any('test-mail', [SystemController::class, 'testMail'])->name('test.mail');
@@ -689,7 +717,7 @@ Route::group(['middleware' => ['verified']], function () {
 	    // ADD THESE NEW ASSETS REGISTER ROUTES:
     	    Route::get('/assets-register-report', [DoubleEntryReportController::class, 'assetsRegister'])->name('reports.assets.register');
 	    Route::post('/assets-register-report/export', [DoubleEntryReportController::class, 'assetsRegisterExport'])->name('reports.assets.register.export');
-    
+
         }
     );
 

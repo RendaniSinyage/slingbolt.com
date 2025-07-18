@@ -4137,62 +4137,169 @@
                         </div>
                         </form>
                     </div>
-
-                    <!--Zoom - Metting Settings-->
-                    <div id="zoom-settings" class="card">
-                        <div class="card-header p-3">
+                <!--Zoom Settings-->
+                <div id="zoom-settings" class="card">
+                    <div class="card-header p-3 d-flex align-items-center gap-2 justify-content-between flex-wrap">
+                        <div>
                             <h5>{{ __('Zoom Settings') }}</h5>
-                            <small class="text-muted">{{ __('Edit your Zoom settings') }}</small>
+                            <small class="text-muted">{{ __('Connect your Zoom account to create and manage meetings') }}</small>
                         </div>
-                        {{ Form::model($setting, ['route' => 'zoom.settings', 'method' => 'post']) }}
-                        <div class="card-body p-3">
-                            <div class="row row-gap-1">
-                                <div class="form-group mb-0 col-md-6">
-                                    <label class="form-label">{{ __('Zoom Account ID') }}</label> <br>
-                                    {{ Form::text('zoom_account_id', isset($setting['zoom_account_id']) ? $setting['zoom_account_id'] : '', ['class' => 'form-control', 'placeholder' => __('Enter Zoom Accound Id')]) }}
-                                </div>
-                                <div class="form-group mb-0 col-md-6">
-                                    <label class="form-label">{{ __('Zoom Client ID') }}</label> <br>
-                                    {{ Form::text('zoom_client_id', isset($setting['zoom_client_id']) ? $setting['zoom_client_id'] : '', ['class' => 'form-control', 'placeholder' => __('Enter Zoom Client Id')]) }}
-                                </div>
-                                <div class="form-group mb-0 col-md-6">
-                                    <label class="form-label">{{ __('Zoom Client Secret Key') }}</label> <br>
-                                    {{ Form::text('zoom_client_secret', isset($setting['zoom_client_secret']) ? $setting['zoom_client_secret'] : '', ['class' => 'form-control', 'placeholder' => __('Enter Zoom Client Secret Key')]) }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card-footer p-3 text-end">
-                            <div class="form-group mb-0">
-                                <input class="btn btn-print-invoice btn-primary" type="submit"
-                                    value="{{ __('Save Changes') }}">
-                            </div>
-                        </div>
-                        {{ Form::close() }}
+                        @if(App\Services\OAuth2Service::isConnected('zoom'))
+                            <span class="badge bg-success">{{ __('Connected') }}</span>
+                        @else
+                            <span class="badge bg-warning">{{ __('Not Connected') }}</span>
+                        @endif
                     </div>
 
-                    <!--Slack Settings-->
-                    <div id="slack-settings" class="card">
-                        <div class="card-header p-3">
+                    <div class="card-body p-3">
+                        @if(App\Services\OAuth2Service::isConnected('zoom'))
+                            {{-- Connected State --}}
+                            <div class="alert alert-success d-flex align-items-center">
+                                <i class="ti ti-check-circle me-2"></i>
+                                <div class="flex-grow-1">
+                                    <strong>{{ __('Zoom is connected') }}</strong>
+                                    @php $userInfo = App\Services\OAuth2Service::getUserInfo('zoom'); @endphp
+                                    <p class="mb-0 small">{{ __('User ID:') }} {{ $userInfo['user_id'] ?? 'Unknown' }}</p>
+                                    <p class="mb-0 small">{{ __('Authentication:') }} OAuth2</p>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-info" onclick="testZoomConnection()">
+                                        <i class="ti ti-refresh"></i> {{ __('Test Connection') }}
+                                    </button>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <form method="POST" action="{{ route('oauth.disconnect', 'zoom') }}" style="display: inline;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger" onclick="return confirm('{{ __('Are you sure you want to disconnect Zoom?') }}')">
+                                            <i class="ti ti-unlink"></i> {{ __('Disconnect') }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <h6>{{ __('Features available:') }}</h6>
+                                <ul class="list-unstyled small">
+                                    <li><i class="ti ti-video text-primary me-1"></i> {{ __('Create instant meetings') }}</li>
+                                    <li><i class="ti ti-calendar text-primary me-1"></i> {{ __('Schedule meetings') }}</li>
+                                    <li><i class="ti ti-users text-primary me-1"></i> {{ __('Manage participants') }}</li>
+                                    <li><i class="ti ti-settings text-primary me-1"></i> {{ __('Configure meeting settings') }}</li>
+                                </ul>
+                            </div>
+
+                        @else
+                            {{-- Not Connected State - OAuth2 Only --}}
+                            <div class="alert alert-warning d-flex align-items-center">
+                                <i class="ti ti-alert-triangle me-2"></i>
+                                <div>
+                                    <strong>{{ __('Zoom is not connected') }}</strong>
+                                    <p class="mb-0 small">{{ __('Connect your Zoom account to create and manage meetings directly from the platform.') }}</p>
+                                </div>
+                            </div>
+
+                            {{-- OAuth2 Connection Only --}}
+                            <div class="text-center py-4">
+                                <div class="mb-3">
+                                    <i class="ti ti-video" style="font-size: 3rem; color: #2d8cff;"></i>
+                                </div>
+                                <h6>{{ __('Connect with Zoom') }}</h6>
+                                <p class="text-muted mb-3">{{ __('Authorize access to your Zoom account with one click') }}</p>
+                                <a href="{{ route('oauth.redirect', 'zoom') }}" class="btn btn-primary btn-lg">
+                                    <i class="ti ti-video me-2"></i> {{ __('Connect Zoom Account') }}
+                                </a>
+                            </div>
+
+                            <div class="mt-4 p-3 bg-light rounded">
+                                <h6 class="mb-2">{{ __('What you can do once connected:') }}</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Create meetings instantly') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Schedule future meetings') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Manage meeting participants') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Sync with Google Calendar') }}</li>
+                                </ul>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                <script>
+                function testZoomConnection() {
+                    fetch('{{ route("oauth.test", "zoom") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('{{ __("Zoom connection is working!") }}');
+                        } else {
+                            alert('{{ __("Connection test failed:") }} ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('{{ __("Error testing connection:") }} ' + error.message);
+                    });
+                }
+                </script>
+                <!--Slack Settings-->
+                <div id="slack-settings" class="card">
+                    <div class="card-header p-3 d-flex align-items-center gap-2 justify-content-between flex-wrap">
+                        <div>
                             <h5>{{ __('Slack Settings') }}</h5>
-                            <small class="text-muted">{{ __('Edit your Slack settings') }}</small>
+                            <small class="text-muted">{{ __('Connect your Slack workspace to receive notifications') }}</small>
                         </div>
-                        {{ Form::open(['route' => 'slack.settings', 'id' => 'slack-setting', 'method' => 'post', 'class' => 'd-contents']) }}
-                        <div class="card-body p-3">
+                        @if(App\Services\OAuth2Service::isConnected('slack'))
+                            <span class="badge bg-success">{{ __('Connected') }}</span>
+                        @else
+                            <span class="badge bg-warning">{{ __('Not Connected') }}</span>
+                        @endif
+                    </div>
+
+                    <div class="card-body p-3">
+                        @if(App\Services\OAuth2Service::isConnected('slack'))
+                            {{-- Connected State --}}
+                            <div class="alert alert-success d-flex align-items-center mb-4">
+                                <i class="ti ti-check-circle me-2"></i>
+                                <div class="flex-grow-1">
+                                    <strong>{{ __('Slack is connected') }}</strong>
+                                    @php $userInfo = App\Services\OAuth2Service::getUserInfo('slack'); @endphp
+                                    <p class="mb-0 small">{{ __('Team ID:') }} {{ $userInfo['team_id'] ?? 'Unknown' }}</p>
+                                    <p class="mb-0 small">{{ __('User ID:') }} {{ $userInfo['user_id'] ?? 'Unknown' }}</p>
+                                </div>
+                                <div>
+                                    <button type="button" class="btn btn-info btn-sm me-2" onclick="testSlackConnection()">
+                                        <i class="ti ti-refresh"></i> {{ __('Test') }}
+                                    </button>
+                                    <form method="POST" action="{{ route('oauth.disconnect', 'slack') }}" style="display: inline;">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('{{ __('Are you sure you want to disconnect Slack?') }}')">
+                                            <i class="ti ti-unlink"></i> {{ __('Disconnect') }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            {{-- Notification Settings Form --}}
+                            {{ Form::open(['route' => 'slack.settings', 'id' => 'slack-setting', 'method' => 'post']) }}
+                            <h6 class="mb-3">{{ __('Notification Settings') }}</h6>
+                            <p class="text-muted small mb-3">{{ __('Choose which events send notifications to your Slack workspace') }}</p>
+
                             <div class="row row-gap-1">
-                                <div class="form-group col-md-12 mb-1">
-                                    <label class="form-label">{{ __('Slack Webhook URL') }}</label> <br>
-                                    {{ Form::text('slack_webhook', isset($comSetting['slack_webhook']) ? $comSetting['slack_webhook'] : '', ['class' => 'form-control w-100', 'placeholder' => __('Enter Slack Webhook URL'), 'required' => 'required']) }}
-                                </div>
-                                <div class="col-md-12 mb-1">
-                                    <h5 class="small-title">{{ __('Module Settings') }}</h5>
-                                </div>
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Lead') }}</span>
-                                                {{ Form::checkbox('lead_notification', '1', isset($comSetting['lead_notification']) && $comSetting['lead_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'lead_notification']) }}
-                                                <label class="form-check-label" for="lead_notification"></label>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create User') }}</span>
+                                                {{ Form::checkbox('user_create_notification', '1', isset($comSetting['user_create_notification']) && $comSetting['user_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'user_create_notification']) }}
+                                                <label class="form-check-label" for="user_create_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4200,23 +4307,10 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Deal') }}</span>
-                                                {{ Form::checkbox('deal_notification', '1', isset($comSetting['deal_notification']) && $comSetting['deal_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'deal_notification']) }}
-                                                <label class="form-check-label" for="deal_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('Lead to Deal Conversion') }}</span>
-                                                {{ Form::checkbox('leadtodeal_notification', '1', isset($comSetting['leadtodeal_notification']) && $comSetting['leadtodeal_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'leadtodeal_notification']) }}
-                                                <label class="form-check-label" for="leadtodeal_notification"></label>
-
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Project') }}</span>
+                                                {{ Form::checkbox('project_create_notification', '1', isset($comSetting['project_create_notification']) && $comSetting['project_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'project_create_notification']) }}
+                                                <label class="form-check-label" for="project_create_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4224,22 +4318,10 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Contract') }}</span>
-                                                {{ Form::checkbox('contract_notification', '1', isset($comSetting['contract_notification']) && $comSetting['contract_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'contract_notification']) }}
-                                                <label class="form-check-label" for="contract_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Project') }}</span>
-                                                {{ Form::checkbox('project_notification', '1', isset($comSetting['project_notification']) && $comSetting['project_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'project_notification']) }}
-                                                <label class="form-check-label" for="project_notification"></label>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Task') }}</span>
+                                                {{ Form::checkbox('task_create_notification', '1', isset($comSetting['task_create_notification']) && $comSetting['task_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'task_create_notification']) }}
+                                                <label class="form-check-label" for="task_create_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4247,22 +4329,10 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Task') }}</span>
-                                                {{ Form::checkbox('task_notification', '1', isset($comSetting['task_notification']) && $comSetting['task_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'task_notification']) }}
-                                                <label class="form-check-label" for="task_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('Task Stage Updated') }}</span>
-                                                {{ Form::checkbox('taskmove_notification', '1', isset($comSetting['taskmove_notification']) && $comSetting['taskmove_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'taskmove_notification']) }}
-                                                <label class="form-check-label" for="taskmove_notification"></label>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Move Task') }}</span>
+                                                {{ Form::checkbox('task_move_notification', '1', isset($comSetting['task_move_notification']) && $comSetting['task_move_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'task_move_notification']) }}
+                                                <label class="form-check-label" for="task_move_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4270,22 +4340,10 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Task Comment') }}</span>
-                                                {{ Form::checkbox('taskcomment_notification', '1', isset($comSetting['taskcomment_notification']) && $comSetting['taskcomment_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'taskcomment_notification']) }}
-                                                <label class="form-check-label" for="taskcomment_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Monthly Payslip') }}</span>
-                                                {{ Form::checkbox('payslip_notification', '1', isset($comSetting['payslip_notification']) && $comSetting['payslip_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'payslip_notification']) }}
-                                                <label class="form-check-label" for="payslip_notification"></label>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Milestone') }}</span>
+                                                {{ Form::checkbox('milestone_create_notification', '1', isset($comSetting['milestone_create_notification']) && $comSetting['milestone_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'milestone_create_notification']) }}
+                                                <label class="form-check-label" for="milestone_create_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4293,22 +4351,10 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Award') }}</span>
-                                                {{ Form::checkbox('award_notification', '1', isset($comSetting['award_notification']) && $comSetting['award_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'award_notification']) }}
-                                                <label class="form-check-label" for="award_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Announcement') }}</span>
-                                                {{ Form::checkbox('announcement_notification', '1', isset($comSetting['announcement_notification']) && $comSetting['announcement_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'announcement_notification']) }}
-                                                <label class="form-check-label" for="announcement_notification"></label>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Event') }}</span>
+                                                {{ Form::checkbox('event_create_notification', '1', isset($comSetting['event_create_notification']) && $comSetting['event_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'event_create_notification']) }}
+                                                <label class="form-check-label" for="event_create_notification"></label>
                                             </div>
                                         </div>
                                     </div>
@@ -4316,134 +4362,178 @@
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
-                                            <div class=" form-switch form-switch-right">
-                                                <span>{{ __('New Holiday') }}</span>
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Holiday') }}</span>
                                                 {{ Form::checkbox('holiday_notification', '1', isset($comSetting['holiday_notification']) && $comSetting['holiday_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'holiday_notification']) }}
                                                 <label class="form-check-label" for="holiday_notification"></label>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Support Ticket') }}</span>
+                                                {{ Form::checkbox('support_create_notification', '1', isset($comSetting['support_create_notification']) && $comSetting['support_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'support_create_notification']) }}
+                                                <label class="form-check-label" for="support_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Meeting') }}</span>
+                                                {{ Form::checkbox('meeting_create_notification', '1', isset($comSetting['meeting_create_notification']) && $comSetting['meeting_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'meeting_create_notification']) }}
+                                                <label class="form-check-label" for="meeting_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Company Policy') }}</span>
+                                                {{ Form::checkbox('policy_create_notification', '1', isset($comSetting['policy_create_notification']) && $comSetting['policy_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'policy_create_notification']) }}
+                                                <label class="form-check-label" for="policy_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Invoice') }}</span>
+                                                {{ Form::checkbox('invoice_create_notification', '1', isset($comSetting['invoice_create_notification']) && $comSetting['invoice_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'invoice_create_notification']) }}
+                                                <label class="form-check-label" for="invoice_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Revenue') }}</span>
+                                                {{ Form::checkbox('revenue_create_notification', '1', isset($comSetting['revenue_create_notification']) && $comSetting['revenue_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'revenue_create_notification']) }}
+                                                <label class="form-check-label" for="revenue_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Bill') }}</span>
+                                                {{ Form::checkbox('bill_create_notification', '1', isset($comSetting['bill_create_notification']) && $comSetting['bill_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'bill_create_notification']) }}
+                                                <label class="form-check-label" for="bill_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Proposal') }}</span>
+                                                {{ Form::checkbox('proposal_create_notification', '1', isset($comSetting['proposal_create_notification']) && $comSetting['proposal_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'proposal_create_notification']) }}
+                                                <label class="form-check-label" for="proposal_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Payment') }}</span>
+                                                {{ Form::checkbox('payment_create_notification', '1', isset($comSetting['payment_create_notification']) && $comSetting['payment_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'payment_create_notification']) }}
+                                                <label class="form-check-label" for="payment_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="list-group">
+                                        <div class="list-group-item shadow-sm">
+                                            <div class="form-switch form-switch-right">
+                                                <span>{{ __('Create Budget') }}</span>
+                                                {{ Form::checkbox('budget_create_notification', '1', isset($comSetting['budget_create_notification']) && $comSetting['budget_create_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'budget_create_notification']) }}
+                                                <label class="form-check-label" for="budget_create_notification"></label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Support Ticket') }}</span>
-                                                {{ Form::checkbox('support_notification', '1', isset($comSetting['support_notification']) && $comSetting['support_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'support_notification']) }}
-                                                <label class="form-check-label" for="support_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Event') }}</span>
-                                                {{ Form::checkbox('event_notification', '1', isset($comSetting['event_notification']) && $comSetting['event_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'event_notification']) }}
-                                                <label class="form-check-label" for="event_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Meeting') }}</span>
-                                                {{ Form::checkbox('meeting_notification', '1', isset($comSetting['meeting_notification']) && $comSetting['meeting_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'meeting_notification']) }}
-                                                <label class="form-check-label" for="meeting_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Company Policy') }}</span>
-                                                {{ Form::checkbox('policy_notification', '1', isset($comSetting['policy_notification']) && $comSetting['policy_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'policy_notification']) }}
-                                                <label class="form-check-label" for="policy_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Invoice') }}</span>
-                                                {{ Form::checkbox('invoice_notification', '1', isset($comSetting['invoice_notification']) && $comSetting['invoice_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'invoice_notification']) }}
-                                                <label class="form-check-label" for="invoice_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Revenue') }}</span>
-                                                {{ Form::checkbox('revenue_notification', '1', isset($comSetting['revenue_notification']) && $comSetting['revenue_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'revenue_notification']) }}
-                                                <label class="form-check-label" for="revenue_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Bill') }}</span>
-                                                {{ Form::checkbox('bill_notification', '1', isset($comSetting['bill_notification']) && $comSetting['bill_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'bill_notification']) }}
-                                                <label class="form-check-label" for="bill_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Invoice Payment') }}</span>
-                                                {{ Form::checkbox('payment_notification', '1', isset($comSetting['payment_notification']) && $comSetting['payment_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'payment_notification']) }}
-                                                <label class="form-check-label" for="payment_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-4">
-                                    <div class="list-group">
-                                        <div class="list-group-item shadow-sm">
-                                            <div class="form-switch form-switch-right">
-                                                <span>{{ __('New Budget') }}</span>
-                                                {{ Form::checkbox('budget_notification', '1', isset($comSetting['budget_notification']) && $comSetting['budget_notification'] == '1' ? 'checked' : '', ['class' => 'form-check-input', 'id' => 'budget_notification']) }}
-                                                <label class="form-check-label" for="budget_notification"></label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
+                            <div class="text-end mt-4">
+                                <input class="btn btn-primary" type="submit" value="{{ __('Save Changes') }}">
                             </div>
-                        </div>
-                        <div class="card-footer p-3 text-end">
-                            <div class="form-group mb-0">
-                                <input class="btn btn-print-invoice btn-primary" type="submit"
-                                    value="{{ __('Save Changes') }}">
+                            {{ Form::close() }}
+
+                        @else
+                            {{-- Not Connected State --}}
+                            <div class="alert alert-warning d-flex align-items-center">
+                                <i class="ti ti-alert-triangle me-2"></i>
+                                <div>
+                                    <strong>{{ __('Slack is not connected') }}</strong>
+                                    <p class="mb-0 small">{{ __('Connect your Slack workspace to receive notifications about projects, tasks, meetings, and more.') }}</p>
+                                </div>
                             </div>
-                        </div>
-                        {{ Form::close() }}
+
+                            {{-- OAuth2 Connection Only --}}
+                            <div class="text-center py-4">
+                                <div class="mb-3">
+                                    <i class="ti ti-brand-slack" style="font-size: 3rem; color: #4a154b;"></i>
+                                </div>
+                                <h6>{{ __('Connect with Slack') }}</h6>
+                                <p class="text-muted mb-3">{{ __('Authorize your Slack workspace to receive notifications') }}</p>
+                                <a href="{{ route('oauth.redirect', 'slack') }}" class="btn btn-primary btn-lg">
+                                    <i class="ti ti-brand-slack me-2"></i> {{ __('Connect Slack Workspace') }}
+                                </a>
+                            </div>
+
+                            <div class="mt-4 p-3 bg-light rounded">
+                                <h6 class="mb-2">{{ __('What you\'ll receive notifications for:') }}</h6>
+                                <ul class="list-unstyled small mb-0">
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('New projects and tasks') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Meeting reminders') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Invoice and payment updates') }}</li>
+                                    <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Holiday announcements') }}</li>
+                                    <li class="mb-0"><i class="ti ti-check text-success me-2"></i> {{ __('And 10+ other notification types') }}</li>
+                                </ul>
+                            </div>
+                        @endif
                     </div>
+                </div>
 
+                <script>
+                function testSlackConnection() {
+                    fetch('{{ route("oauth.test", "slack") }}', {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert('{{ __("Slack connection is working!") }}');
+                        } else {
+                            alert('{{ __("Connection test failed:") }} ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        alert('{{ __("Error testing connection:") }} ' + error.message);
+                    });
+                }
+                </script>
                     <!--Telegram Settings-->
                     <div id="telegram-settings" class="card">
                         <div class="card-header p-3">
@@ -4769,7 +4859,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4781,7 +4871,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4793,7 +4883,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4805,7 +4895,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4817,7 +4907,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4829,7 +4919,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4841,7 +4931,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                                 <div class="col-md-4">
                                     <div class="list-group">
                                         <div class="list-group-item shadow-sm">
@@ -4853,7 +4943,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                
+
                             </div>
                         </div>
                         <div class="card-footer p-3 text-end">
@@ -5217,43 +5307,123 @@
 
                     <!--End HRM letter Settings-->
 
+                    <!--Google Calendar Settings-->
                     <div id="google-calender" class="card">
-                        {{ Form::open(['url' => route('google.calender.settings'), 'enctype' => 'multipart/form-data']) }}
                         <div class="card-header p-3 d-flex align-items-center gap-2 justify-content-between flex-wrap">
-                            <h5>{{ __('Google Calendar Settings') }}</h5>
-                            <div class="form-group mb-0">
-                                <div class="custom-control custom-switch">
-                                    <input type="checkbox" name="google_calendar_enable" id="google_calendar_enable"
-                                        data-toggle="switchbutton" data-onstyle="primary"
-                                        {{ isset($setting['google_calendar_enable']) && $setting['google_calendar_enable'] == 'on' ? 'checked' : '' }}>
-                                    <label class="custom-control-label" for="google_calendar_enable"></label>
+                            <div>
+                                <h5>{{ __('Google Calendar Settings') }}</h5>
+                                <small class="text-muted">{{ __('Connect your Google account to automatically sync events') }}</small>
+                            </div>
+                            @if(App\Services\OAuth2Service::isConnected('google'))
+                                <span class="badge bg-success">{{ __('Connected') }}</span>
+                            @else
+                                <span class="badge bg-warning">{{ __('Not Connected') }}</span>
+                            @endif
+                        </div>
+
+                        <div class="card-body p-3">
+                            @if(App\Services\OAuth2Service::isConnected('google'))
+                                {{-- Connected State --}}
+                                <div class="alert alert-success d-flex align-items-center">
+                                    <i class="ti ti-check-circle me-2"></i>
+                                    <div class="flex-grow-1">
+                                        <strong>{{ __('Google Calendar is connected') }}</strong>
+                                        @php $userInfo = App\Services\OAuth2Service::getUserInfo('google'); @endphp
+                                        @if($userInfo['oauth'])
+                                            <p class="mb-0 small">{{ __('Connected via: OAuth2') }}</p>
+                                            <p class="mb-0 small">{{ __('Email:') }} {{ $userInfo['email'] ?? 'Unknown' }}</p>
+                                        @else
+                                            <p class="mb-0 small">{{ __('Connected via: Manual JSON upload') }}</p>
+                                        @endif
+                                        <p class="mb-0 small">{{ __('Calendar ID:') }} {{ $setting['google_clender_id'] ?? 'primary' }}</p>
+                                    </div>
                                 </div>
 
-                            </div>
-                        </div>
-                        <div class="card-body p-3">
-                            <div class="row row-gap-1">
-                                <div class="mb-0 col-md-6 col-sm-12 form-group">
-                                    {{ Form::label('Google calendar id', __('Google Calendar Id'), ['class' => 'col-form-label']) }}
-                                    {{ Form::text('google_clender_id', !empty($setting['google_clender_id']) ? $setting['google_clender_id'] : '', ['class' => 'form-control ', 'placeholder' => 'Google Calendar Id', 'required' => 'required']) }}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <button type="button" class="btn btn-info" onclick="testGoogleConnection()">
+                                            <i class="ti ti-refresh"></i> {{ __('Test Connection') }}
+                                        </button>
+                                    </div>
+                                    <div class="col-md-6 text-end">
+                                        <form method="POST" action="{{ route('oauth.disconnect', 'google') }}" style="display: inline;">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger" onclick="return confirm('{{ __('Are you sure you want to disconnect Google Calendar?') }}')">
+                                                <i class="ti ti-unlink"></i> {{ __('Disconnect') }}
+                                            </button>
+                                        </form>
+                                    </div>
                                 </div>
-                                <div class="mb-0 col-md-6 col-sm-12 form-group">
-                                    {{ Form::label('Google calendar json file', __('Google Calendar json File'), ['class' => 'col-form-label']) }}
-                                    <input type="file" class="form-control" name="google_calender_json_file"
-                                        id="file">
-                                    {{-- {{Form::text('zoom_secret_key', !empty($settings['zoom_secret_key']) ? $settings['zoom_secret_key'] : '' ,array('class'=>'form-control', 'placeholder'=>'Google Calendar json File'))}} --}}
+
+                                <div class="mt-3">
+                                    <h6>{{ __('What gets synced:') }}</h6>
+                                    <ul class="list-unstyled small">
+                                        <li><i class="ti ti-calendar text-primary me-1"></i> {{ __('Zoom meetings') }}</li>
+                                        <li><i class="ti ti-calendar text-primary me-1"></i> {{ __('Company holidays') }}</li>
+                                        <li><i class="ti ti-calendar text-primary me-1"></i> {{ __('Project deadlines') }}</li>
+                                        <li><i class="ti ti-calendar text-primary me-1"></i> {{ __('Employee events') }}</li>
+                                    </ul>
                                 </div>
-                            </div>
+
+                            @else
+                                {{-- Not Connected State - OAuth2 Only --}}
+                                <div class="alert alert-warning d-flex align-items-center">
+                                    <i class="ti ti-alert-triangle me-2"></i>
+                                    <div>
+                                        <strong>{{ __('Google Calendar is not connected') }}</strong>
+                                        <p class="mb-0 small">{{ __('Connect your Google account to automatically sync meetings, holidays, and other events to your Google Calendar.') }}</p>
+                                    </div>
+                                </div>
+
+                                {{-- OAuth2 Connection Only --}}
+                                <div class="text-center py-4">
+                                    <div class="mb-3">
+                                        <i class="ti ti-brand-google" style="font-size: 3rem; color: #4285f4;"></i>
+                                    </div>
+                                    <h6>{{ __('Connect with Google') }}</h6>
+                                    <p class="text-muted mb-3">{{ __('Authorize access to your Google Calendar with one click') }}</p>
+                                    <a href="{{ route('oauth.redirect', 'google') }}" class="btn btn-primary btn-lg">
+                                        <i class="ti ti-brand-google me-2"></i> {{ __('Connect Google Calendar') }}
+                                    </a>
+                                </div>
+
+                                <div class="mt-4 p-3 bg-light rounded">
+                                    <h6 class="mb-2">{{ __('What happens when you connect:') }}</h6>
+                                    <ul class="list-unstyled small mb-0">
+                                        <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Automatic event synchronization') }}</li>
+                                        <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Real-time calendar updates') }}</li>
+                                        <li class="mb-1"><i class="ti ti-check text-success me-2"></i> {{ __('Secure OAuth2 authentication') }}</li>
+                                    </ul>
+                                </div>
+                            @endif
                         </div>
-                        <div class="card-footer p-3 text-end">
-                            <div class="form-group mb-0">
-                                <button class="btn-submit btn btn-primary" type="submit">
-                                    {{ __('Save Changes') }}
-                                </button>
-                            </div>
-                        </div>
-                        {{ Form::close() }}
                     </div>
+
+                    <script>
+                    function testGoogleConnection() {
+                        fetch('{{ route("oauth.test", "google") }}', {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                'Content-Type': 'application/json',
+                            },
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                alert('{{ __("Google Calendar connection is working!") }}');
+                            } else {
+                                alert('{{ __("Connection test failed:") }} ' + data.message);
+                            }
+                        })
+                        .catch(error => {
+                            alert('{{ __("Error testing connection:") }} ' + error.message);
+                        });
+                    }
+                    </script>
+
+
 
                 <div id="webhook-settings" class="card">
                     <div class="col-md-12">

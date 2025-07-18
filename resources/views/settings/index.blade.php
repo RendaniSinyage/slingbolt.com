@@ -340,6 +340,33 @@
             });
         }
     </script>
+
+    {{-- OAuth2 JavaScript --}}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Test OAuth connections
+            window.testOAuthConnection = function(provider) {
+                fetch(`{{ url('/oauth') }}/${provider}/test`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(`${provider} connection is working!`);
+                    } else {
+                        alert(`Connection test failed: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    alert(`Error testing connection: ${error.message}`);
+                });
+            };
+        });
+    </script>
 @endpush
 
 @section('breadcrumb')
@@ -377,6 +404,10 @@
                             </a>
                             <a href="#storage-settings"
                                 class="list-group-item list-group-item-action border-0">{{ __('Storage Settings') }}
+                                <div class="float-end"><i class="ti ti-chevron-right"></i></div>
+                            </a>
+                            <a href="#oauth2-settings"
+                                class="list-group-item list-group-item-action border-0">{{ __('OAuth2 Integrations') }}
                                 <div class="float-end"><i class="ti ti-chevron-right"></i></div>
                             </a>
                             <a href="#seo-settings"

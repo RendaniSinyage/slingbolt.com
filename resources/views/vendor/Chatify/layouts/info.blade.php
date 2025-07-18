@@ -1,25 +1,11 @@
-
-@php
-    $profile = \App\Models\Utility::get_file('uploads/avatar/');
-@endphp
-
 {{-- user info and avatar --}}
-@if(!empty(\Auth::user()->avatar))
-
-
-    <div class="avatar av-l" style="background-image: url('{{ $profile.'/'.Auth::user()->avatar }}');">
-    </div>
-@else
-    <div class="avatar av-l"
-         style="background-image: url('{{ asset('/storage/'.config('chatify.user_avatar.folder').'/avatar.png') }}');">
-    </div>
-@endif
+<div class="avatar av-l chatify-d-flex"></div>
 <p class="info-name">{{ config('chatify.name') }}</p>
 <div class="messenger-infoView-btns">
-    <a href="#" class="danger delete-conversation"><i class="ti ti-trash"></i> {{__('Delete Conversation')}}</a>
+    <a href="#" class="danger delete-conversation">Delete Conversation</a>
 </div>
 {{-- shared photos --}}
 <div class="messenger-infoView-shared">
-    <p class="messenger-title">{{__('shared photos')}}</p>
+    <p class="messenger-title"><span>Shared Photos</span></p>
     <div class="shared-photos-list"></div>
 </div>

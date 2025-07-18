@@ -1,27 +1,20 @@
 <?php
 
 return [
-
     /*
     |-------------------------------------
     | Messenger display name
     |-------------------------------------
     */
-    'name' => env('CHATIFY_NAME', 'Messenger'),
-
+    'name' => env('CHATIFY_NAME', 'Chatify Messenger'),
 
     /*
-   |--------------------------------------------------------------------------
-   | Package path
-   |--------------------------------------------------------------------------
-   |
-   | This value is the path of the package or in other meaning, it is the prefix
-   | of all the registered routes in this package.
-   |
-   | e.g. : app.test/chatify
-   */
-
-    'path' => env('CHATIFY_PATH', 'chats'),
+    |-------------------------------------
+    | The disk on which to store added
+    | files and derived images by default.
+    |-------------------------------------
+    */
+    'storage_disk_name' => env('CHATIFY_STORAGE_DISK', 'public'),
 
     /*
     |-------------------------------------
@@ -29,18 +22,16 @@ return [
     |-------------------------------------
     */
     'routes' => [
-        'prefix' => env('CHATIFY_ROUTES_PREFIX', 'chats'),
-        'middleware' => env(
-            'CHATIFY_ROUTES_MIDDLEWARE', [
-                'web',
-                'auth',
-                'XSS',
-                'pusher',
-            ]
-        ),
-        'namespace' => env('CHATIFY_ROUTES_NAMESPACE', 'App\Http\Controllers\vendor\Chatify'),
+        'custom' => env('CHATIFY_CUSTOM_ROUTES', false),
+        'prefix' => env('CHATIFY_ROUTES_PREFIX', 'chatify'),
+        'middleware' => env('CHATIFY_ROUTES_MIDDLEWARE', ['web','auth']),
+        'namespace' => env('CHATIFY_ROUTES_NAMESPACE', 'Chatify\Http\Controllers'),
     ],
-
+    'api_routes' => [
+        'prefix' => env('CHATIFY_API_ROUTES_PREFIX', 'chatify/api'),
+        'middleware' => env('CHATIFY_API_ROUTES_MIDDLEWARE', ['api']),
+        'namespace' => env('CHATIFY_API_ROUTES_NAMESPACE', 'Chatify\Http\Controllers\Api'),
+    ],
 
     /*
     |-------------------------------------
@@ -48,12 +39,17 @@ return [
     |-------------------------------------
     */
     'pusher' => [
+        'debug' => env('APP_DEBUG', false),
         'key' => env('PUSHER_APP_KEY'),
         'secret' => env('PUSHER_APP_SECRET'),
         'app_id' => env('PUSHER_APP_ID'),
-        'options' => (array)[
-            'cluster' => env('PUSHER_APP_CLUSTER'),
-            'useTLS' => env('PUSHER_APP_USETLS'),
+        'options' => [
+            'cluster' => env('PUSHER_APP_CLUSTER', 'mt1'),
+            'host' => env('PUSHER_HOST') ?: 'api-'.env('PUSHER_APP_CLUSTER', 'mt1').'.pusher.com',
+            'port' => env('PUSHER_PORT', 443),
+            'scheme' => env('PUSHER_SCHEME', 'https'),
+            'encrypted' => true,
+            'useTLS' => env('PUSHER_SCHEME', 'https') === 'https',
         ],
     ],
 
@@ -63,8 +59,22 @@ return [
     |-------------------------------------
     */
     'user_avatar' => [
-        'folder' => 'uploads/avatar',
+        'folder' => 'users-avatar',
         'default' => 'avatar.png',
+    ],
+
+    /*
+    |-------------------------------------
+    | Gravatar
+    |
+    | imageset property options:
+    | [ 404 | mp | identicon (default) | monsterid | wavatar ]
+    |-------------------------------------
+    */
+    'gravatar' => [
+        'enabled' => true,
+        'image_size' => 200,
+        'imageset' => 'identicon'
     ],
 
     /*
@@ -75,16 +85,40 @@ return [
     'attachments' => [
         'folder' => 'attachments',
         'download_route_name' => 'attachments.download',
-        'allowed_images' => (array)[
-            'png',
-            'jpg',
-            'jpeg',
-            'gif',
-        ],
-        'allowed_files' => (array)[
-            'zip',
-            'rar',
-            'txt',
-        ],
+        'allowed_images' => (array) ['png','jpg','jpeg','gif'],
+        'allowed_files' => (array) ['zip','rar','txt'],
+        'max_upload_size' => env('CHATIFY_MAX_FILE_SIZE', 150), // MB
     ],
+
+    /*
+    |-------------------------------------
+    | Messenger's colors
+    |-------------------------------------
+    */
+    'colors' => (array) [
+        '#2180f3',
+        '#2196F3',
+        '#00BCD4',
+        '#3F51B5',
+        '#673AB7',
+        '#4CAF50',
+        '#FFC107',
+        '#FF9800',
+        '#ff2522',
+        '#9C27B0',
+    ],
+    /*
+    |-------------------------------------
+    | Sounds
+    | You can enable/disable the sounds and
+    | change sound's name/path placed at
+    | `public/` directory of your app.
+    |
+    |-------------------------------------
+    */
+    'sounds' => [
+        'enabled' => true,
+        'public_path' => 'sounds/chatify',
+        'new_message' => 'new-message-sound.mp3',
+    ]
 ];

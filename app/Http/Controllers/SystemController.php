@@ -27,6 +27,14 @@ class SystemController extends Controller
         if (\Auth::user()->can('manage system settings')) {
             $settings = Utility::settings();
             $admin_payment_setting = Utility::getAdminPaymentSetting();
+
+            // Add OAuth status for views
+                        $oauthStatus = [
+                            'google_connected' => $this->isGoogleConnected($settings),
+                            'slack_connected' => isset($settings['slack_connected']) && $settings['slack_connected'] === '1',
+                            'zoom_connected' => isset($settings['zoom_connected']) && $settings['zoom_connected'] === '1',
+                        ];
+
             $file_size = 0;
             foreach (\File::allFiles(storage_path('/framework')) as $file) {
                 $file_size += $file->getSize();
@@ -37,6 +45,13 @@ class SystemController extends Controller
         } else {
             return redirect()->back()->with('error', 'Permission denied.');
         }
+    }
+
+ private function isGoogleConnected($settings)
+    {
+        $hasFile = isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']);
+        $isEnabled = isset($settings['google_calendar_enable']) && $settings['google_calendar_enable'] === 'on';
+        return $hasFile && $isEnabled;
     }
 
     public function store(Request $request)
@@ -558,7 +573,7 @@ class SystemController extends Controller
         if (\Auth::user()->type !== 'super admin') {
             // Get super admin user
             $superAdmin = User::where('type', 'super admin')->first();
-            
+
             if ($superAdmin) {
                 // Get super admin's payment settings
                 $superAdminSettings = DB::table('admin_payment_settings')
