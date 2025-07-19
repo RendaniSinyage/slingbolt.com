@@ -55,7 +55,7 @@ class Utility extends Model
 
     public static function getSettingById($id)
     {
-        
+
         // if (self::$getsettingsid == null) {
             $data = DB::table('settings');
             $data = $data->where('created_by', '=', $id)->get();
@@ -2435,7 +2435,7 @@ class Utility extends Model
                                 'created_by' => $user->id,
                             ]
                         );
-                    
+
                         $chartOfAccounts = Self::$chartOfAccount1;
 
                         foreach ($chartOfAccounts as $chartAccount) {
@@ -2464,7 +2464,7 @@ class Utility extends Model
                                     ]
                                 );
                             }
-                        }        
+                        }
                     }
                 }
             }
@@ -4496,20 +4496,34 @@ class Utility extends Model
 
     ];
 
-    public static function googleCalendarConfig()
-    {
-        $setting = Utility::settings();
-        $path = storage_path($setting['google_calender_json_file']);
-        config([
-            'google-calendar.default_auth_profile' => 'service_account',
-            'google-calendar.auth_profiles.service_account.credentials_json' => $path,
-            'google-calendar.auth_profiles.oauth.credentials_json' => $path,
-            'google-calendar.auth_profiles.oauth.token_json' => $path,
-            'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : '',
-            'google-calendar.user_to_impersonate' => '',
 
-        ]);
-    }
+/**
+ * Check if Google Calendar is connected
+ */
+public static function isGoogleCalendarConnected()
+{
+    $settings = self::settings();
+
+    // Check if OAuth2 connected
+    $isOAuthConnected = isset($settings['google_calendar_oauth_connected']) && $settings['google_calendar_oauth_connected'] === '1';
+
+    // Check manual upload connected
+    $isEnabled = isset($settings['google_calendar_enable']) && $settings['google_calendar_enable'] === 'on';
+    $hasFile = isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']);
+    $fileExists = $hasFile ? file_exists(storage_path($settings['google_calender_json_file'])) : false;
+
+    // Return true if either OAuth2 OR manual upload is working
+    return $isOAuthConnected || ($isEnabled && $hasFile && $fileExists);
+}
+
+/**
+ * Check if Google Calendar was connected via OAuth2
+ */
+public static function isGoogleCalendarOAuth()
+{
+    $settings = self::settings();
+    return isset($settings['google_calendar_oauth_connected']) && $settings['google_calendar_oauth_connected'] === '1';
+}
 
     public static function addCalendarData($request, $type)
     {
@@ -4521,6 +4535,26 @@ class Utility extends Model
         $event->colorId = Self::colorCodeData($type);
         $event->save();
     }
+
+public static function googleCalendarConfig()
+{
+    $setting = self::settings();
+    $credentialsPath = storage_path($setting['google_calender_json_file']);
+    $tokenPath = isset($setting['google_calendar_token_file']) ?
+        storage_path($setting['google_calendar_token_file']) : $credentialsPath;
+
+    // Check if it's OAuth2 connection
+    $isOAuth = isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1';
+
+    config([
+        'google-calendar.default_auth_profile' => $isOAuth ? 'oauth' : 'service_account',
+        'google-calendar.auth_profiles.service_account.credentials_json' => $credentialsPath,
+        'google-calendar.auth_profiles.oauth.credentials_json' => $credentialsPath,
+        'google-calendar.auth_profiles.oauth.token_json' => $tokenPath,
+        'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : 'primary',
+        'google-calendar.user_to_impersonate' => '',
+    ]);
+}
 
     public static function getCalendarData($type)
     {
@@ -4943,7 +4977,7 @@ class Utility extends Model
         self::addTransactionLines($data);
     }
 
-    public static function addTransactionLines($data , $action = '' , $type = '')    
+    public static function addTransactionLines($data , $action = '' , $type = '')
     {
         if($type == 'notes')
         {
@@ -4960,7 +4994,7 @@ class Utility extends Model
                 ->where('reference_sub_id', $data['reference_sub_id'])
                 ->first();
         }
-        
+
         if ($existingTransaction && $action == 'edit') {
             $transactionLines = $existingTransaction;
         } else {

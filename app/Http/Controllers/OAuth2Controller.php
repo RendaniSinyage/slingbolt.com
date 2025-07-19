@@ -26,16 +26,28 @@ class OAuth2Controller extends Controller
     public function redirectToProvider($provider)
     {
         $validProviders = ['google', 'slack', 'zoom'];
-        
+
         if (!in_array($provider, $validProviders)) {
             return redirect()->back()->with('error', 'Invalid OAuth provider');
         }
 
         // Store user ID in session
         session(['oauth_user_id' => Auth::id(), 'oauth_provider' => $provider]);
-        
+
         $scopes = $this->getProviderScopes($provider);
-        
+
+        if ($provider === 'google') {
+            // Force fresh authorization for Google to get refresh token
+            return Socialite::driver($provider)
+                ->scopes($scopes)
+                ->with([
+                    'access_type' => 'offline',
+                    'prompt' => 'consent',
+                    'approval_prompt' => 'force'  // Forces re-authorization
+                ])
+                ->redirect();
+        }
+
         return Socialite::driver($provider)->scopes($scopes)->redirect();
     }
 
@@ -48,19 +60,19 @@ class OAuth2Controller extends Controller
         try {
             $socialUser = Socialite::driver('google')->user();
             $userId = session('oauth_user_id');
-            
+
             if (!$userId) {
-                return redirect()->route('system.settings')->with('error', 'OAuth session expired. Please try again.');
+                return redirect('/settings#google-calender')->with('error', 'OAuth session expired. Please try again.');
             }
 
             // Use the SAME logic as SystemController for file creation
             $this->createGoogleCalendarFile($socialUser, $userId);
-            
-            return redirect()->route('system.settings')->with('success', 'Google Calendar connected successfully via OAuth2!');
-            
+
+            return redirect('/settings#google-calender')->with('success', 'Google Calendar connected successfully via OAuth2!');
+
         } catch (\Exception $e) {
             \Log::error('Google OAuth callback error: ' . $e->getMessage());
-            return redirect()->route('system.settings')->with('error', 'Google Calendar connection failed: ' . $e->getMessage());
+            return redirect('/settings#google-calender')->with('error', 'Google Calendar connection failed: ' . $e->getMessage());
         }
     }
 
@@ -69,39 +81,71 @@ class OAuth2Controller extends Controller
      */
     private function createGoogleCalendarFile($socialUser, $userId)
     {
-        // EXACT same directory creation logic as SystemController
-        $dir = storage_path() . '/' . md5(time());
+        // Create unique directory
+        $uniqueId = md5(time() . $userId);
+        $dir = storage_path($uniqueId);
+
         if (!is_dir($dir)) {
-            File::makeDirectory($dir, $mode = 0777, true, true);
+            File::makeDirectory($dir, 0755, true, true);
         }
 
-        // EXACT same file path logic as SystemController
-        $file_path = md5(time()) . '/' . md5(time()) . '.json';
-        $fullPath = storage_path($file_path);
+        // Create credentials file
+        $credentialsFileName = 'credentials.json';
+        $credentialsPath = $uniqueId . '/' . $credentialsFileName;
+        $credentialsFullPath = storage_path($credentialsPath);
 
-        // Create OAuth2 credentials file (this replaces the uploaded file)
-        $credentials = $this->generateGoogleCredentialsJson($socialUser);
-        file_put_contents($fullPath, json_encode($credentials, JSON_PRETTY_PRINT));
+        // Create token file
+        $tokenFileName = 'token.json';
+        $tokenPath = $uniqueId . '/' . $tokenFileName;
+        $tokenFullPath = storage_path($tokenPath);
 
-        // EXACT same database insertion logic as SystemController
-        $post = [
+        // Create OAuth2 credentials file (for spatie package)
+        $credentials = [
+            'web' => [
+                'client_id' => config('services.google.client_id'),
+                'client_secret' => config('services.google.client_secret'),
+                'auth_uri' => 'https://accounts.google.com/o/oauth2/auth',
+                'token_uri' => 'https://oauth2.googleapis.com/token',
+                'redirect_uris' => [config('services.google.redirect')],
+            ]
+        ];
+
+        file_put_contents($credentialsFullPath, json_encode($credentials, JSON_PRETTY_PRINT));
+
+        // Create separate token file (what spatie expects)
+        $tokenData = [
+            'access_token' => $socialUser->token,
+            'refresh_token' => $socialUser->refreshToken,
+            'scope' => 'https://www.googleapis.com/auth/calendar',
+            'token_type' => 'Bearer',
+        ];
+
+        if ($socialUser->expiresIn) {
+            $tokenData['expires_in'] = $socialUser->expiresIn;
+            $tokenData['created'] = time();
+        }
+
+        file_put_contents($tokenFullPath, json_encode($tokenData, JSON_PRETTY_PRINT));
+
+        // Store in database with separate paths
+        $settings = [
             'google_calendar_enable' => 'on',
-            'google_calender_json_file' => $file_path, // Same field name
-            'google_clender_id' => $this->extractCalendarId($socialUser) ?: 'primary',
-            'google_calendar_oauth_connected' => '1', // Flag to track OAuth2 vs manual
+            'google_calender_json_file' => $credentialsPath, // Credentials file
+            'google_calendar_token_file' => $tokenPath, // Token file
+            'google_clender_id' => 'primary',
+            'google_calendar_oauth_connected' => '1',
             'google_calendar_user_email' => $socialUser->getEmail(),
         ];
 
-        foreach ($post as $key => $data) {
+        $createdBy = Auth::user()->creatorId();
+        $now = date('Y-m-d H:i:s');
+
+        foreach ($settings as $key => $value) {
             DB::insert(
-                'insert into settings (`value`, `name`,`created_by`,`created_at`,`updated_at`) values (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE `value` = VALUES(`value`) ',
-                [
-                    $data,
-                    $key,
-                    Auth::user()->creatorId(), // SAME logic as SystemController
-                    date('Y-m-d H:i:s'),
-                    date('Y-m-d H:i:s'),
-                ]
+                'INSERT INTO settings (`value`, `name`, `created_by`, `created_at`, `updated_at`)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `updated_at` = VALUES(`updated_at`)',
+                [$value, $key, $createdBy, $now, $now]
             );
         }
     }
@@ -121,7 +165,7 @@ class OAuth2Controller extends Controller
             'token_type' => 'Bearer',
             'expires_in' => $socialUser->expiresIn,
             'expires_at' => time() + ($socialUser->expiresIn ?? 3600),
-            
+
             // Additional metadata
             'oauth2_connected' => true,
             'user_email' => $socialUser->getEmail(),
@@ -147,18 +191,18 @@ class OAuth2Controller extends Controller
         try {
             $socialUser = Socialite::driver('slack')->user();
             $userId = session('oauth_user_id');
-            
+
             if (!$userId) {
-                return redirect()->route('system.settings')->with('error', 'OAuth session expired.');
+                return redirect('/settings#slack-settings')->with('error', 'OAuth session expired.');
             }
 
             $this->storeSlackTokens($socialUser, $userId);
-            
-            return redirect()->route('system.settings')->with('success', 'Slack connected successfully!');
-            
+
+            return redirect('/settings#slack-settings')->with('success', 'Slack connected successfully!');
+
         } catch (\Exception $e) {
             \Log::error('Slack OAuth error: ' . $e->getMessage());
-            return redirect()->route('system.settings')->with('error', 'Slack connection failed: ' . $e->getMessage());
+           return redirect('/settings#slack-settings')->with('error', 'Slack connection failed: ' . $e->getMessage());
         }
     }
 
@@ -170,18 +214,18 @@ class OAuth2Controller extends Controller
         try {
             $socialUser = Socialite::driver('zoom')->user();
             $userId = session('oauth_user_id');
-            
+
             if (!$userId) {
-                return redirect()->route('system.settings')->with('error', 'OAuth session expired.');
+                return redirect('/settings#zoom-settings')->with('error', 'OAuth session expired.');
             }
 
             $this->storeZoomTokens($socialUser, $userId);
-            
-            return redirect()->route('system.settings')->with('success', 'Zoom connected successfully!');
-            
+
+            return redirect('/settings#zoom-settings')->with('success', 'Zoom connected successfully!');
+
         } catch (\Exception $e) {
             \Log::error('Zoom OAuth error: ' . $e->getMessage());
-            return redirect()->route('system.settings')->with('error', 'Zoom connection failed: ' . $e->getMessage());
+            return redirect('/settings#zoom-settings')->with('error', 'Zoom connection failed: ' . $e->getMessage());
         }
     }
 
@@ -202,7 +246,7 @@ class OAuth2Controller extends Controller
     }
 
     /**
-     * Store Zoom tokens  
+     * Store Zoom tokens
      */
     private function storeZoomTokens($socialUser, $userId)
     {
@@ -224,8 +268,8 @@ class OAuth2Controller extends Controller
         foreach ($settings as $key => $value) {
             if ($value !== null) {
                 DB::insert(
-                    'INSERT INTO settings (`value`, `name`, `created_by`, `created_at`, `updated_at`) 
-                     VALUES (?, ?, ?, ?, ?) 
+                    'INSERT INTO settings (`value`, `name`, `created_by`, `created_at`, `updated_at`)
+                     VALUES (?, ?, ?, ?, ?)
                      ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `updated_at` = VALUES(`updated_at`)',
                     [
                         $value,
@@ -246,23 +290,26 @@ class OAuth2Controller extends Controller
     {
         try {
             $userId = Auth::user()->creatorId();
-            
+
             switch ($provider) {
                 case 'google':
                     $this->disconnectGoogle($userId);
+                    $section = '#google-calender';
                     break;
                 case 'slack':
                     $this->disconnectSlack($userId);
+                    $section = '#slack-settings';
                     break;
                 case 'zoom':
                     $this->disconnectZoom($userId);
+                    $section = '#zoom-settings';
                     break;
                 default:
                     return redirect()->back()->with('error', 'Invalid provider');
             }
-            
-            return redirect()->back()->with('success', ucfirst($provider) . ' disconnected successfully!');
-            
+
+            return redirect('/settings' . $section)->with('success', ucfirst($provider) . ' disconnected successfully!');
+
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Disconnect failed: ' . $e->getMessage());
         }
@@ -275,24 +322,24 @@ class OAuth2Controller extends Controller
     {
         $settings = Utility::settings();
         $filePath = $settings['google_calender_json_file'] ?? null;
-        
-        // Remove file (same logic as manual removal would need)
+
+        // Remove the JSON file
         if ($filePath && file_exists(storage_path($filePath))) {
             unlink(storage_path($filePath));
-            
+
             // Remove directory if empty
             $dir = dirname(storage_path($filePath));
             if (is_dir($dir) && count(scandir($dir)) == 2) {
                 rmdir($dir);
             }
         }
-        
-        // Remove settings
+
+        // Remove settings from database
         DB::table('settings')
             ->where('created_by', $userId)
             ->whereIn('name', [
                 'google_calendar_enable',
-                'google_calender_json_file', 
+                'google_calender_json_file',
                 'google_clender_id',
                 'google_calendar_oauth_connected',
                 'google_calendar_user_email'
@@ -326,7 +373,7 @@ class OAuth2Controller extends Controller
             ->where('created_by', $userId)
             ->whereIn('name', [
                 'zoom_access_token',
-                'zoom_refresh_token', 
+                'zoom_refresh_token',
                 'zoom_user_id',
                 'zoom_connected'
             ])
@@ -350,9 +397,9 @@ class OAuth2Controller extends Controller
                 'team:read'
             ],
             'zoom' => [
-                'meeting:write',
-                'meeting:read',
-                'user:read'
+                'meeting:write:meeting',
+                'meeting:read:meeting',
+                'user:read:user'
             ]
         ];
 
@@ -386,18 +433,20 @@ class OAuth2Controller extends Controller
             return response()->json(['success' => false, 'message' => 'Google Calendar not connected']);
         }
 
-        // Test by trying to get calendar list
+        // Test by trying to get calendar list or create a test event
         try {
             Utility::googleCalendarConfig();
+
+            // Try to create a simple test event using spatie package
             $event = new \Spatie\GoogleCalendar\Event;
             $event->name = 'OAuth2 Test - ' . config('app.name');
             $event->startDateTime = now()->addMinute();
             $event->endDateTime = now()->addMinutes(2);
             $event->description = 'Test event created via OAuth2. Safe to delete.';
-            
+
             $result = $event->save();
-            return response()->json(['success' => true, 'message' => 'Google Calendar test successful!']);
-            
+            return response()->json(['success' => true, 'message' => 'Google Calendar test successful! Test event created.']);
+
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Test failed: ' . $e->getMessage()]);
         }
@@ -411,7 +460,7 @@ class OAuth2Controller extends Controller
 
     private function testZoomConnection()
     {
-        // Implementation for testing Zoom connection  
+        // Implementation for testing Zoom connection
         return response()->json(['success' => true, 'message' => 'Zoom test - implement as needed']);
     }
 }
