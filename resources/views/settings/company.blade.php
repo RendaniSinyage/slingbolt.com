@@ -4167,7 +4167,7 @@
                             <div class="row">
                                 <div class="col-md-6">
                                     <button type="button" class="btn btn-info" onclick="testZoomConnection()">
-                                        <i class="ti ti-refresh"></i> {{ __('Test Connection') }}
+                                        <i class="ti ti-refresh"></i> {{ __('Test') }}
                                     </button>
                                 </div>
                                 <div class="col-md-6 text-end">
@@ -5342,7 +5342,7 @@
                                 <div class="row">
                                     <div class="col-md-6">
                                         <button type="button" class="btn btn-info" onclick="testGoogleConnection()">
-                                            <i class="ti ti-refresh"></i> {{ __('Test Connection') }}
+                                            <i class="ti ti-refresh"></i> {{ __('Test') }}
                                         </button>
                                     </div>
                                     <div class="col-md-6 text-end">

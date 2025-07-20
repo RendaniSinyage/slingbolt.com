@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProjectTaskController extends Controller
 {
@@ -91,12 +92,41 @@ class ProjectTaskController extends Controller
             $post['stage_id'] = $request->stage_id;
             $post['assign_to'] = $request->assign_to;
             $post['created_by'] = \Auth::user()->creatorId();
-            $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date));
-            $post['end_date'] = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
+            // IMPROVED DATE/TIME HANDLING
+                    // Handle start_date with time
+                    if (!empty($request->start_date)) {
+                        if (!empty($request->start_time)) {
+                            // Combine date and time
+                            $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date . ' ' . $request->start_time));
+                        } else {
+                            // Use 9:00 AM as default start time for business hours
+                            $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date . ' 09:00:00'));
+                        }
+                    } else {
+                        $post['start_date'] = null;
+                    }
 
-            if ($request->stage_id == $last_stage) {
-                $post['marked_at'] = date('Y-m-d');
-            }
+                    // Handle end_date with time
+                    if (!empty($request->end_date)) {
+                        if (!empty($request->end_time)) {
+                            // Combine date and time
+                            $post['end_date'] = date("Y-m-d H:i:s", strtotime($request->end_date . ' ' . $request->end_time));
+                        } else {
+                            // Default to start_date + estimated hours, or 5:00 PM if no start date
+                            if (!empty($post['start_date']) && !empty($request->estimated_hrs)) {
+                                $estimatedHours = (float)$request->estimated_hrs;
+                                $post['end_date'] = date("Y-m-d H:i:s", strtotime($post['start_date'] . " +{$estimatedHours} hours"));
+                            } else {
+                                $post['end_date'] = date("Y-m-d H:i:s", strtotime($request->end_date . ' 17:00:00'));
+                            }
+                        }
+                    } else {
+                        $post['end_date'] = null;
+                    }
+
+                    if ($request->stage_id == $last_stage) {
+                        $post['marked_at'] = date('Y-m-d');
+                    }
             $task = ProjectTask::create($post);
 
             //Make entry in activity log
@@ -157,12 +187,26 @@ class ProjectTaskController extends Controller
             //For Google Calendar
             if ($request->get('synchronize_type') == 'google_calender') {
                 $type = 'task';
-                $request1 = new ProjectTask();
+                $request1 = new \stdClass();
+                $request1->id = $task->id;
                 $request1->title = $request->name;
                 $request1->start_date = $request->start_date;
-                $request1->end_date = $request->end_date;
+
+                 // Only sync if start_date is provided
+                             if (!empty($request->start_date) && $request->start_date !== 'yyyy/mm/dd') {
+                                 $request1->start_date = $request->start_date;
+
+                                 // Handle end date
+                                 if (!empty($request->end_date) && $request->end_date !== 'yyyy/mm/dd') {
+                                     $request1->end_date = $request->end_date;
+                                 } else {
+                                     $request1->end_date = $request->start_date; // Same day
+                                 }
+
                 Utility::addCalendarData($request1, $type);
             }
+        }
+
 
             //webhook
             $module = 'New Task';
@@ -182,6 +226,7 @@ class ProjectTaskController extends Controller
             return redirect()->back()->with('error', __('Permission Denied.'));
         }
     }
+
 
     // For Taskboard View
     public function taskBoard($view)
@@ -353,7 +398,6 @@ class ProjectTaskController extends Controller
 
     public function update(Request $request, $project_id, $task_id)
     {
-
         if (\Auth::user()->can('edit project task')) {
             $validator = Validator::make(
                 $request->all(), [
@@ -369,8 +413,39 @@ class ProjectTaskController extends Controller
             }
 
             $post = $request->all();
+
+
             $task = ProjectTask::find($task_id);
             $task->update($post);
+
+            // Google Calendar Update Integration
+            if($request->get('synchronize_type') == 'google_calender') {
+                $type = 'task';
+                $request1 = new \stdClass();
+                $request1->id = $task->id;
+                $request1->title = $request->name; // Task name field
+
+                // Handle optional dates
+                if (!empty($request->start_date) && $request->start_date !== 'yyyy/mm/dd') {
+                    $request1->start_date = $request->start_date;
+
+                    // If start date exists, handle end date
+                    if (!empty($request->end_date) && $request->end_date !== 'yyyy/mm/dd') {
+                        $request1->end_date = $request->end_date;
+                    } else {
+                        // Use start date as end date
+                        $request1->end_date = $request->start_date;
+                    }
+
+                    Utility::updateCalendarData($request1, $type);
+                } else {
+                    // No start date provided, update event for today
+                    $request1->start_date = now()->toDateString();
+                    $request1->end_date = now()->toDateString();
+
+                    Utility::updateCalendarData($request1, $type);
+                }
+            }
 
             return redirect()->back()->with('success', __('Task Updated successfully.'));
         } else {
@@ -378,10 +453,98 @@ class ProjectTaskController extends Controller
         }
     }
 
+public static function updateCalendarData($request, $type)
+{
+    try {
+        // Check if Google Calendar is connected
+        if (!self::isGoogleCalendarConnected()) {
+            \Log::warning('Google Calendar not connected');
+            return;
+        }
+
+        Self::googleCalendarConfig();
+
+        // Get stored Google Event ID
+        $settings = self::settings();
+        $googleEventId = $settings["google_event_id_{$type}_{$request->id}"] ?? null;
+
+        if (!$googleEventId) {
+            // No existing event found, create a new one
+            \Log::info("No existing Google Calendar event found for {$type} {$request->id}, creating new one");
+            return self::addCalendarData($request, $type);
+        }
+
+        // Find the existing event
+        $event = \Spatie\GoogleCalendar\Event::find($googleEventId);
+
+        if (!$event) {
+            // Event not found in Google Calendar, create a new one
+            \Log::warning("Google Calendar event {$googleEventId} not found, creating new one");
+            return self::addCalendarData($request, $type);
+        }
+
+        // Update the existing event
+        $event->name = $request->title;
+
+        // Handle dates properly
+        $startDate = isset($request->start_date) && !empty($request->start_date) ? $request->start_date : now();
+        $endDate = isset($request->end_date) && !empty($request->end_date) ? $request->end_date : null;
+
+        // Parse start date
+        $startDateTime = Carbon::parse($startDate);
+
+        // Handle end date logic
+        if (!$endDate || $endDate === 'yyyy/mm/dd' || empty(trim($endDate))) {
+            // No valid end date, use start date + 1 hour for tasks
+            if ($type === 'task') {
+                $endDateTime = $startDateTime->copy()->addHour();
+            } else {
+                $endDateTime = $startDateTime->copy()->addHours(2);
+            }
+        } else {
+            $endDateTime = Carbon::parse($endDate);
+
+            // If end date is same as start date, add some duration
+            if ($endDateTime->isSameDay($startDateTime) && $endDateTime->format('H:i') === '00:00') {
+                $endDateTime = $startDateTime->copy()->addHour();
+            }
+        }
+
+        // Ensure end is after start
+        if ($endDateTime->lte($startDateTime)) {
+            $endDateTime = $startDateTime->copy()->addHour();
+        }
+
+        $event->startDateTime = $startDateTime;
+        $event->endDateTime = $endDateTime;
+        $event->colorId = Self::colorCodeData($type);
+        $event->description = "Updated from " . config('app.name') . " - Type: {$type}";
+
+        // Save the updated event to Google Calendar
+        $event->save();
+
+        \Log::info("Calendar event updated: " . $googleEventId . " for {$type}: " . $request->title);
+
+    } catch (\Exception $e) {
+        \Log::error("Failed to update calendar event: " . $e->getMessage());
+
+        // If update fails, try to create a new event as fallback
+        try {
+            \Log::info("Attempting to create new calendar event as fallback");
+            return self::addCalendarData($request, $type);
+        } catch (\Exception $fallbackException) {
+            \Log::error("Fallback calendar event creation also failed: " . $fallbackException->getMessage());
+        }
+    }
+}
+
     public function destroy($project_id, $task_id)
     {
-
         if (\Auth::user()->can('delete project task')) {
+
+            // Delete from Google Calendar first (before deleting the task)
+            $this->deleteFromGoogleCalendar($task_id, 'task');
+
             ProjectTask::deleteTask([$task_id]);
 
             return redirect()->back()->with('success', __('Task Deleted successfully.'));
@@ -392,18 +555,57 @@ class ProjectTaskController extends Controller
         }
     }
 
+    /**
+     * Delete event from Google Calendar
+     */
+    private function deleteFromGoogleCalendar($taskId, $type)
+    {
+        try {
+            if (!Utility::isGoogleCalendarConnected()) {
+                return;
+            }
+
+            // Get stored Google Event ID
+            $settings = Utility::settings();
+            $googleEventId = $settings["google_event_id_{$type}_{$taskId}"] ?? null;
+
+            if (!$googleEventId) {
+                return; // No Google event to delete
+            }
+
+            Utility::googleCalendarConfig();
+
+            // Find and delete the event
+            $event = \Spatie\GoogleCalendar\Event::find($googleEventId);
+
+            if ($event) {
+                $event->delete();
+                \Log::info("Calendar event deleted: " . $googleEventId);
+            }
+
+            // Remove the stored Google Event ID
+            DB::table('settings')
+                ->where('created_by', Auth::user()->creatorId())
+                ->where('name', "google_event_id_{$type}_{$taskId}")
+                ->delete();
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to delete calendar event: " . $e->getMessage());
+        }
+    }
+
     public function getStageTasks(Request $request)
     {
         if (\Auth::user()->can('view project task')) {
             $stage_id = $request->stage_id;
             $project_id = $request->project_id;
-            
+
             $count = ProjectTask::where('stage_id', $stage_id);
             if ($project_id) {
                 $count = $count->where('project_id', $project_id);
             }
             $count = $count->count();
-            
+
             return response()->json($count);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 401);
