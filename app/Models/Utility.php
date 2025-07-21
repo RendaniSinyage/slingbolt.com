@@ -20,7 +20,6 @@ use App\Models\ReferralSetting;
 use App\Models\User;
 use Illuminate\Support\Facades\Schema;
 use App\Models\AddTransactionLine;
-use Illuminate\Support\Facades\Http;
 
 class Utility extends Model
 {
@@ -4528,126 +4527,18 @@ public static function isGoogleCalendarOAuth()
 
     public static function addCalendarData($request, $type)
     {
-        try {
-            // Check if Google Calendar is connected
-            if (!self::isGoogleCalendarConnected()) {
-                \Log::warning('Google Calendar not connected - skipping calendar event creation');
-                return false;
-            }
-
-            // Configure Google Calendar
-            if (!self::googleCalendarConfig()) {
-                \Log::warning('Failed to configure Google Calendar - skipping event creation');
-                return false;
-            }
-
-            $event = new \Spatie\GoogleCalendar\Event();
-            $event->name = $request->title;
-
-            // Handle dates properly
-            $startDate = isset($request->start_date) && !empty($request->start_date) ? $request->start_date : now();
-            $endDate = isset($request->end_date) && !empty($request->end_date) ? $request->end_date : null;
-
-            // Parse start date
-            $startDateTime = Carbon::parse($startDate);
-
-            // Handle end date logic
-            if (!$endDate || $endDate === 'yyyy/mm/dd' || empty(trim($endDate))) {
-                // No valid end date, use start date + 1 hour for tasks
-                if ($type === 'task') {
-                    $endDateTime = $startDateTime->copy()->addHour();
-                } else {
-                    $endDateTime = $startDateTime->copy()->addHours(2);
-                }
-            } else {
-                $endDateTime = Carbon::parse($endDate);
-
-                // If end date is same as start date, add some duration
-                if ($endDateTime->isSameDay($startDateTime) && $endDateTime->format('H:i') === '00:00') {
-                    $endDateTime = $startDateTime->copy()->addHour();
-                }
-            }
-
-            // Ensure end is after start
-            if ($endDateTime->lte($startDateTime)) {
-                $endDateTime = $startDateTime->copy()->addHour();
-            }
-
-            $event->startDateTime = $startDateTime;
-            $event->endDateTime = $endDateTime;
-            $event->colorId = Self::colorCodeData($type);
-            $event->description = "Created from " . config('app.name') . " - Type: {$type}";
-
-            // Save to Google Calendar
-            $googleEvent = $event->save();
-
-            // Store Google Event ID for future updates (if task has ID)
-            if (isset($request->id)) {
-                DB::insert(
-                    'INSERT INTO settings (`value`, `name`, `created_by`, `created_at`, `updated_at`)
-                     VALUES (?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `updated_at` = VALUES(`updated_at`)',
-                    [
-                        $googleEvent->id,
-                        "google_event_id_{$type}_{$request->id}",
-                        Auth::user()->creatorId(),
-                        now(),
-                        now()
-                    ]
-                );
-            }
-
-            \Log::info("Calendar event created: " . $googleEvent->id . " for {$type}: " . $request->title);
-            return true;
-
-        } catch (\Exception $e) {
-            \Log::error("Failed to create calendar event: " . $e->getMessage());
-
-            // Check if it's an authentication error
-            if (strpos($e->getMessage(), 'authentication') !== false ||
-                strpos($e->getMessage(), 'unauthorized') !== false ||
-                strpos($e->getMessage(), 'invalid_grant') !== false) {
-                \Log::error("Google Calendar authentication failed - connection may be lost");
-            }
-
-            // Don't throw exception to prevent breaking the main flow
-            return false;
-        }
-    }
-
-    // 5. DEBUGGING HELPER - Add this method to check connection status
-    public static function checkGoogleCalendarStatus()
-    {
-        $settings = self::settings();
-
-        $status = [
-            'enabled' => isset($settings['google_calendar_enable']) ? $settings['google_calendar_enable'] : 'off',
-            'has_json_file' => isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']),
-            'file_exists' => false,
-            'calendar_id' => isset($settings['google_clender_id']) ? $settings['google_clender_id'] : '',
-            'oauth_connected' => isset($settings['google_calendar_oauth_connected']) ? $settings['google_calendar_oauth_connected'] : '0',
-        ];
-
-        if ($status['has_json_file']) {
-            $filePath = storage_path($settings['google_calender_json_file']);
-            $status['file_exists'] = file_exists($filePath);
-            $status['file_path'] = $filePath;
-        }
-
-        \Log::info('Google Calendar Status Check:', $status);
-
-        return $status;
+        Self::googleCalendarConfig();
+        $event = new GoogleEvent();
+        $event->name = $request->title;
+        $event->startDateTime = Carbon::parse($request->start_date);
+        $event->endDateTime = Carbon::parse($request->end_date);
+        $event->colorId = Self::colorCodeData($type);
+        $event->save();
     }
 
 public static function googleCalendarConfig()
 {
     $setting = self::settings();
-
-    // Try to refresh token if needed
-    if (isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1') {
-        self::refreshGoogleToken();
-    }
-
     $credentialsPath = storage_path($setting['google_calender_json_file']);
     $tokenPath = isset($setting['google_calendar_token_file']) ?
         storage_path($setting['google_calendar_token_file']) : $credentialsPath;
@@ -4663,67 +4554,6 @@ public static function googleCalendarConfig()
         'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : 'primary',
         'google-calendar.user_to_impersonate' => '',
     ]);
-}
-
-public static function refreshGoogleToken()
-{
-    try {
-        $settings = self::settings();
-        $tokenPath = isset($settings['google_calendar_token_file']) ?
-            storage_path($settings['google_calendar_token_file']) :
-            storage_path($settings['google_calender_json_file']);
-
-        if (!file_exists($tokenPath)) {
-            return false;
-        }
-
-        $tokenData = json_decode(file_get_contents($tokenPath), true);
-
-        // Check if token is expired
-        $expiresAt = isset($tokenData['created']) && isset($tokenData['expires_in']) ?
-            $tokenData['created'] + $tokenData['expires_in'] : 0;
-
-        if (time() < $expiresAt - 300) { // Refresh 5 minutes early
-            return true; // Token still valid
-        }
-
-        // Token expired, refresh it
-        if (!isset($tokenData['refresh_token'])) {
-            return false; // No refresh token
-        }
-
-        $response = Http::post('https://oauth2.googleapis.com/token', [
-            'client_id' => config('services.google.client_id'),
-            'client_secret' => config('services.google.client_secret'),
-            'refresh_token' => $tokenData['refresh_token'],
-            'grant_type' => 'refresh_token',
-        ]);
-
-        if ($response->successful()) {
-            $newTokenData = $response->json();
-
-            // Update token data
-            $tokenData['access_token'] = $newTokenData['access_token'];
-            $tokenData['created'] = time();
-            $tokenData['expires_in'] = $newTokenData['expires_in'];
-
-            // Keep existing refresh_token if new one not provided
-            if (isset($newTokenData['refresh_token'])) {
-                $tokenData['refresh_token'] = $newTokenData['refresh_token'];
-            }
-
-            // Save updated tokens
-            file_put_contents($tokenPath, json_encode($tokenData, JSON_PRETTY_PRINT));
-
-            return true;
-        }
-
-        return false;
-
-    } catch (\Exception $e) {
-        \Log::error('Google token refresh failed: ' . $e->getMessage());
-        return false;
-    }
 }
 
     public static function getCalendarData($type)
