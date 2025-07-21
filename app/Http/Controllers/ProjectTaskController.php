@@ -18,6 +18,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\DB;
 
 class ProjectTaskController extends Controller
 {
@@ -425,7 +426,8 @@ class ProjectTaskController extends Controller
 
             return redirect()->back()->with('success', __('Task Deleted successfully.'));
 
-            echo json_encode(['task_id' => $task_id]);
+            // Remove this line - it will never execute after return:
+            // echo json_encode(['task_id' => $task_id]);
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }

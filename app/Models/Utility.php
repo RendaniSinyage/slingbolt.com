@@ -4502,18 +4502,39 @@ class Utility extends Model
  */
 public static function isGoogleCalendarConnected()
 {
-    $settings = self::settings();
+    try {
+        $settings = self::settings();
 
-    // Check if OAuth2 connected
-    $isOAuthConnected = isset($settings['google_calendar_oauth_connected']) && $settings['google_calendar_oauth_connected'] === '1';
+        // Check if OAuth2 connected
+        $isOAuthConnected = isset($settings['google_calendar_oauth_connected']) && $settings['google_calendar_oauth_connected'] === '1';
 
-    // Check manual upload connected
-    $isEnabled = isset($settings['google_calendar_enable']) && $settings['google_calendar_enable'] === 'on';
-    $hasFile = isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']);
-    $fileExists = $hasFile ? file_exists(storage_path($settings['google_calender_json_file'])) : false;
+        // Check manual upload connected
+        $isEnabled = isset($settings['google_calendar_enable']) && $settings['google_calendar_enable'] === 'on';
+        $hasFile = isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']);
 
-    // Return true if either OAuth2 OR manual upload is working
-    return $isOAuthConnected || ($isEnabled && $hasFile && $fileExists);
+        // Check if file actually exists
+        $fileExists = false;
+        if ($hasFile) {
+            $filePath = storage_path($settings['google_calender_json_file']);
+            $fileExists = file_exists($filePath);
+
+            // Log for debugging
+            if (!$fileExists) {
+                \Log::warning("Google Calendar JSON file not found at: " . $filePath);
+            }
+        }
+
+        $isConnected = $isOAuthConnected || ($isEnabled && $hasFile && $fileExists);
+
+        // Log connection status for debugging
+        \Log::info("Google Calendar connection status: " . ($isConnected ? 'Connected' : 'Disconnected'));
+
+        return $isConnected;
+
+    } catch (\Exception $e) {
+        \Log::error("Error checking Google Calendar connection: " . $e->getMessage());
+        return false;
+    }
 }
 
 /**
@@ -4530,11 +4551,15 @@ public static function isGoogleCalendarOAuth()
         try {
             // Check if Google Calendar is connected
             if (!self::isGoogleCalendarConnected()) {
-                \Log::warning('Google Calendar not connected');
-                return;
+                \Log::warning('Google Calendar not connected - skipping calendar event creation');
+                return false;
             }
 
-            Self::googleCalendarConfig();
+            // Configure Google Calendar
+            if (!self::googleCalendarConfig()) {
+                \Log::warning('Failed to configure Google Calendar - skipping event creation');
+                return false;
+            }
 
             $event = new \Spatie\GoogleCalendar\Event();
             $event->name = $request->title;
@@ -4593,13 +4618,45 @@ public static function isGoogleCalendarOAuth()
             }
 
             \Log::info("Calendar event created: " . $googleEvent->id . " for {$type}: " . $request->title);
+            return true;
 
         } catch (\Exception $e) {
             \Log::error("Failed to create calendar event: " . $e->getMessage());
+
+            // Check if it's an authentication error
+            if (strpos($e->getMessage(), 'authentication') !== false ||
+                strpos($e->getMessage(), 'unauthorized') !== false ||
+                strpos($e->getMessage(), 'invalid_grant') !== false) {
+                \Log::error("Google Calendar authentication failed - connection may be lost");
+            }
+
             // Don't throw exception to prevent breaking the main flow
+            return false;
         }
-      }
     }
+public static function checkGoogleCalendarStatus()
+{
+    $settings = self::settings();
+
+    $status = [
+        'enabled' => isset($settings['google_calendar_enable']) ? $settings['google_calendar_enable'] : 'off',
+        'has_json_file' => isset($settings['google_calender_json_file']) && !empty($settings['google_calender_json_file']),
+        'file_exists' => false,
+        'calendar_id' => isset($settings['google_clender_id']) ? $settings['google_clender_id'] : '',
+        'oauth_connected' => isset($settings['google_calendar_oauth_connected']) ? $settings['google_calendar_oauth_connected'] : '0',
+    ];
+
+    if ($status['has_json_file']) {
+        $filePath = storage_path($settings['google_calender_json_file']);
+        $status['file_exists'] = file_exists($filePath);
+        $status['file_path'] = $filePath;
+    }
+
+    \Log::info('Google Calendar Status Check:', $status);
+
+    return $status;
+}
+
 
 public static function updateCalendarData($request, $type)
 {
@@ -4688,28 +4745,50 @@ public static function updateCalendarData($request, $type)
 
 public static function googleCalendarConfig()
 {
-    $setting = self::settings();
+    try {
+        $setting = self::settings();
 
-    // Try to refresh token if needed
-    if (isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1') {
-        self::refreshGoogleToken();
+        // Check if settings exist
+        if (!isset($setting['google_calender_json_file']) || empty($setting['google_calender_json_file'])) {
+            \Log::warning('Google Calendar JSON file not configured');
+            return false;
+        }
+
+        $credentialsPath = storage_path($setting['google_calender_json_file']);
+
+        // Check if file exists
+        if (!file_exists($credentialsPath)) {
+            \Log::error("Google Calendar credentials file not found: " . $credentialsPath);
+            return false;
+        }
+
+        // Try to refresh token if needed (for OAuth)
+        if (isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1') {
+            self::refreshGoogleToken();
+        }
+
+        $tokenPath = isset($setting['google_calendar_token_file']) ?
+            storage_path($setting['google_calendar_token_file']) : $credentialsPath;
+
+        // Check if it's OAuth2 connection
+        $isOAuth = isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1';
+
+        config([
+            'google-calendar.default_auth_profile' => $isOAuth ? 'oauth' : 'service_account',
+            'google-calendar.auth_profiles.service_account.credentials_json' => $credentialsPath,
+            'google-calendar.auth_profiles.oauth.credentials_json' => $credentialsPath,
+            'google-calendar.auth_profiles.oauth.token_json' => $tokenPath,
+            'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : 'primary',
+            'google-calendar.user_to_impersonate' => '',
+        ]);
+
+        \Log::info("Google Calendar configured successfully");
+        return true;
+
+    } catch (\Exception $e) {
+        \Log::error("Failed to configure Google Calendar: " . $e->getMessage());
+        return false;
     }
-
-    $credentialsPath = storage_path($setting['google_calender_json_file']);
-    $tokenPath = isset($setting['google_calendar_token_file']) ?
-        storage_path($setting['google_calendar_token_file']) : $credentialsPath;
-
-    // Check if it's OAuth2 connection
-    $isOAuth = isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1';
-
-    config([
-        'google-calendar.default_auth_profile' => $isOAuth ? 'oauth' : 'service_account',
-        'google-calendar.auth_profiles.service_account.credentials_json' => $credentialsPath,
-        'google-calendar.auth_profiles.oauth.credentials_json' => $credentialsPath,
-        'google-calendar.auth_profiles.oauth.token_json' => $tokenPath,
-        'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : 'primary',
-        'google-calendar.user_to_impersonate' => '',
-    ]);
 }
 
 public static function refreshGoogleToken()
