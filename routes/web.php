@@ -207,6 +207,14 @@ require __DIR__ . '/auth.php';
                     ->where('provider', 'google|slack|zoom');
 
 
+                    // Add these temporary debug routes
+                    Route::middleware(['auth'])->group(function () {
+                        Route::get('/debug/oauth', [OAuth2DebugController::class, 'debugGoogleOAuth']);
+                        Route::get('/test/oauth/minimal', [OAuth2DebugController::class, 'testMinimalOAuth']);
+                        Route::get('/test/oauth/manual', [OAuth2DebugController::class, 'testManualOAuth']);
+                    });
+
+
 ///copy link
 Route::get('/customer/invoice/{id}/', [InvoiceController::class, 'invoiceLink'])->name('invoice.link.copy');
 Route::get('/vender/bill/{id}/', [BillController::class, 'invoiceLink'])->name('bill.link.copy');
