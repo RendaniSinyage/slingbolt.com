@@ -18,6 +18,8 @@ jobs:
             --exclude 'node_modules/' \
             --exclude 'vendor/' \
             --exclude 'storage/*.log' \
+          --exclude 'storage/*/token.json' \          # ✅ Excludes all token.json files
+            --exclude 'storage/*/credentials.json' \    # ✅ Excludes all credentials.json files
             -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
             ./ \
             root@s1.juvo.app:/var/www/fastuser/data/www/slingbolt.com/

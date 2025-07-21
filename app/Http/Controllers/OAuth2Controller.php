@@ -42,9 +42,9 @@ class OAuth2Controller extends Controller
                 ->scopes($scopes)
                 ->with([
                     'access_type' => 'offline',
-                    'prompt' => 'consent',
-                    'approval_prompt' => 'force'  // Forces re-authorization
-                ])
+                                        'prompt' => 'consent'
+                                        // Remove 'approval_prompt' => 'force' - this conflicts with prompt
+                                    ])
                 ->redirect();
         }
 

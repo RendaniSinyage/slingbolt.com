@@ -110,8 +110,6 @@ class ProjectTaskController extends Controller
                 ]
             );
 
-
-
             //For Notification
             $setting = Utility::settings(\Auth::user()->creatorId());
             $project_name = Project::find($project_id);
@@ -137,8 +135,6 @@ class ProjectTaskController extends Controller
                 }
             }
 
-
-
             $taskNotificationArr = [
                 'task_name' => $task->name,
                 'project_name' => $project->project_name,
@@ -153,15 +149,27 @@ class ProjectTaskController extends Controller
                 Utility::send_telegram_msg('new_task', $taskNotificationArr);
             }
 
-
-            //For Google Calendar
+            //For Google Calendar - FIXED VERSION
             if ($request->get('synchronize_type') == 'google_calender') {
                 $type = 'task';
-                $request1 = new ProjectTask();
+                $request1 = new \stdClass(); // FIX 1: Create object before using it
+                $request1->id = $task->id;
                 $request1->title = $request->name;
                 $request1->start_date = $request->start_date;
-                $request1->end_date = $request->end_date;
-                Utility::addCalendarData($request1, $type);
+
+                // Only sync if start_date is provided
+                if (!empty($request->start_date) && $request->start_date !== 'yyyy/mm/dd') {
+                    $request1->start_date = $request->start_date;
+
+                    // Handle end date
+                    if (!empty($request->end_date) && $request->end_date !== 'yyyy/mm/dd') {
+                        $request1->end_date = $request->end_date;
+                    } else {
+                        $request1->end_date = $request->start_date; // Same day
+                    }
+
+                    Utility::addCalendarData($request1, $type);
+                }
             }
 
             //webhook
@@ -353,7 +361,6 @@ class ProjectTaskController extends Controller
 
     public function update(Request $request, $project_id, $task_id)
     {
-
         if (\Auth::user()->can('edit project task')) {
             $validator = Validator::make(
                 $request->all(), [
@@ -372,6 +379,35 @@ class ProjectTaskController extends Controller
             $task = ProjectTask::find($task_id);
             $task->update($post);
 
+            // Google Calendar Update Integration
+            if($request->get('synchronize_type') == 'google_calender') {
+                $type = 'task';
+                $request1 = new \stdClass();
+                $request1->id = $task->id;
+                $request1->title = $request->name; // Task name field
+
+                // Handle optional dates
+                if (!empty($request->start_date) && $request->start_date !== 'yyyy/mm/dd') {
+                    $request1->start_date = $request->start_date;
+
+                    // If start date exists, handle end date
+                    if (!empty($request->end_date) && $request->end_date !== 'yyyy/mm/dd') {
+                        $request1->end_date = $request->end_date;
+                    } else {
+                        // Use start date as end date
+                        $request1->end_date = $request->start_date;
+                    }
+
+                    Utility::updateCalendarData($request1, $type);
+                } else {
+                    // No start date provided, update event for today
+                    $request1->start_date = now()->toDateString();
+                    $request1->end_date = now()->toDateString();
+
+                    Utility::updateCalendarData($request1, $type);
+                }
+            }
+
             return redirect()->back()->with('success', __('Task Updated successfully.'));
         } else {
             return redirect()->back()->with('error', __('Permission Denied.'));
@@ -380,8 +416,11 @@ class ProjectTaskController extends Controller
 
     public function destroy($project_id, $task_id)
     {
-
         if (\Auth::user()->can('delete project task')) {
+
+            // Delete from Google Calendar first (before deleting the task)
+            $this->deleteFromGoogleCalendar($task_id, 'task');
+
             ProjectTask::deleteTask([$task_id]);
 
             return redirect()->back()->with('success', __('Task Deleted successfully.'));
@@ -392,18 +431,57 @@ class ProjectTaskController extends Controller
         }
     }
 
+    /**
+     * Delete event from Google Calendar
+     */
+    private function deleteFromGoogleCalendar($taskId, $type)
+    {
+        try {
+            if (!Utility::isGoogleCalendarConnected()) {
+                return;
+            }
+
+            // Get stored Google Event ID
+            $settings = Utility::settings();
+            $googleEventId = $settings["google_event_id_{$type}_{$taskId}"] ?? null;
+
+            if (!$googleEventId) {
+                return; // No Google event to delete
+            }
+
+            Utility::googleCalendarConfig();
+
+            // Find and delete the event
+            $event = \Spatie\GoogleCalendar\Event::find($googleEventId);
+
+            if ($event) {
+                $event->delete();
+                \Log::info("Calendar event deleted: " . $googleEventId);
+            }
+
+            // Remove the stored Google Event ID
+            DB::table('settings')
+                ->where('created_by', Auth::user()->creatorId())
+                ->where('name', "google_event_id_{$type}_{$taskId}")
+                ->delete();
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to delete calendar event: " . $e->getMessage());
+        }
+    }
+
     public function getStageTasks(Request $request)
     {
         if (\Auth::user()->can('view project task')) {
             $stage_id = $request->stage_id;
             $project_id = $request->project_id;
-            
+
             $count = ProjectTask::where('stage_id', $stage_id);
             if ($project_id) {
                 $count = $count->where('project_id', $project_id);
             }
             $count = $count->count();
-            
+
             return response()->json($count);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 401);

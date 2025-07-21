@@ -4527,18 +4527,174 @@ public static function isGoogleCalendarOAuth()
 
     public static function addCalendarData($request, $type)
     {
-        Self::googleCalendarConfig();
-        $event = new GoogleEvent();
-        $event->name = $request->title;
-        $event->startDateTime = Carbon::parse($request->start_date);
-        $event->endDateTime = Carbon::parse($request->end_date);
-        $event->colorId = Self::colorCodeData($type);
-        $event->save();
+        try {
+            // Check if Google Calendar is connected
+            if (!self::isGoogleCalendarConnected()) {
+                \Log::warning('Google Calendar not connected');
+                return;
+            }
+
+            Self::googleCalendarConfig();
+
+            $event = new \Spatie\GoogleCalendar\Event();
+            $event->name = $request->title;
+
+            // Handle dates properly
+            $startDate = isset($request->start_date) && !empty($request->start_date) ? $request->start_date : now();
+            $endDate = isset($request->end_date) && !empty($request->end_date) ? $request->end_date : null;
+
+            // Parse start date
+            $startDateTime = Carbon::parse($startDate);
+
+            // Handle end date logic
+            if (!$endDate || $endDate === 'yyyy/mm/dd' || empty(trim($endDate))) {
+                // No valid end date, use start date + 1 hour for tasks
+                if ($type === 'task') {
+                    $endDateTime = $startDateTime->copy()->addHour();
+                } else {
+                    $endDateTime = $startDateTime->copy()->addHours(2);
+                }
+            } else {
+                $endDateTime = Carbon::parse($endDate);
+
+                // If end date is same as start date, add some duration
+                if ($endDateTime->isSameDay($startDateTime) && $endDateTime->format('H:i') === '00:00') {
+                    $endDateTime = $startDateTime->copy()->addHour();
+                }
+            }
+
+            // Ensure end is after start
+            if ($endDateTime->lte($startDateTime)) {
+                $endDateTime = $startDateTime->copy()->addHour();
+            }
+
+            $event->startDateTime = $startDateTime;
+            $event->endDateTime = $endDateTime;
+            $event->colorId = Self::colorCodeData($type);
+            $event->description = "Created from " . config('app.name') . " - Type: {$type}";
+
+            // Save to Google Calendar
+            $googleEvent = $event->save();
+
+            // Store Google Event ID for future updates (if task has ID)
+            if (isset($request->id)) {
+                DB::insert(
+                    'INSERT INTO settings (`value`, `name`, `created_by`, `created_at`, `updated_at`)
+                     VALUES (?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE `value` = VALUES(`value`), `updated_at` = VALUES(`updated_at`)',
+                    [
+                        $googleEvent->id,
+                        "google_event_id_{$type}_{$request->id}",
+                        Auth::user()->creatorId(),
+                        now(),
+                        now()
+                    ]
+                );
+            }
+
+            \Log::info("Calendar event created: " . $googleEvent->id . " for {$type}: " . $request->title);
+
+        } catch (\Exception $e) {
+            \Log::error("Failed to create calendar event: " . $e->getMessage());
+            // Don't throw exception to prevent breaking the main flow
+        }
+      }
     }
+
+public static function updateCalendarData($request, $type)
+{
+    try {
+        // Check if Google Calendar is connected
+        if (!self::isGoogleCalendarConnected()) {
+            \Log::warning('Google Calendar not connected');
+            return;
+        }
+
+        Self::googleCalendarConfig();
+
+        // Get stored Google Event ID
+        $settings = self::settings();
+        $googleEventId = $settings["google_event_id_{$type}_{$request->id}"] ?? null;
+
+        if (!$googleEventId) {
+            // No existing event found, create a new one
+            \Log::info("No existing Google Calendar event found for {$type} {$request->id}, creating new one");
+            return self::addCalendarData($request, $type);
+        }
+
+        // Find the existing event
+        $event = \Spatie\GoogleCalendar\Event::find($googleEventId);
+
+        if (!$event) {
+            // Event not found in Google Calendar, create a new one
+            \Log::warning("Google Calendar event {$googleEventId} not found, creating new one");
+            return self::addCalendarData($request, $type);
+        }
+
+        // Update the existing event
+        $event->name = $request->title;
+
+        // Handle dates properly
+        $startDate = isset($request->start_date) && !empty($request->start_date) ? $request->start_date : now();
+        $endDate = isset($request->end_date) && !empty($request->end_date) ? $request->end_date : null;
+
+        // Parse start date
+        $startDateTime = Carbon::parse($startDate);
+
+        // Handle end date logic
+        if (!$endDate || $endDate === 'yyyy/mm/dd' || empty(trim($endDate))) {
+            // No valid end date, use start date + 1 hour for tasks
+            if ($type === 'task') {
+                $endDateTime = $startDateTime->copy()->addHour();
+            } else {
+                $endDateTime = $startDateTime->copy()->addHours(2);
+            }
+        } else {
+            $endDateTime = Carbon::parse($endDate);
+
+            // If end date is same as start date, add some duration
+            if ($endDateTime->isSameDay($startDateTime) && $endDateTime->format('H:i') === '00:00') {
+                $endDateTime = $startDateTime->copy()->addHour();
+            }
+        }
+
+        // Ensure end is after start
+        if ($endDateTime->lte($startDateTime)) {
+            $endDateTime = $startDateTime->copy()->addHour();
+        }
+
+        $event->startDateTime = $startDateTime;
+        $event->endDateTime = $endDateTime;
+        $event->colorId = Self::colorCodeData($type);
+        $event->description = "Updated from " . config('app.name') . " - Type: {$type}";
+
+        // Save the updated event to Google Calendar
+        $event->save();
+
+        \Log::info("Calendar event updated: " . $googleEventId . " for {$type}: " . $request->title);
+
+    } catch (\Exception $e) {
+        \Log::error("Failed to update calendar event: " . $e->getMessage());
+
+        // If update fails, try to create a new event as fallback
+        try {
+            \Log::info("Attempting to create new calendar event as fallback");
+            return self::addCalendarData($request, $type);
+        } catch (\Exception $fallbackException) {
+            \Log::error("Fallback calendar event creation also failed: " . $fallbackException->getMessage());
+        }
+    }
+}
 
 public static function googleCalendarConfig()
 {
     $setting = self::settings();
+
+    // Try to refresh token if needed
+    if (isset($setting['google_calendar_oauth_connected']) && $setting['google_calendar_oauth_connected'] === '1') {
+        self::refreshGoogleToken();
+    }
+
     $credentialsPath = storage_path($setting['google_calender_json_file']);
     $tokenPath = isset($setting['google_calendar_token_file']) ?
         storage_path($setting['google_calendar_token_file']) : $credentialsPath;
@@ -4554,6 +4710,67 @@ public static function googleCalendarConfig()
         'google-calendar.calendar_id' => isset($setting['google_clender_id']) ? $setting['google_clender_id'] : 'primary',
         'google-calendar.user_to_impersonate' => '',
     ]);
+}
+
+public static function refreshGoogleToken()
+{
+    try {
+        $settings = self::settings();
+        $tokenPath = isset($settings['google_calendar_token_file']) ?
+            storage_path($settings['google_calendar_token_file']) :
+            storage_path($settings['google_calender_json_file']);
+
+        if (!file_exists($tokenPath)) {
+            return false;
+        }
+
+        $tokenData = json_decode(file_get_contents($tokenPath), true);
+
+        // Check if token is expired
+        $expiresAt = isset($tokenData['created']) && isset($tokenData['expires_in']) ?
+            $tokenData['created'] + $tokenData['expires_in'] : 0;
+
+        if (time() < $expiresAt - 300) { // Refresh 5 minutes early
+            return true; // Token still valid
+        }
+
+        // Token expired, refresh it
+        if (!isset($tokenData['refresh_token'])) {
+            return false; // No refresh token
+        }
+
+        $response = Http::post('https://oauth2.googleapis.com/token', [
+            'client_id' => config('services.google.client_id'),
+            'client_secret' => config('services.google.client_secret'),
+            'refresh_token' => $tokenData['refresh_token'],
+            'grant_type' => 'refresh_token',
+        ]);
+
+        if ($response->successful()) {
+            $newTokenData = $response->json();
+
+            // Update token data
+            $tokenData['access_token'] = $newTokenData['access_token'];
+            $tokenData['created'] = time();
+            $tokenData['expires_in'] = $newTokenData['expires_in'];
+
+            // Keep existing refresh_token if new one not provided
+            if (isset($newTokenData['refresh_token'])) {
+                $tokenData['refresh_token'] = $newTokenData['refresh_token'];
+            }
+
+            // Save updated tokens
+            file_put_contents($tokenPath, json_encode($tokenData, JSON_PRETTY_PRINT));
+
+            return true;
+        }
+
+        return false;
+
+    } catch (\Exception $e) {
+        \Log::error('Google token refresh failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
     public static function getCalendarData($type)
@@ -5286,13 +5503,13 @@ public static function googleCalendarConfig()
             'new_award' => [
                 'subject' => 'New Award',
                 'lang' => [
-                    'en' => '<p>Hi , <span style="font-family: var(--bs-body-font-family); font-size: var(--bs-body-font-size); font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{award_name}</span></p><p>I am much pleased to nominate .</p><p>I am satisfied that he/she is the best employee for the award. </p><p>I have realized  that he/she is a goal-oriented person, efficient and very punctual .</p><p>Feel free to reach out if you have any question.<br></p><p>Thank You, </p><p>{app_name}</p><p>{app_url}</p>',
+                    'en' => '<p>Hi , <span style="font-family: var(--bs-body-font-family); font-size: var(--bs-body-font-size); font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{award_name}</span></p><p>I am much pleased to nominate .</p><p>I am satisfied that he/she is the best employee for the award. </p><p>I have realized  that he/she is a goal-oriented person, efficient and very punctual .</p><p>Feel free to reach out if you have any question.<br></p><p>Thank You, </p><p>{app_name}</p><p>{app_url}</p>',
                 ],
             ],
             'customer_invoice_sent' => [
                 'subject' => 'Customer Invoice Sent',
                 'lang' => [
-                    'en' => '<p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"=""><span style="font-family: " open="" sans";"="">﻿</span><span style="text-align: var(--bs-body-text-align);">Hi ,{invoice_name}</span></p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Welcome to {app_name}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Hope this email finds you well! Please see attached invoice number {invoice_number}<span style="font-family: var(--bs-body-font-family); font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">} for product/service.</span></p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Simply click on the button below: </p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{invoice_url}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Feel free to reach out if you have any questions.</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Thank You,</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Regards,</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{company_name}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{app_url}</p><p></p>',
+                    'en' => '<p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"=""><span style="font-family: " open="" sans";"="">﻿</span><span style="text-align: var(--bs-body-text-align);">Hi ,{invoice_name}</span></p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Welcome to {app_name}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Hope this email finds you well! Please see attached invoice number {invoice_number}<span style="font-family: var(--bs-body-font-family); font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">} for product/service.</span></p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Simply click on the button below: </p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{invoice_url}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Feel free to reach out if you have any questions.</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Thank You,</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">Regards,</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{company_name}</p><p style="line-height: 28px; font-family: Nunito, " segoe="" ui",="" arial;="" font-size:="" 14px;"="">{app_url}</p><p></p>',
                 ],
             ],
             'new_invoice_payment' => [
@@ -5358,7 +5575,7 @@ public static function googleCalendarConfig()
             'complaint_resent' => [
                 'subject' => 'Complaint Resent',
                 'lang' => [
-                    'en' => '<p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">Hi ,</span></font></p><p><span style="font-size: 15px; font-variant-ligatures: common-ligatures; color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Welcome to {app_name}</span><br></p><p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">HR department/company to send complaints letter.<br></span></font></p><p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">Dear {complaint_name}</span></font></p><p>I would like to report a conflict between you and the other person. There  have been several incidents over the last few days, and I feel that its is time to report a formal complaint against him/her.</p><p>Feel free to reach out if you have any questions.</p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Thank You,</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Regards,</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">HR Department.</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{company_name}</span><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);"><br></span></p><p><span style="font-size: 15px; font-variant-ligatures: common-ligatures; color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{app_url}</span><br></p>',
+                    'en' => '<p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">Hi ,</span></font></p><p><span style="font-size: 15px; font-variant-ligatures: common-ligatures; color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Welcome to {app_name}</span><br></p><p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">HR department/company to send complaints letter.<br></span></font></p><p><font color="#1d1c1d" face="Slack-Lato, Slack-Fractions, appleLogo, sans-serif"><span style="font-size: 15px; font-variant-ligatures: common-ligatures;">Dear {complaint_name}</span></font></p><p>I would like to report a conflict between you and the other person. There  have been several incidents over the last few days, and I feel that its is time to report a formal complaint against him/her.</p><p>Feel free to reach out if you have any questions.</p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Thank You,</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">Regards,</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">HR Department.</span></p><p><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{company_name}</span><span style="color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-size: 15px; font-variant-ligatures: common-ligatures; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);"><br></span></p><p><span style="font-size: 15px; font-variant-ligatures: common-ligatures; color: rgb(29, 28, 29); font-family: Slack-Lato, Slack-Fractions, appleLogo, sans-serif; font-weight: var(--bs-body-font-weight); text-align: var(--bs-body-text-align);">{app_url}</span><br></p>',
                 ],
             ],
             'leave_action_sent' => [
