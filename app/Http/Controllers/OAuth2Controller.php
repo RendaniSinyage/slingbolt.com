@@ -40,11 +40,7 @@ class OAuth2Controller extends Controller
             // Force fresh authorization for Google to get refresh token
             return Socialite::driver($provider)
                 ->scopes($scopes)
-                ->with([
-                    'access_type' => 'offline',
-                                        'prompt' => 'consent'
-                                        // Remove 'approval_prompt' => 'force' - this conflicts with prompt
-                                    ])
+                ->with(['prompt' => 'consent'])
                 ->redirect();
         }
 
