@@ -532,13 +532,3 @@ a:focus, a:hover {
         height: 30px;
     }
 }
-
-.overlap-tab {
-    border-radius: 10px;
-}
-
-.module-tab.active {
-    background-color: #0d6efd;
-    color: white;
-}
-
