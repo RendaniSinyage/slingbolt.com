@@ -10,17 +10,9 @@
                 </span>
                 @endif
 
-                <!-- Dynamic Headings -->
-                <h1 class="fw-bold display-4 mb-2">
-                    {!! $settings['home_heading_line1'] ?? 'Supercharge' !!}
-                </h1>
-
-                <h1 class="fw-bold display-5 mb-2">
-                    {!! $settings['home_heading_line2'] ?? 'Your Growing Business from Your' !!}
-                </h1>
-
-                <h1 class="fw-bold display-5 mb-4">
-                    {!! $settings['home_heading_line3'] ?? 'WordPress Dashboard' !!}
+                <!-- Single Dynamic Heading -->
+                <h1 class="fw-bold display-4 mb-4">
+                    {!! $settings['home_heading'] ?? 'Supercharge Your Growing Business from Your WordPress Dashboard' !!}
                 </h1>
 
                 <p class="lead text-secondary mb-4">
@@ -43,7 +35,7 @@
             </div>
         </div>
 
-        <!-- Banner Image with Overlapping Effect and Module Tabs Below -->
+        <!-- Banner Image + Overlap Effect + Styled Module Buttons -->
         @php
             $banner_hrm = isset($settings['home_banner_hrm']) ? $logo . '/' . $settings['home_banner_hrm'] : ($logo . '/' . ($settings['home_banner'] ?? 'default-banner.png'));
             $banner_crm = isset($settings['home_banner_crm']) ? $logo . '/' . $settings['home_banner_crm'] : ($logo . '/' . ($settings['home_banner'] ?? 'default-banner.png'));
@@ -54,7 +46,7 @@
         <div class="row justify-content-center mt-3">
             <div class="col-lg-10 position-relative text-center">
 
-                <!-- Overlapping Layers Above Banner -->
+                <!-- Overlapping Effect Above Image -->
                 <div class="position-absolute w-100 d-flex justify-content-center" style="top: -40px; z-index: 0;">
                     <div class="overlap-tab bg-white shadow rounded" style="width: 92%; height: 20px; transform: translateY(-15px); opacity: 0.4;"></div>
                     <div class="overlap-tab bg-white shadow rounded ms-2" style="width: 88%; height: 20px; transform: translateY(-8px); opacity: 0.3;"></div>
@@ -65,11 +57,11 @@
                     <img id="banner-image" src="{{ $default_banner }}" class="img-fluid rounded shadow" alt="Banner Image">
                 </div>
 
-                <!-- Module Tabs Below Image -->
-                <div class="d-flex justify-content-center gap-3 mt-4">
-                    <button class="btn btn-outline-primary module-tab active" data-img="{{ $banner_hrm }}">HRM</button>
-                    <button class="btn btn-outline-primary module-tab" data-img="{{ $banner_crm }}">CRM</button>
-                    <button class="btn btn-outline-primary module-tab" data-img="{{ $banner_accounting }}">Accounting</button>
+                <!-- Styled Module Buttons -->
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <button class="btn module-tab active-tab" data-img="{{ $banner_hrm }}">HRM</button>
+                    <button class="btn module-tab" data-img="{{ $banner_crm }}">CRM</button>
+                    <button class="btn module-tab" data-img="{{ $banner_accounting }}">Accounting</button>
                 </div>
             </div>
         </div>
@@ -77,3 +69,14 @@
 </section>
 @endif
 <!-- [ Hero Section ] end -->
+<script>
+    document.querySelectorAll('.module-tab').forEach(button => {
+        button.addEventListener('click', () => {
+            const imageSrc = button.getAttribute('data-img');
+            document.getElementById('banner-image').src = imageSrc;
+
+            document.querySelectorAll('.module-tab').forEach(btn => btn.classList.remove('active-tab'));
+            button.classList.add('active-tab');
+        });
+    });
+</script>

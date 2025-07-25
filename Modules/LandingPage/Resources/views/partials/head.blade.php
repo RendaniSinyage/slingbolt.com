@@ -48,6 +48,27 @@
     :root {
         --color-customColor: <?= $color ?>;
     }
+.module-tab {
+    padding: 0.5rem 1.2rem;
+    border: 1px solid #ccc;
+    border-radius: 30px;
+    background: transparent;
+    color: #333;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.module-tab:hover {
+    border-color: #0d6efd;
+    color: #0d6efd;
+}
+
+.module-tab.active-tab {
+    background-color: #0d6efd;
+    color: white;
+    border-color: #0d6efd;
+}
+
 </style>
 
 <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
