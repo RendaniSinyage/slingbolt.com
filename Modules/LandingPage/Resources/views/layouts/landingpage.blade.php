@@ -62,28 +62,105 @@
             height: 100vh;
             z-index: -1;
             pointer-events: none;
-            /* Use your actual backend primary color */
-            @if(isset($setting['theme_color']) && !empty($setting['theme_color']))
-                background: linear-gradient(
-                    135deg,
-                    {{ $setting['theme_color'] }} 0%,
-                    {{ $setting['theme_color'] }}e6 25%,
-                    {{ $setting['theme_color'] }}b3 50%,
-                    {{ $setting['theme_color'] }}4d 75%,
-                    transparent 100%
-                );
-            @else
-                /* Fallback to CSS custom property if theme_color not set */
-                background: linear-gradient(
-                    135deg,
-                    var(--primary) 0%,
-                    rgba(var(--primary-rgb), 0.9) 25%,
-                    rgba(var(--primary-rgb), 0.7) 50%,
-                    rgba(var(--primary-rgb), 0.3) 75%,
-                    transparent 100%
-                );
-            @endif
         }
+
+        /* Use the exact same color system as btn-primary */
+        .header-hero-gradient::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                135deg,
+                var(--bs-btn-bg, var(--bs-primary)) 0%,
+                rgba(var(--bs-primary-rgb), 0.9) 25%,
+                rgba(var(--bs-primary-rgb), 0.7) 50%,
+                rgba(var(--bs-primary-rgb), 0.3) 75%,
+                transparent 100%
+            );
+        }
+
+        /* Ensure proper z-index layering */
+        .landing-header, .hero-section {
+            position: relative;
+            z-index: 1;
+        }
+        .mockup-wrapper {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Hidden button to extract color */
+        .color-extractor {
+            position: absolute;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-hero-gradient {
+                height: 120vh;
+            }
+        }
+
+        /* RTL support */
+        [dir="rtl"] .header-hero-gradient::before {
+            background: linear-gradient(
+                -135deg,
+                var(--bs-btn-bg, var(--bs-primary)) 0%,
+                rgba(var(--bs-primary-rgb), 0.9) 25%,
+                rgba(var(--bs-primary-rgb), 0.7) 50%,
+                rgba(var(--bs-primary-rgb), 0.3) 75%,
+                transparent 100%
+            );
+        }
+
+        /* Dark mode adjustments */
+        .landing-dark .header-hero-gradient::before {
+            background: linear-gradient(
+                135deg,
+                rgba(var(--bs-primary-rgb), 0.8) 0%,
+                rgba(var(--bs-primary-rgb), 0.6) 25%,
+                rgba(var(--bs-primary-rgb), 0.4) 50%,
+                rgba(var(--bs-primary-rgb), 0.2) 75%,
+                transparent 100%
+            );
+        }
+    </style>
+
+    <!-- Hidden button to extract the actual primary color -->
+    <button class="btn btn-primary color-extractor" id="colorExtractor"></button>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get the actual computed color from btn-primary
+            const colorExtractor = document.getElementById('colorExtractor');
+            const computedStyle = window.getComputedStyle(colorExtractor);
+            const primaryColor = computedStyle.backgroundColor;
+            
+            // Convert RGB to RGBA for gradient
+            const rgbMatch = primaryColor.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (rgbMatch) {
+                const r = rgbMatch[1];
+                const g = rgbMatch[2];
+                const b = rgbMatch[3];
+                
+                // Apply the gradient using the extracted color
+                const gradient = document.querySelector('.header-hero-gradient');
+                gradient.style.background = `linear-gradient(
+                    135deg,
+                    rgb(${r}, ${g}, ${b}) 0%,
+                    rgba(${r}, ${g}, ${b}, 0.9) 25%,
+                    rgba(${r}, ${g}, ${b}, 0.7) 50%,
+                    rgba(${r}, ${g}, ${b}, 0.3) 75%,
+                    transparent 100%
+                )`;
+            }
+        });
+    </script>
 
         /* Ensure proper z-index layering */
         .landing-header, .hero-section {
