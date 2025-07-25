@@ -1,624 +1,290 @@
-<!-- [ Banner ] start -->
+<!-- [ Hero Section ] start -->
 @if ($settings['home_status'] == 'on')
-    <section class="main-banner bg-primary" id="home">
-        <div class="container-fluid">
-            <div class="row min-vh-100 align-items-center g-0">
-                <div class="col-xl-5 col-lg-6 col-md-12">
-                    <div class="hero-content p-4 p-lg-5">
-                        <!-- Offer Badge -->
-                        @if($settings['home_offer_text'])
-                        <div class="offer-badge mb-4">
-                            <span class="badge-content">
-                                <i class="ti ti-discount-2 me-2"></i>
-                                {{ $settings['home_offer_text'] }}
-                                <i class="ti ti-sparkles ms-2"></i>
-                            </span>
-                        </div>
+<section class="hero-section" id="home">
+    <div class="container">
+        <div class="row align-items-center min-vh-100">
+            <!-- Left Content -->
+            <div class="col-lg-6">
+                <div class="hero-content">
+                    <!-- Badge -->
+                    @if($settings['home_offer_text'])
+                    <div class="hero-badge">
+                        {{ $settings['home_offer_text'] }}
+                    </div>
+                    @endif
+
+                    <!-- Main Heading -->
+                    <h1 class="hero-title">
+                        {{ $settings['home_heading'] }}
+                    </h1>
+
+                    <!-- Description -->
+                    <p class="hero-description">
+                        {{ $settings['home_description'] }}
+                    </p>
+
+                    <!-- Buttons -->
+                    <div class="hero-buttons">
+                        @if ($settings['home_buy_now_link'])
+                        <a href="{{ $settings['home_buy_now_link'] }}" class="btn-primary-hero">
+                            Get Started
+                            <i class="ti ti-arrow-right ms-2"></i>
+                        </a>
                         @endif
-
-                        <!-- Main Heading -->
-                        <h1 class="hero-title mb-4">
-                            {{ $settings['home_heading'] }}
-                            <span class="highlight-text">Success</span>
-                        </h1>
-
-                        <!-- Description -->
-                        <p class="hero-description mb-4">
-                            {{ $settings['home_description'] }}
-                        </p>
-
-                        <!-- Trust Indicator -->
-                        @if($settings['home_trusted_by'])
-                        <div class="trust-indicator mb-4">
-                            <div class="trust-avatars">
-                                <div class="avatar-stack">
-                                    <div class="avatar"></div>
-                                    <div class="avatar"></div>
-                                <!-- [ Banner ] start -->
-@if ($settings['home_status'] == 'on')
-    <section class="main-banner bg-primary" id="home">
-        <div class="container-fluid">
-            <div class="row min-vh-100 align-items-center g-0">
-                <div class="col-xl-5 col-lg-6 col-md-12">
-                    <div class="hero-content p-4 p-lg-5">
-                        <!-- Offer Badge -->
-                        @if($settings['home_offer_text'])
-                        <div class="offer-badge mb-4">
-                            <span class="badge-content">
-                                <i class="ti ti-discount-2 me-2"></i>
-                                {{ $settings['home_offer_text'] }}
-                                <i class="ti ti-sparkles ms-2"></i>
-                            </span>
-                        </div>
+                        
+                        @if ($settings['home_live_demo_link'])
+                        <a href="{{ $settings['home_live_demo_link'] }}" class="btn-demo">
+                            Demo
+                            <i class="ti ti-external-link ms-2"></i>
+                        </a>
                         @endif
+                    </div>
 
-                        <!-- Main Heading -->
-                        <h1 class="hero-title mb-4">
-                            {{ $settings['home_heading'] }}
-                            <span class="highlight-text">Success</span>
-                        </h1>
-
-                        <!-- Description -->
-                        <p class="hero-description mb-4">
-                            {{ $settings['home_description'] }}
-                        </p>
-
-                        <!-- Trust Indicator -->
-                        @if($settings['home_trusted_by'])
-                        <div class="trust-indicator mb-4">
-                            <div class="trust-avatars">
-                                <div class="avatar-stack">
-                                    <div class="avatar"></div>
-                                    <div class="avatar"></div>
-                                    <div class="avatar"></div>
-                                    <div class="avatar"></div>
-                                    <div class="avatar-more">+</div>
-                                </div>
-                                <div class="trust-text">
-                                    <span class="trust-number">{{ $settings['home_trusted_by'] }}</span>
-                                    <span class="trust-label">trust our platform</span>
-                                </div>
-                            </div>
+                    <!-- Trust Stats -->
+                    @if($settings['home_trusted_by'])
+                    <div class="trust-stats">
+                        <div class="trust-item">
+                            <div class="trust-number">10,000+</div>
+                            <div class="trust-label">Business</div>
                         </div>
-                        @endif
-
-                        <!-- CTA Buttons -->
-                        <div class="hero-actions">
-                            @if ($settings['home_live_demo_link'])
-                                <a href="{{ $settings['home_live_demo_link'] }}" class="btn btn-hero-primary">
-                                    <i class="ti ti-play me-2"></i>
-                                    {{ __('Live Demo') }}
-                                </a>
-                            @endif
-                            @if ($settings['home_buy_now_link'])
-                                <a href="{{ $settings['home_buy_now_link'] }}" class="btn btn-hero-outline">
-                                    <i class="ti ti-rocket me-2"></i>
-                                    {{ __('Get Started') }}
-                                </a>
-                            @endif
+                        <div class="trust-item">
+                            <div class="trust-number">160+</div>
+                            <div class="trust-label">Countries</div>
                         </div>
-
-                        <!-- Feature Pills -->
-                        <div class="feature-pills mt-4">
-                            <span class="pill">
-                                <i class="ti ti-check me-1"></i>
-                                Free trial
-                            </span>
-                            <span class="pill">
-                                <i class="ti ti-check me-1"></i>
-                                No credit card
-                            </span>
-                            <span class="pill">
-                                <i class="ti ti-check me-1"></i>
-                                Cancel anytime
-                            </span>
+                        <div class="trust-item">
+                            <div class="trust-number">550K+</div>
+                            <div class="trust-label">Total Downloads</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-number">20+</div>
+                            <div class="trust-label">Language Supports</div>
+                        </div>
+                        <div class="trust-item">
+                            <div class="trust-number">93%</div>
+                            <div class="trust-label">Customer Satisfactions</div>
                         </div>
                     </div>
+                    @endif
                 </div>
+            </div>
 
-                <div class="col-xl-7 col-lg-6 col-md-12">
-                    <div class="hero-visual position-relative">
-                        @if(Storage::exists('/uploads/landing_page_image/'.$settings['home_banner']))
-                        <div class="main-image-container">
-                            <img class="main-image" src="{{ $logo . '/' . $settings['home_banner'] }}" alt="Hero Image">
-                            
-                            <!-- Floating Elements -->
-                            <div class="floating-element element-1">
-                                <div class="stat-card">
-                                    <i class="ti ti-trending-up text-success"></i>
-                                    <span class="stat-number">+127%</span>
-                                    <span class="stat-label">Growth</span>
-                                </div>
-                            </div>
-                            
-                            <div class="floating-element element-2">
-                                <div class="notification-card">
-                                    <div class="notification-avatar"></div>
-                                    <div class="notification-content">
-                                        <span class="notification-title">New Sale!</span>
-                                        <span class="notification-desc">$2,450 earned</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="floating-element element-3">
-                                <div class="rating-card">
-                                    <div class="stars">
-                                        <i class="ti ti-star-filled"></i>
-                                        <i class="ti ti-star-filled"></i>
-                                        <i class="ti ti-star-filled"></i>
-                                        <i class="ti ti-star-filled"></i>
-                                        <i class="ti ti-star-filled"></i>
-                                    </div>
-                                    <span class="rating-text">5.0 Rating</span>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
-
-                        <!-- Trusted Logos -->
-                        @if($settings['home_logo'])
-                        <div class="trusted-logos mt-5">
-                            <div class="logos-container">
-                                @foreach (explode(',', $settings['home_logo']) as $k => $home_logo)
-                                    @if($home_logo)
-                                    <div class="logo-item">
-                                        <img src="{{ $logo.'/'.$home_logo }}" alt="Trusted Partner" class="trusted-logo">
-                                    </div>
-                                    @endif
-                                @endforeach
-                            </div>
-                        </div>
-                        @endif
+            <!-- Right Content - Dashboard Image -->
+            <div class="col-lg-6">
+                <div class="hero-image">
+                    @if(Storage::exists('/uploads/landing_page_image/'.$settings['home_banner']))
+                    <div class="dashboard-preview">
+                        <img src="{{ $logo . '/' . $settings['home_banner'] }}" alt="Dashboard Preview" class="img-fluid">
                     </div>
+                    @endif
                 </div>
             </div>
         </div>
+    </div>
+</section>
 
-        <!-- Background Elements -->
-        <div class="hero-bg-elements">
-            <div class="bg-shape shape-1"></div>
-            <div class="bg-shape shape-2"></div>
-            <div class="bg-shape shape-3"></div>
-        </div>
-    </section>
+<style>
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.8) 100%);
+    color: white;
+    position: relative;
+    overflow: hidden;
+}
 
-    <!-- Enhanced Hero Styles -->
-    <style>
-    .main-banner {
-        position: relative;
-        overflow: hidden;
-        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    }
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+    pointer-events: none;
+}
 
-    .hero-bg-elements {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        z-index: 1;
-    }
+.hero-content {
+    position: relative;
+    z-index: 2;
+    padding: 60px 0;
+}
 
-    .bg-shape {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-    }
+/* Hero Badge */
+.hero-badge {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50px;
+    padding: 8px 20px;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    backdrop-filter: blur(10px);
+}
 
-    .shape-1 {
-        width: 300px;
-        height: 300px;
-        top: -150px;
-        right: -150px;
-        animation: float 6s ease-in-out infinite;
-    }
+/* Hero Title */
+.hero-title {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 24px;
+    color: white;
+}
 
-    .shape-2 {
-        width: 200px;
-        height: 200px;
-        bottom: -100px;
-        left: -100px;
-        animation: float 8s ease-in-out infinite reverse;
-    }
+/* Hero Description */
+.hero-description {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 32px;
+    color: rgba(255, 255, 255, 0.9);
+    max-width: 500px;
+}
 
-    .shape-3 {
-        width: 150px;
-        height: 150px;
-        top: 50%;
-        left: 10%;
-        animation: float 7s ease-in-out infinite;
-    }
+/* Hero Buttons */
+.hero-buttons {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 48px;
+    flex-wrap: wrap;
+}
 
-    @keyframes float {
-        0%, 100% { transform: translateY(0px) rotate(0deg); }
-        50% { transform: translateY(-20px) rotate(180deg); }
-    }
+.btn-primary-hero {
+    background: white;
+    color: var(--bs-primary);
+    text-decoration: none;
+    padding: 14px 28px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
 
-    .hero-content {
-        position: relative;
-        z-index: 2;
-    }
+.btn-primary-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    color: var(--bs-primary);
+}
 
-    .offer-badge {
-        display: inline-block;
-        animation: bounce 2s infinite;
-    }
+.btn-demo {
+    background: transparent;
+    color: white;
+    text-decoration: none;
+    padding: 14px 28px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 16px;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.3s ease;
+}
 
-    .badge-content {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        color: white;
-        padding: 0.75rem 1.5rem;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 0.9rem;
-        display: inline-flex;
-        align-items: center;
-    }
+.btn-demo:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: white;
+}
 
-    @keyframes bounce {
-        0%, 20%, 53%, 80%, 100% { transform: translateY(0); }
-        40%, 43% { transform: translateY(-10px); }
-        70% { transform: translateY(-5px); }
-    }
+/* Trust Stats */
+.trust-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+}
 
+.trust-item {
+    text-align: center;
+}
+
+.trust-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+}
+
+.trust-label {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    font-weight: 500;
+}
+
+/* Hero Image */
+.hero-image {
+    position: relative;
+    z-index: 2;
+    padding: 40px 0;
+}
+
+.dashboard-preview {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-preview img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 991px) {
     .hero-title {
-        font-size: 3.5rem;
-        font-weight: 800;
-        color: white;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
+        font-size: 36px;
     }
-
-    .highlight-text {
-        background: linear-gradient(45deg, #fbbf24, #f59e0b);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-    }
-
+    
     .hero-description {
-        font-size: 1.25rem;
-        color: rgba(255, 255, 255, 0.9);
-        line-height: 1.6;
-        max-width: 500px;
+        font-size: 16px;
     }
-
-    .trust-indicator {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
+    
+    .hero-content {
+        text-align: center;
+        padding: 40px 0;
     }
-
-    .avatar-stack {
-        display: flex;
-        align-items: center;
-    }
-
-    .avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        border: 3px solid white;
-        margin-left: -10px;
-        background: linear-gradient(45deg, #f59e0b, #ef4444, #8b5cf6, #06b6d4);
-    }
-
-    .avatar:first-child {
-        margin-left: 0;
-    }
-
-    .avatar-more {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.2);
-        border: 3px solid white;
-        margin-left: -10px;
-        display: flex;
-        align-items: center;
+    
+    .trust-stats {
         justify-content: center;
-        color: white;
-        font-weight: bold;
-        font-size: 1.2rem;
+        gap: 24px;
     }
-
-    .trust-text {
-        display: flex;
-        flex-direction: column;
+    
+    .hero-buttons {
+        justify-content: center;
     }
+}
 
+@media (max-width: 576px) {
+    .hero-title {
+        font-size: 28px;
+    }
+    
+    .trust-stats {
+        gap: 16px;
+    }
+    
     .trust-number {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: white;
+        font-size: 20px;
     }
-
-    .trust-label {
-        font-size: 0.9rem;
-        color: rgba(255, 255, 255, 0.8);
+    
+    .btn-primary-hero,
+    .btn-demo {
+        padding: 12px 20px;
+        font-size: 14px;
     }
-
-    .hero-actions {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 2rem;
-    }
-
-    .btn-hero-primary {
-        background: white;
-        color: #059669;
-        border: none;
-        padding: 0.875rem 2rem;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-
-    .btn-hero-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-        color: #059669;
-    }
-
-    .btn-hero-outline {
-        background: transparent;
-        color: white;
-        border: 2px solid white;
-        padding: 0.875rem 2rem;
-        border-radius: 50px;
-        font-weight: 600;
-        font-size: 1rem;
-        transition: all 0.3s ease;
-        display: inline-flex;
-        align-items: center;
-    }
-
-    .btn-hero-outline:hover {
-        background: white;
-        color: #059669;
-        transform: translateY(-2px);
-    }
-
-    .feature-pills {
-        display: flex;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-    }
-
-    .pill {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        color: white;
-        padding: 0.5rem 1rem;
-        border-radius: 25px;
-        font-size: 0.875rem;
-        font-weight: 500;
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .hero-visual {
-        position: relative;
-        z-index: 2;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .main-image-container {
-        position: relative;
-        max-width: 600px;
-        width: 100%;
-    }
-
-    .main-image {
-        width: 100%;
-        height: auto;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    }
-
-    .floating-element {
-        position: absolute;
-        animation: floatElement 6s ease-in-out infinite;
-    }
-
-    .element-1 {
-        top: 20%;
-        right: -10%;
-        animation-delay: 0s;
-    }
-
-    .element-2 {
-        bottom: 30%;
-        left: -15%;
-        animation-delay: 2s;
-    }
-
-    .element-3 {
-        top: 10%;
-        left: 10%;
-        animation-delay: 4s;
-    }
-
-    @keyframes floatElement {
-        0%, 100% { transform: translateY(0px); }
-        50% { transform: translateY(-15px); }
-    }
-
-    .stat-card, .notification-card, .rating-card {
-        background: white;
-        border-radius: 15px;
-        padding: 1rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-        backdrop-filter: blur(10px);
-    }
-
-    .stat-card {
-        text-align: center;
-        min-width: 120px;
-    }
-
-    .stat-number {
-        display: block;
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: #059669;
-    }
-
-    .stat-label {
-        font-size: 0.875rem;
-        color: #6b7280;
-    }
-
-    .notification-card {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        min-width: 200px;
-    }
-
-    .notification-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(45deg, #f59e0b, #ef4444);
-    }
-
-    .notification-content {
-        display: flex;
+    
+    .hero-buttons {
         flex-direction: column;
-    }
-
-    .notification-title {
-        font-weight: 600;
-        color: #111827;
-        font-size: 0.875rem;
-    }
-
-    .notification-desc {
-        font-size: 0.75rem;
-        color: #6b7280;
-    }
-
-    .rating-card {
-        text-align: center;
-        min-width: 140px;
-    }
-
-    .stars {
-        color: #fbbf24;
-        margin-bottom: 0.5rem;
-    }
-
-    .rating-text {
-        font-size: 0.875rem;
-        color: #6b7280;
-        font-weight: 600;
-    }
-
-    .trusted-logos {
-        margin-top: 3rem;
-    }
-
-    .logos-container {
-        display: flex;
-        justify-content: center;
         align-items: center;
-        gap: 2rem;
-        flex-wrap: wrap;
-        opacity: 0.7;
     }
-
-    .logo-item {
-        display: flex;
-        align-items: center;
+    
+    .hero-buttons a {
+        width: 100%;
+        max-width: 250px;
         justify-content: center;
     }
-
-    .trusted-logo {
-        height: 40px;
-        width: auto;
-        filter: brightness(0) invert(1);
-        opacity: 0.8;
-        transition: all 0.3s ease;
-    }
-
-    .trusted-logo:hover {
-        opacity: 1;
-        transform: scale(1.1);
-    }
-
-    /* Responsive Design */
-    @media (max-width: 1199.98px) {
-        .hero-title {
-            font-size: 3rem;
-        }
-    }
-
-    @media (max-width: 991.98px) {
-        .main-banner .row {
-            min-height: auto;
-        }
-        
-        .hero-content {
-            text-align: center;
-            padding: 3rem 2rem;
-        }
-        
-        .hero-title {
-            font-size: 2.5rem;
-        }
-        
-        .floating-element {
-            display: none;
-        }
-        
-        .hero-visual {
-            padding: 2rem;
-        }
-    }
-
-    @media (max-width: 575.98px) {
-        .hero-title {
-            font-size: 2rem;
-        }
-        
-        .hero-description {
-            font-size: 1.1rem;
-        }
-        
-        .hero-actions {
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .btn-hero-primary,
-        .btn-hero-outline {
-            width: 100%;
-            max-width: 280px;
-            justify-content: center;
-        }
-        
-        .feature-pills {
-            justify-content: center;
-        }
-        
-        .trust-indicator {
-            justify-content: center;
-        }
-    }
-    </style>
+}
+</style>
 @endif
-<!-- [ Banner ] end -->
+<!-- [ Hero Section ] End -->
