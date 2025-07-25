@@ -50,6 +50,69 @@
 
 <head>
     @include('landingpage::partials.head')
+    
+    <!-- Add the gradient CSS -->
+    <style>
+        /* WP ERP Header + Hero Gradient Background */
+        .header-hero-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+            /* Use your actual backend primary color */
+            @if(isset($setting['theme_color']) && !empty($setting['theme_color']))
+                background: linear-gradient(
+                    135deg,
+                    {{ $setting['theme_color'] }} 0%,
+                    {{ $setting['theme_color'] }}e6 25%,
+                    {{ $setting['theme_color'] }}b3 50%,
+                    {{ $setting['theme_color'] }}4d 75%,
+                    transparent 100%
+                );
+            @else
+                /* Fallback to CSS custom property if theme_color not set */
+                background: linear-gradient(
+                    135deg,
+                    var(--primary) 0%,
+                    rgba(var(--primary-rgb), 0.9) 25%,
+                    rgba(var(--primary-rgb), 0.7) 50%,
+                    rgba(var(--primary-rgb), 0.3) 75%,
+                    transparent 100%
+                );
+            @endif
+        }
+
+        /* Ensure proper z-index layering */
+        .landing-header, .hero-section {
+            position: relative;
+            z-index: 1;
+        }
+        .mockup-wrapper {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .header-hero-gradient {
+                height: 120vh;
+                background: linear-gradient(135deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.9) 20%, rgba(var(--bs-primary-rgb), 0.7) 40%, rgba(var(--bs-primary-rgb), 0.4) 60%, rgba(var(--bs-primary-rgb), 0.2) 80%, transparent 100%);
+            }
+        }
+
+        /* RTL support */
+        [dir="rtl"] .header-hero-gradient {
+            background: linear-gradient(-135deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.9) 25%, rgba(var(--bs-primary-rgb), 0.7) 50%, rgba(var(--bs-primary-rgb), 0.3) 75%, transparent 100%);
+        }
+
+        /* Dark mode adjustments */
+        .landing-dark .header-hero-gradient {
+            background: linear-gradient(135deg, rgba(var(--bs-primary-rgb), 0.8) 0%, rgba(var(--bs-primary-rgb), 0.6) 25%, rgba(var(--bs-primary-rgb), 0.4) 50%, rgba(var(--bs-primary-rgb), 0.2) 75%, transparent 100%);
+        }
+    </style>
 </head>
 
 @if ($setting['cust_darklayout'] == 'on')
@@ -57,6 +120,9 @@
 @else
     <body class="{{ $themeColor }}">
 @endif
+
+    <!-- Gradient Background Overlay -->
+    <div class="header-hero-gradient"></div>
 
     @include('landingpage::partials.header')
 

@@ -77,37 +77,38 @@
         max-width: 100%;
     }
 
-    /* Frame layers with 3D perspective - OUTLINES ONLY */
+    /* Frame layers showing only at top with perspective - like tabs */
     .frame-layer {
         position: absolute;
         background: transparent;
         border: 2px solid rgba(255, 255, 255, 0.4);
-        border-radius: 15px;
+        border-bottom: none;
+        border-radius: 15px 15px 0 0;
         pointer-events: none;
         z-index: 2;
+        height: 25px;
         transform-style: preserve-3d;
     }
 
-    /* First frame layer - closest, slight perspective */
+    /* First layer - bigger, closer perspective */
     .frame-layer-1 {
-        top: -8px;
-        left: 12px;
-        right: -12px;
-        bottom: 8px;
-        opacity: 0.7;
-        transform: perspective(1000px) rotateX(2deg) rotateY(-1deg);
-        border-color: rgba(255, 255, 255, 0.5);
+        top: -20px;
+        left: -20px;
+        right: 20px;
+        opacity: 0.8;
+        border-color: rgba(255, 255, 255, 0.6);
+        transform: perspective(1200px) rotateX(8deg) rotateY(-2deg);
     }
 
-    /* Second frame layer - further back, more perspective */
+    /* Second layer - smaller, further back with more perspective */
     .frame-layer-2 {
-        top: -16px;
-        left: 24px;
-        right: -24px;
-        bottom: 16px;
-        opacity: 0.4;
-        transform: perspective(1000px) rotateX(4deg) rotateY(-2deg);
-        border-color: rgba(255, 255, 255, 0.3);
+        top: -35px;
+        left: -10px;
+        right: 30px;
+        opacity: 0.5;
+        height: 20px;
+        border-color: rgba(255, 255, 255, 0.4);
+        transform: perspective(1200px) rotateX(12deg) rotateY(-3deg);
     }
 
     /* Main dashboard container with 3D perspective */
@@ -119,30 +120,13 @@
         transform-style: preserve-3d;
     }
 
-    /* Banner image styling with 3D transforms */
+    /* Banner image styling - no animation */
     .banner-img {
         border-radius: 15px;
         box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
-        transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: none;
         max-width: 100%;
         height: auto;
-        transform-style: preserve-3d;
-    }
-
-    /* 3D Flip animation instead of fade */
-    .banner-img.flip-out {
-        transform: perspective(1000px) rotateY(-90deg);
-        opacity: 0.3;
-    }
-
-    .banner-img.flip-in {
-        transform: perspective(1000px) rotateY(90deg);
-        opacity: 0.3;
-    }
-
-    .banner-img.flip-complete {
-        transform: perspective(1000px) rotateY(0deg);
-        opacity: 1;
     }
 
     /* Module tabs styling - smaller and more compact */
@@ -173,19 +157,19 @@
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .frame-layer-1 {
-            top: -6px;
-            left: 8px;
-            right: -8px;
-            bottom: 6px;
-            transform: perspective(800px) rotateX(1.5deg) rotateY(-0.5deg);
+            top: -15px;
+            left: -15px;
+            right: 15px;
+            height: 20px;
+            transform: perspective(1000px) rotateX(6deg) rotateY(-1.5deg);
         }
 
         .frame-layer-2 {
-            top: -12px;
-            left: 16px;
-            right: -16px;
-            bottom: 12px;
-            transform: perspective(800px) rotateX(3deg) rotateY(-1deg);
+            top: -25px;
+            left: -8px;
+            right: 22px;
+            height: 15px;
+            transform: perspective(1000px) rotateX(9deg) rotateY(-2deg);
         }
 
         .module-tab {
@@ -196,19 +180,19 @@
 
     @media (max-width: 576px) {
         .frame-layer-1 {
-            top: -4px;
-            left: 6px;
-            right: -6px;
-            bottom: 4px;
-            transform: perspective(600px) rotateX(1deg) rotateY(-0.3deg);
+            top: -12px;
+            left: -12px;
+            right: 12px;
+            height: 18px;
+            transform: perspective(800px) rotateX(5deg) rotateY(-1deg);
         }
 
         .frame-layer-2 {
-            top: -8px;
-            left: 12px;
-            right: -12px;
-            bottom: 8px;
-            transform: perspective(600px) rotateX(2deg) rotateY(-0.6deg);
+            top: -20px;
+            left: -6px;
+            right: 18px;
+            height: 14px;
+            transform: perspective(800px) rotateX(7deg) rotateY(-1.5deg);
         }
 
         .module-tab {
@@ -229,23 +213,8 @@
 
                 const newSrc = button.getAttribute('data-img');
 
-                // 3D Flip animation sequence
-                bannerImage.classList.add('flip-out');
-
-                setTimeout(() => {
-                    bannerImage.src = newSrc;
-                    bannerImage.classList.remove('flip-out');
-                    bannerImage.classList.add('flip-in');
-                }, 400);
-
-                setTimeout(() => {
-                    bannerImage.classList.remove('flip-in');
-                    bannerImage.classList.add('flip-complete');
-                }, 450);
-
-                setTimeout(() => {
-                    bannerImage.classList.remove('flip-complete');
-                }, 850);
+                // Instant change - no animation
+                bannerImage.src = newSrc;
 
                 // Update active button styling
                 buttons.forEach(btn => btn.classList.remove('active-tab'));
