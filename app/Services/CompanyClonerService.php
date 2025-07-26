@@ -67,8 +67,8 @@ class CompanyClonerService
             'transfers', 'resignations', 'travels', 'promotions', 
             'complaints', 'warnings', 'terminations', 'zoom_meetings',
             
-            // Certificates and generated documents
-            'joining_letters', 'experience_certificates', 'generate_offer_letters', 'noc_certificates',
+            // REMOVED: Certificate templates should be cloned as they are template data!
+            // 'joining_letters', 'experience_certificates', 'generate_offer_letters', 'noc_certificates',
             
             // Contract Activities (not master data)
             'contracts', 'contract_attachment', 'contract_comment', 'contract_notes',
@@ -237,7 +237,13 @@ class CompanyClonerService
             'company_payment_settings',
             'referral_settings',
             
-            // LEVEL 14: Roles (should be cloned last before permissions)
+            // LEVEL 14: Certificate Templates (IMPORTANT - these should be cloned!)
+            'joining_letters',
+            'experience_certificates', 
+            'generate_offer_letters',
+            'noc_certificates',
+            
+            // LEVEL 15: Roles (should be cloned last before permissions)
             'roles',
         ];
 
