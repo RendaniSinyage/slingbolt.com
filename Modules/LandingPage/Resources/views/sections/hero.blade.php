@@ -4,16 +4,16 @@
         <div class="row justify-content-center">
             <div class="col-lg-10 col-xl-8">
                 @if (!empty($settings['home_offer_text']))
-                <span class="badge bg-dark text-white rounded-pill px-3 py-2 mb-4 fw-bold small">
+                <span class="badge rounded-pill px-3 py-2 mb-4 fw-bold small" style="background-color: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
                     {!! $settings['home_offer_text'] !!}
                 </span>
                 @endif
 
-                <h1 class="fw-bold display-4 mb-4">
+                <h1 class="fw-bold display-4 mb-4 text-white">
                     {!! $settings['home_heading'] ?? 'Supercharge Your Growing Business from Your WordPress Dashboard' !!}
                 </h1>
 
-                <p class="lead text-secondary mb-4">
+                <p class="lead text-white mb-4">
                     {!! $settings['home_description'] ?? 'WP ERP optimizes your small to medium businesses with powerful HR, CRM, and Accounting tools.' !!}
                 </p>
 
@@ -25,9 +25,9 @@
                     @endif
 
                     @if (!empty($settings['home_buy_now_link']))
-                    <a href="{{ $settings['home_buy_now_link'] }}" class="btn btn-primary rounded-pill px-4">
-                        {{ __('Buy Now') }}
-                    </a>
+                    <a href="{{ $settings['home_buy_now_link'] }}" class="btn rounded-pill px-4" style="background-color: white; color: var(--transparent); border: 1px solid white;">
+    {{ __('Buy Now') }}
+</a>
                     @endif
                 </div>
             </div>
@@ -90,25 +90,25 @@
         transform-style: preserve-3d;
     }
 
-    /* First layer - bigger, closer perspective */
+    /* First layer - smaller than image */
     .frame-layer-1 {
         top: -20px;
-        left: -20px;
-        right: 20px;
+        left: 10px;
+        right: 10px;
         opacity: 0.8;
         border-color: rgba(255, 255, 255, 0.6);
-        transform: perspective(1200px) rotateX(8deg) rotateY(-2deg);
+        transform: perspective(1200px) rotateX(8deg) rotateY(-1deg);
     }
 
-    /* Second layer - smaller, further back with more perspective */
+    /* Second layer - even smaller */
     .frame-layer-2 {
         top: -35px;
-        left: -10px;
-        right: 30px;
+        left: 20px;
+        right: 20px;
         opacity: 0.5;
         height: 20px;
         border-color: rgba(255, 255, 255, 0.4);
-        transform: perspective(1200px) rotateX(12deg) rotateY(-3deg);
+        transform: perspective(1200px) rotateX(12deg) rotateY(-1.5deg);
     }
 
     /* Main dashboard container with 3D perspective */
@@ -120,21 +120,22 @@
         transform-style: preserve-3d;
     }
 
-    /* Banner image styling - no animation */
+    /* Banner image styling - no shadows, same border effect */
     .banner-img {
+        border: 2px solid rgba(255, 255, 255, 0.6);
         border-radius: 15px;
-        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+        box-shadow: none;
         transition: none;
         max-width: 100%;
         height: auto;
     }
 
-    /* Module tabs styling - smaller and more compact */
+    /* Module tabs styling - white border and text when not active */
     .module-tab {
         transition: background-color 0.3s, color 0.3s, transform 0.3s;
-        border: 1.5px solid #0d6efd;
+        border: 1.5px solid rgba(255, 255, 255, 0.8);
         background: transparent;
-        color: #0d6efd;
+        color: rgba(255, 255, 255, 0.9);
         padding: 6px 14px;
         border-radius: 20px;
         font-weight: 500;
@@ -143,13 +144,16 @@
     }
 
     .module-tab:hover {
-        background-color: rgba(13, 110, 253, 0.1);
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border-color: white;
         transform: translateY(-1px);
     }
 
     .module-tab.active-tab {
         background-color: #0d6efd;
         color: #fff;
+        border-color: #0d6efd;
         transform: translateY(-1px);
         box-shadow: 0 4px 15px rgba(13, 110, 253, 0.3);
     }
@@ -158,18 +162,18 @@
     @media (max-width: 768px) {
         .frame-layer-1 {
             top: -15px;
-            left: -15px;
-            right: 15px;
+            left: 8px;
+            right: 8px;
             height: 20px;
-            transform: perspective(1000px) rotateX(6deg) rotateY(-1.5deg);
+            transform: perspective(1000px) rotateX(6deg) rotateY(-0.8deg);
         }
 
         .frame-layer-2 {
             top: -25px;
-            left: -8px;
-            right: 22px;
+            left: 15px;
+            right: 15px;
             height: 15px;
-            transform: perspective(1000px) rotateX(9deg) rotateY(-2deg);
+            transform: perspective(1000px) rotateX(9deg) rotateY(-1.2deg);
         }
 
         .module-tab {
@@ -181,18 +185,18 @@
     @media (max-width: 576px) {
         .frame-layer-1 {
             top: -12px;
-            left: -12px;
-            right: 12px;
+            left: 6px;
+            right: 6px;
             height: 18px;
-            transform: perspective(800px) rotateX(5deg) rotateY(-1deg);
+            transform: perspective(800px) rotateX(5deg) rotateY(-0.6deg);
         }
 
         .frame-layer-2 {
             top: -20px;
-            left: -6px;
-            right: 18px;
+            left: 12px;
+            right: 12px;
             height: 14px;
-            transform: perspective(800px) rotateX(7deg) rotateY(-1.5deg);
+            transform: perspective(800px) rotateX(7deg) rotateY(-0.9deg);
         }
 
         .module-tab {
