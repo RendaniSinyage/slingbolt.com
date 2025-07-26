@@ -49,6 +49,22 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
+     // Rate limiting: Check registrations from this IP in last hour
+        $userIP = $request->ip();
+        $recentRegistrations = User::where('registration_ip', $userIP)
+            ->where('created_at', '>', now()->subHour())
+            ->count();
+
+        if ($recentRegistrations >= 3) {
+            \Log::warning("Public registration blocked - IP rate limit exceeded", [
+                'ip' => $userIP,
+                'recent_count' => $recentRegistrations,
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return redirect()->back()->with('status', __('Too many registration attempts. Please try again later.'));
+        }
+
         $settings = Utility::settings();
         //ReCpatcha
         $validation = [];
@@ -98,13 +114,15 @@ class RegisteredUserController extends Controller
             'referral_code'=> $code,
             'used_referral_code'=>$request->ref_code,
             'created_by' => 1,
+	    'registration_ip' => $request->ip(), // ADD THIS LINE
+    	    'user_agent' => $request->userAgent(), // ADD THIS LINE
         ]);
         \Auth::login($user);
 
         $settings = Utility::settings();
 
         if ($settings['email_verification'] == 'on') {
-            try { 
+            try {
 
                 Utility::smtpDetail(1);
 
@@ -138,7 +156,7 @@ class RegisteredUserController extends Controller
             $role_r = Role::findByName('company');
 		$user->assignRole($role_r);
 
-		// Clone all defaults from template company  
+		// Clone all defaults from template company
 		\Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
 		$user->cloneCompanyDefaults($user->id);
 		\Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);

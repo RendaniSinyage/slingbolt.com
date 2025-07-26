@@ -181,13 +181,29 @@ class AuthenticatedSessionController extends Controller
 
         $timezone = $setting['timezone'] ? $setting['timezone'] : 'UTC';
         date_default_timezone_set($timezone);
+        \Log::info("Login Debug", [
+            'user_id' => $user->id,
+            'ip' => $request->ip(),
+            'real_ip' => $_SERVER['REMOTE_ADDR'] ?? 'unknown',
+            'carbon_time' => Carbon::now()->toDateTimeString(),
+            'timezone' => date_default_timezone_get()
+        ]);
 
         // Update Last Login Time
         $user->update(
             [
                 'last_login_at' => Carbon::now()->toDateTimeString(),
+       		    'last_login_ip' => $request->ip(),
+       		    'user_agent' => $request->userAgent(),
             ]
         );
+
+        // Check if the update actually worked
+        $updatedUser = User::find($user->id);
+        \Log::info("After Update", [
+            'last_login_at' => $updatedUser->last_login_at,
+            'last_login_ip' => $updatedUser->last_login_ip
+        ]);
 
         //start for user log
         if($user->type != 'company' && $user->type != 'super admin')
