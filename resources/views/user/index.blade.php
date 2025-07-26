@@ -45,11 +45,13 @@
                         <div class="badge bg-primary p-1 px-2">
                             {{ !empty($user->currentPlan) ? $user->currentPlan->name : '' }}
                         </div>
+
                     @else
                         <div class="badge bg-primary p-1 px-2">
                             {{ ucfirst($user->type) }}
                         </div>
                     @endif
+
                     @if (Gate::check('edit user') || Gate::check('delete user'))
                         <div class="btn-group card-option">
                             @if ($user->is_active == 1 && $user->is_disable == 1)
@@ -133,15 +135,20 @@
                 </div>
                 <div class="user-info-wrp d-flex align-items-center gap-3 border-bottom pb-3 mb-3">
                     <div class="user-image rounded-1 border-1 border border-primary">
+
                         <img src="{{ !empty($user->avatar) ? Utility::get_file('uploads/avatar/') . $user->avatar : asset(Storage::url('uploads/avatar/avatar.png')) }}"
                             alt="user-image" height="100%" width="100%">
                     </div>
                     <div class="user-info flex-1">
-                        <h5 class="mb-1">{{ $user->name }}</h5>
+                        <h5 class="mb-1 text-black">{{ $user->name }}</h5>
                         @if ($user->delete_status == 0)
                             <h6 class="mb-1">{{ __('Soft Deleted') }}</h6>
                         @endif
-                        <span class="text-sm text-muted text-break">{{ $user->email }}</span>
+                        <span class="text-sm text-muted text-break">{{ $user->email }}@if ($user->email_verified_at)
+        <div class="verified-badge" data-bs-toggle="tooltip" title="{{ __('Verified Email') }}">
+            <i class="ti ti-circle-check" style="font-size: 18px; color: #1DA1F2;"></i>
+        </div>
+    @endif</span>
                     </div>
                 </div>
                 <div class="date-wrp d-flex align-items-center justify-content-between gap-2">
