@@ -17,8 +17,64 @@ class CompanyRefreshService
     private $transferLog = [];
     private $refreshSummary = [];
     private $isDryRun = false;
+    private $idMappings = []; // Track old ID -> new ID mappings
+    private $deferredRelationships = []; // Store relationships to fix later
     
-    // User-generated data that should be COPIED to new company
+    // ALL master data tables that users can add to OR modify
+    private $masterDataTables = [
+        // Chart of accounts system
+        'chart_of_account_types',
+        'chart_of_account_sub_types', 
+        'chart_of_accounts',
+        
+        // Product & inventory system
+        'product_service_categories',
+        'product_service_units',
+        'product_services',
+        'taxes',
+        'warehouses',
+        
+        // CRM system
+        'labels',
+        'sources',
+        'pipelines', 
+        'stages',
+        'lead_stages',
+        
+        // HR system
+        'branches',
+        'departments', 
+        'designations',
+        'job_categories',
+        'job_stages',
+        'leave_types',
+        'allowance_options',
+        'deduction_options',
+        'loan_options',
+        'award_types',
+        'training_types',
+        'goal_types',
+        'performance_types',
+        'termination_types',
+        'payslip_types',
+        
+        // Project system
+        'task_stages',
+        
+        // Contract system
+        'contract_types',
+        
+        // Other systems
+        'competencies',
+        'custom_questions',
+        'documents',
+        'roles', // Users can create custom roles!
+        
+        // Banking
+        'bank_accounts',
+    ];
+
+    // User-generated transactional data that should be COPIED to new company
     private $userDataTables = [
         // Core user data
         'users',
@@ -145,21 +201,23 @@ class CompanyRefreshService
         'webhook_settings',
     ];
 
-    // Tables that may need conflict resolution (user may have modified template data)
-    private $conflictTables = [
-        'chart_of_accounts',
-        'product_services', 
-        'settings',  // This includes ALL integration settings (Slack, Zoom, Google Calendar, Payment gateways, etc.)
-        'bank_accounts',
-        'company_payment_settings', // Company-specific payment gateway settings
-    ];
-
-    // Fields to compare for conflicts
+    // Fields to compare for conflicts in master data
     private $conflictFields = [
         'chart_of_accounts' => ['name', 'description', 'is_enabled', 'parent'],
         'product_services' => ['name', 'description', 'sale_price', 'purchase_price', 'is_enabled'],
-        'settings' => ['value'], // ALL settings including integrations
+        'product_service_categories' => ['name', 'color'],
+        'warehouses' => ['name', 'address', 'city', 'state'],
+        'branches' => ['name', 'address', 'city', 'state'],
+        'departments' => ['name', 'branch_id'],
+        'designations' => ['name', 'department_id', 'branch_id'],
+        'labels' => ['name', 'color'],
+        'sources' => ['name'],
+        'pipelines' => ['name'],
+        'stages' => ['name', 'pipeline_id', 'order'],
+        'taxes' => ['name', 'rate'],
         'bank_accounts' => ['account_number', 'holder_name', 'bank_name', 'contact_number'],
+        'roles' => ['name'], // Users can customize role names
+        'settings' => ['value'], // ALL settings including integrations
         'company_payment_settings' => ['value'], // Payment gateway configurations
     ];
 
@@ -170,12 +228,6 @@ class CompanyRefreshService
 
     /**
      * Main refresh method - creates new company and COPIES data
-     * 
-     * SAFETY: This is a COPY operation for safety!
-     * - Template data is cloned to new company
-     * - User data is COPIED from old company to new company
-     * - Old company is only deleted at the very end if everything succeeds
-     * - Multi-currency support: automatically selects template based on currency
      */
     public function refreshCompany($oldCompanyId, $options = [])
     {
@@ -193,19 +245,22 @@ class CompanyRefreshService
                 // Step 2: Clone template to new company using CompanyClonerService
                 $this->newCompanyId = $this->cloneTemplateToNewCompany();
                 
-                // Step 3: Resolve conflicts for modified template data
-                $this->resolveConflictsAndCopy();
+                // Step 3: Process all master data (unified approach)
+                $this->processMasterData();
                 
-                // Step 4: Copy all user-generated data (COPY operation for safety)
+                // Step 4: Handle special settings
+                $this->processSettings();
+                
+                // Step 5: Copy all user-generated data (COPY operation for safety)
                 $this->copyUserGeneratedData();
                 
-                // Step 5: Copy users to new company (COPY operation)
+                // Step 6: Copy users to new company (COPY operation)
                 $this->copyUsersToNewCompany();
                 
-                // Step 6: Update company information
+                // Step 7: Update company information
                 $this->updateCompanyInformation();
                 
-                // Step 7: Only delete old company if NOT dry run and everything succeeded
+                // Step 8: Only delete old company if NOT dry run and everything succeeded
                 if (!$this->isDryRun) {
                     $this->deleteOldCompany();
                 } else {
@@ -235,7 +290,6 @@ class CompanyRefreshService
     {
         Log::info("Step 1: Determining template company based on currency");
         
-        // Get old company's currency
         $oldCompanyCurrency = $this->getCompanyCurrency($this->oldCompanyId);
         
         if (!$oldCompanyCurrency) {
@@ -244,11 +298,17 @@ class CompanyRefreshService
         
         Log::info("Old company currency: {$oldCompanyCurrency}");
         
-        // Find template company with matching currency
         $templateCompanyId = $this->findTemplateCompanyByCurrency($oldCompanyCurrency);
         
         if (!$templateCompanyId) {
-            throw new \Exception("No template company found for currency: {$oldCompanyCurrency}");
+            $available = TemplateCompanyConfig::getAvailableCurrencies();
+            $availableList = implode(', ', array_keys($available));
+            
+            throw new \Exception(
+                "No template company found for currency: {$oldCompanyCurrency}. " .
+                "Available currencies: {$availableList}. " .
+                "Please create a template company for {$oldCompanyCurrency} first."
+            );
         }
         
         Log::info("Selected template company {$templateCompanyId} for currency {$oldCompanyCurrency}");
@@ -266,7 +326,6 @@ class CompanyRefreshService
             ->where('name', 'site_currency')
             ->value('value');
             
-        // Use ZAR as default for South African context, or keep USD for global
         return $currency ?: TemplateCompanyConfig::getDefaultCurrency();
     }
 
@@ -279,21 +338,12 @@ class CompanyRefreshService
     }
 
     /**
-     * Get list of template companies (now delegated to config)
-     */
-    private function getTemplateCompanies()
-    {
-        return array_keys(TemplateCompanyConfig::getTemplateCompanies());
-    }
-
-    /**
      * Step 2: Clone template company to new company using CompanyClonerService
      */
     private function cloneTemplateToNewCompany()
     {
         Log::info("Step 2: Cloning template company {$this->templateCompanyId} to new company");
         
-        // Get old company details for the new company
         $oldCompany = User::find($this->oldCompanyId);
         if (!$oldCompany) {
             throw new \Exception("Old company not found: {$this->oldCompanyId}");
@@ -302,7 +352,7 @@ class CompanyRefreshService
         // Create new company user record first
         $newCompanyId = DB::table('users')->insertGetId([
             'name' => $oldCompany->name . ($this->isDryRun ? ' (DRY RUN)' : ''),
-            'email' => $this->generateTempEmail($oldCompany->email), // Temporary email to avoid conflicts
+            'email' => $this->generateTempEmail($oldCompany->email),
             'type' => 'company',
             'lang' => $oldCompany->lang ?? 'en',
             'avatar' => $oldCompany->avatar ?? '',
@@ -319,7 +369,6 @@ class CompanyRefreshService
         Log::info("Created new company record with ID: {$newCompanyId}");
         
         // Use CompanyClonerService to clone template data to new company
-        // Note: CompanyClonerService constructor is ($targetCompanyId, $sourceCompanyId)
         $cloner = new CompanyClonerService($newCompanyId, $this->templateCompanyId);
         $cloner->cloneAllCompanyData();
         
@@ -340,48 +389,58 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 3: Resolve conflicts for template data that user may have modified
+     * Step 3: Process all master data with unified conflict resolution
      */
-    private function resolveConflictsAndCopy()
+    private function processMasterData()
     {
-        Log::info("Step 3: Resolving conflicts and copying modified template data");
+        Log::info("Step 3: Processing all master data with unified conflict resolution");
         
-        foreach ($this->conflictTables as $tableName) {
+        foreach ($this->masterDataTables as $tableName) {
             if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
                 continue;
             }
             
-            Log::info("Processing conflicts for table: {$tableName}");
-            $this->processTableConflicts($tableName);
+            Log::info("Processing master data table: {$tableName}");
+            $this->processMasterDataTable($tableName);
         }
+        
+        // Fix relationships after all master data is processed
+        $this->fixMasterDataRelationships();
     }
 
     /**
-     * Process conflicts for a specific table
+     * Process a single master data table (handles both additions and modifications)
      */
-    private function processTableConflicts($tableName)
+    private function processMasterDataTable($tableName)
     {
-        // Get user's modified records from old company
+        // Get user's records from old company
         $oldRecords = DB::table($tableName)
             ->where('created_by', $this->oldCompanyId)
             ->get();
             
-        // Get new template records 
-        $newRecords = DB::table($tableName)
+        if ($oldRecords->isEmpty()) {
+            Log::info("No user data found in {$tableName}");
+            return;
+        }
+        
+        // Get existing template records in new company
+        $templateRecords = DB::table($tableName)
             ->where('created_by', $this->newCompanyId)
             ->get()
             ->keyBy($this->getMatchingKey($tableName));
         
+        Log::info("Processing {$oldRecords->count()} user records against {$templateRecords->count()} template records in {$tableName}");
+        
         foreach ($oldRecords as $oldRecord) {
             $matchingKey = $this->getRecordMatchingValue($oldRecord, $tableName);
-            $newRecord = $newRecords->get($matchingKey);
+            $templateRecord = $templateRecords->get($matchingKey);
             
-            if ($newRecord) {
-                // Record exists in both - resolve conflict
-                $this->resolveRecordConflict($tableName, $oldRecord, $newRecord);
+            if ($templateRecord) {
+                // Record exists in template - resolve conflict
+                $this->resolveMasterDataConflict($tableName, $oldRecord, $templateRecord);
             } else {
-                // User added this record - copy it to new company
-                $this->copyUserAddedRecord($tableName, $oldRecord);
+                // User-added record - copy it
+                $this->copyUserAddedMasterData($tableName, $oldRecord);
             }
         }
     }
@@ -412,31 +471,34 @@ class CompanyRefreshService
     }
 
     /**
-     * Resolve conflict between old user record and new template record
+     * Resolve conflict between user record and template record
      */
-    private function resolveRecordConflict($tableName, $oldRecord, $newRecord)
+    private function resolveMasterDataConflict($tableName, $oldRecord, $templateRecord)
     {
         if (!isset($this->conflictFields[$tableName])) {
-            return; // No conflict resolution defined
+            Log::info("No conflict resolution defined for {$tableName}, keeping template version");
+            // Still track the mapping
+            $this->idMappings[$tableName][$oldRecord->id] = $templateRecord->id;
+            return;
         }
         
         $updates = [];
         $fieldsToCheck = $this->conflictFields[$tableName];
         
         foreach ($fieldsToCheck as $field) {
-            if (!isset($oldRecord->$field) || !isset($newRecord->$field)) {
+            if (!isset($oldRecord->$field) || !isset($templateRecord->$field)) {
                 continue;
             }
             
-            if ($oldRecord->$field !== $newRecord->$field) {
+            if ($oldRecord->$field !== $templateRecord->$field) {
                 // Conflict detected - decide which value to use
-                $resolution = $this->decideConflictResolution($tableName, $field, $oldRecord, $newRecord);
+                $resolution = $this->decideMasterDataConflictResolution($tableName, $field, $oldRecord, $templateRecord);
                 
-                if ($resolution === 'use_old') {
+                if ($resolution === 'use_user') {
                     $updates[$field] = $oldRecord->$field;
-                    $this->logConflictResolution($tableName, $field, 'user_modified', $oldRecord->$field, $newRecord->$field);
+                    $this->logConflictResolution($tableName, $field, 'user_modified', $oldRecord->$field, $templateRecord->$field);
                 } else {
-                    $this->logConflictResolution($tableName, $field, 'template_updated', $newRecord->$field, $oldRecord->$field);
+                    $this->logConflictResolution($tableName, $field, 'template_updated', $templateRecord->$field, $oldRecord->$field);
                 }
             }
         }
@@ -444,38 +506,92 @@ class CompanyRefreshService
         // Apply updates if any
         if (!empty($updates)) {
             $updates['updated_at'] = now();
-            DB::table($tableName)->where('id', $newRecord->id)->update($updates);
+            DB::table($tableName)->where('id', $templateRecord->id)->update($updates);
             
-            Log::info("Applied conflict resolution to {$tableName} record ID {$newRecord->id}");
+            Log::info("Applied conflict resolution to {$tableName} record ID {$templateRecord->id}");
         }
+        
+        // Track template record ID for relationship mapping
+        if (!isset($this->idMappings[$tableName])) {
+            $this->idMappings[$tableName] = [];
+        }
+        $this->idMappings[$tableName][$oldRecord->id] = $templateRecord->id;
     }
 
     /**
-     * Decide conflict resolution strategy
+     * Copy user-added master data record
      */
-    private function decideConflictResolution($tableName, $field, $oldRecord, $newRecord)
+    private function copyUserAddedMasterData($tableName, $oldRecord)
     {
-        // Business rules for conflict resolution
+        $recordArray = (array) $oldRecord;
+        $oldId = $recordArray['id'];
+        unset($recordArray['id']);
+        $recordArray['created_by'] = $this->newCompanyId;
+        $recordArray['updated_at'] = now();
+        
+        // Handle parent relationships later
+        $parentFields = ['parent', 'parent_id', 'branch_id', 'department_id', 'pipeline_id'];
+        $deferredRelationships = [];
+        
+        foreach ($parentFields as $parentField) {
+            if (isset($recordArray[$parentField]) && $recordArray[$parentField] > 0) {
+                $deferredRelationships[$parentField] = $recordArray[$parentField];
+                $recordArray[$parentField] = null; // Will fix later
+            }
+        }
+        
+        $newId = DB::table($tableName)->insertGetId($recordArray);
+        
+        // Track the ID mapping
+        if (!isset($this->idMappings[$tableName])) {
+            $this->idMappings[$tableName] = [];
+        }
+        $this->idMappings[$tableName][$oldId] = $newId;
+        
+        // Store deferred relationships for later processing
+        if (!empty($deferredRelationships)) {
+            if (!isset($this->deferredRelationships[$tableName])) {
+                $this->deferredRelationships[$tableName] = [];
+            }
+            $this->deferredRelationships[$tableName][$newId] = $deferredRelationships;
+        }
+        
+        $this->transferLog[] = [
+            'table' => $tableName,
+            'action' => 'copied_user_added',
+            'old_id' => $oldId,
+            'new_id' => $newId
+        ];
+        
+        Log::info("Copied user-added {$tableName} record (Old ID: {$oldId} -> New ID: {$newId})");
+    }
+
+    /**
+     * Decide conflict resolution for master data
+     */
+    private function decideMasterDataConflictResolution($tableName, $field, $oldRecord, $templateRecord)
+    {
+        // Business rules for different types of master data
         $rules = [
-            'chart_of_accounts' => function($field, $old, $new) {
+            'chart_of_accounts' => function($field, $old, $template) {
                 // User customizations for names/descriptions take precedence
                 if (in_array($field, ['name', 'description'])) {
-                    return $this->useMostRecent($old, $new);
+                    return $this->useMostRecent($old, $template);
                 }
-                // Template changes for structure (parent, enabled status)
+                // Template structure changes take precedence
                 return 'use_template';
             },
             
-            'product_services' => function($field, $old, $new) {
+            'product_services' => function($field, $old, $template) {
                 // User pricing takes precedence
                 if (in_array($field, ['sale_price', 'purchase_price'])) {
-                    return 'use_old';
+                    return 'use_user';
                 }
-                return $this->useMostRecent($old, $new);
+                return $this->useMostRecent($old, $template);
             },
             
-            'settings' => function($field, $old, $new) {
-                // Integration settings (Slack, Zoom, Google Calendar, etc.) - always keep user's
+            'settings' => function($field, $old, $template) {
+                // Integration settings - always keep user's
                 $integrationSettings = [
                     'slack_webhook', 'slack_token', 'slack_channel', 'slack_connected',
                     'zoom_account_id', 'zoom_client_id', 'zoom_client_secret', 'zoom_connected',
@@ -487,73 +603,182 @@ class CompanyRefreshService
                 ];
                 
                 if (in_array($field, $integrationSettings)) {
-                    return 'use_old'; // Always keep user's integration settings
+                    return 'use_user';
                 }
                 
-                // For other settings, use most recently updated
-                return $this->useMostRecent($old, $new);
+                return $this->useMostRecent($old, $template);
             },
             
-            'company_payment_settings' => function($field, $old, $new) {
-                // Always keep user's payment gateway settings
-                return 'use_old';
+            'roles' => function($field, $old, $template) {
+                // User role customizations take precedence
+                return 'use_user';
             },
             
-            'bank_accounts' => function($field, $old, $new) {
-                // User bank details take precedence
-                return 'use_old';
-            },
+            // For most master data, user customizations take precedence
+            'default' => function($field, $old, $template) {
+                return $this->useMostRecent($old, $template);
+            }
         ];
         
-        if (isset($rules[$tableName])) {
-            return $rules[$tableName]($field, $oldRecord, $newRecord);
-        }
-        
-        return $this->useMostRecent($oldRecord, $newRecord);
+        $ruleFunction = $rules[$tableName] ?? $rules['default'];
+        return $ruleFunction($field, $oldRecord, $templateRecord);
     }
 
     /**
      * Use most recently updated record
      */
-    private function useMostRecent($oldRecord, $newRecord)
+    private function useMostRecent($oldRecord, $templateRecord)
     {
         $oldTime = isset($oldRecord->updated_at) ? Carbon::parse($oldRecord->updated_at) : null;
-        $newTime = isset($newRecord->updated_at) ? Carbon::parse($newRecord->updated_at) : null;
+        $templateTime = isset($templateRecord->updated_at) ? Carbon::parse($templateRecord->updated_at) : null;
         
-        if (!$oldTime && !$newTime) return 'use_template';
+        if (!$oldTime && !$templateTime) return 'use_template';
         if (!$oldTime) return 'use_template';
-        if (!$newTime) return 'use_old';
+        if (!$templateTime) return 'use_user';
         
-        return $oldTime->gt($newTime) ? 'use_old' : 'use_template';
+        return $oldTime->gt($templateTime) ? 'use_user' : 'use_template';
     }
 
     /**
-     * Copy user-added record that doesn't exist in template
+     * Step 4: Handle special settings
      */
-    private function copyUserAddedRecord($tableName, $oldRecord)
+    private function processSettings()
     {
-        $recordArray = (array) $oldRecord;
-        unset($recordArray['id']);
-        $recordArray['created_by'] = $this->newCompanyId;
-        $recordArray['updated_at'] = now();
+        Log::info("Step 4: Processing settings with integration preservation");
         
-        DB::table($tableName)->insert($recordArray);
+        // Settings and payment settings are already handled in processMasterData
+        // but we process them separately for special integration handling
+        $this->processMasterDataTable('settings');
         
-        $this->transferLog[] = [
-            'table' => $tableName,
-            'action' => 'copied_user_added',
-            'old_id' => $oldRecord->id
+        if (Schema::hasTable('company_payment_settings')) {
+            $this->processMasterDataTable('company_payment_settings');
+        }
+    }
+
+    /**
+     * Fix all master data relationships after everything is copied
+     */
+    private function fixMasterDataRelationships()
+    {
+        Log::info("Fixing master data relationships");
+        
+        // Process all deferred relationships
+        foreach ($this->deferredRelationships as $tableName => $records) {
+            foreach ($records as $newId => $relationships) {
+                $this->fixRecordRelationships($tableName, $newId, $relationships);
+            }
+        }
+        
+        // Special handling for roles -> permissions (many-to-many)
+        $this->fixRolePermissions();
+    }
+
+    /**
+     * Fix relationships for a specific record
+     */
+    private function fixRecordRelationships($tableName, $newId, $relationships)
+    {
+        $updates = [];
+        
+        foreach ($relationships as $field => $oldRefId) {
+            $newRefId = $this->findMappedId($field, $oldRefId, $tableName);
+            
+            if ($newRefId) {
+                $updates[$field] = $newRefId;
+                Log::info("Fixed {$tableName}.{$field}: {$oldRefId} -> {$newRefId}");
+            } else {
+                Log::warning("Could not map {$tableName}.{$field} = {$oldRefId}");
+            }
+        }
+        
+        if (!empty($updates)) {
+            DB::table($tableName)->where('id', $newId)->update($updates);
+        }
+    }
+
+    /**
+     * Find mapped ID for a relationship
+     */
+    private function findMappedId($field, $oldId, $currentTable)
+    {
+        // Determine which table this field references
+        $referenceTables = [
+            'parent' => $currentTable, // Self-reference
+            'parent_id' => $currentTable,
+            'branch_id' => 'branches',
+            'department_id' => 'departments', 
+            'pipeline_id' => 'pipelines',
+            'category_id' => 'product_service_categories',
+            'type' => 'chart_of_account_types',
+            'sub_type' => 'chart_of_account_sub_types',
         ];
         
-        Log::info("Copied user-added record from {$tableName}");
+        $referenceTable = $referenceTables[$field] ?? null;
+        
+        if (!$referenceTable) {
+            return null;
+        }
+        
+        // Check if we have a direct mapping
+        if (isset($this->idMappings[$referenceTable][$oldId])) {
+            return $this->idMappings[$referenceTable][$oldId];
+        }
+        
+        // Try to find by name match
+        $oldRecord = DB::table($referenceTable)
+            ->where('created_by', $this->oldCompanyId)
+            ->where('id', $oldId)
+            ->first();
+            
+        if ($oldRecord && isset($oldRecord->name)) {
+            $newRecord = DB::table($referenceTable)
+                ->where('created_by', $this->newCompanyId)
+                ->where('name', $oldRecord->name)
+                ->first();
+                
+            if ($newRecord) {
+                return $newRecord->id;
+            }
+        }
+        
+        return null;
     }
 
     /**
-     * Step 4: Copy all user-generated data (COPY for safety)
+     * Fix role permissions (many-to-many relationship)
+     */
+    private function fixRolePermissions()
+    {
+        if (!isset($this->idMappings['roles'])) {
+            return;
+        }
+        
+        Log::info("Fixing role permissions");
+        
+        foreach ($this->idMappings['roles'] as $oldRoleId => $newRoleId) {
+            // Get permissions for old role
+            $permissions = DB::table('role_has_permissions')
+                ->where('role_id', $oldRoleId)
+                ->pluck('permission_id');
+                
+            // Assign to new role
+            foreach ($permissions as $permissionId) {
+                DB::table('role_has_permissions')->updateOrInsert([
+                    'role_id' => $newRoleId,
+                    'permission_id' => $permissionId
+                ]);
+            }
+            
+            Log::info("Fixed permissions for role {$newRoleId} ({$permissions->count()} permissions)");
+        }
+    }
+
+    /**
+     * Step 5: Copy all user-generated data
      */
     private function copyUserGeneratedData()
     {
-        Log::info("Step 4: Copying user-generated data (SAFE COPY operation)");
+        Log::info("Step 5: Copying user-generated data (SAFE COPY operation)");
         
         foreach ($this->userDataTables as $tableName) {
             $this->copyTableData($tableName);
@@ -561,7 +786,7 @@ class CompanyRefreshService
     }
 
     /**
-     * Copy data from a specific table (COPY operation for safety)
+     * Copy data from a specific table
      */
     private function copyTableData($tableName)
     {
@@ -585,7 +810,7 @@ class CompanyRefreshService
             $recordArray['created_by'] = $this->newCompanyId;
             $recordArray['updated_at'] = now();
             
-            // Handle special fields that might reference old company
+            // Handle special fields and relationship mappings
             $recordArray = $this->updateCompanyReferences($recordArray, $tableName);
             
             DB::table($tableName)->insert($recordArray);
@@ -599,11 +824,11 @@ class CompanyRefreshService
     }
 
     /**
-     * Update any company references in the record
+     * Update company references and relationship mappings
      */
     private function updateCompanyReferences($recordArray, $tableName)
     {
-        // Update any fields that might reference the company ID
+        // Update company ID references
         $companyFields = ['company_id', 'user_id'];
         
         foreach ($companyFields as $field) {
@@ -612,15 +837,81 @@ class CompanyRefreshService
             }
         }
         
+        // Update foreign key relationships
+        $masterDataMappings = [
+            'leads' => ['label_id' => 'labels', 'source_id' => 'sources', 'pipeline_id' => 'pipelines', 'stage_id' => 'stages'],
+            'deals' => ['label_id' => 'labels', 'source_id' => 'sources', 'pipeline_id' => 'pipelines', 'stage_id' => 'stages'],
+            'product_services' => [
+                'category_id' => 'product_service_categories',
+                'sale_chartaccount_id' => 'chart_of_accounts',
+                'expense_chartaccount_id' => 'chart_of_accounts'
+            ],
+            'customers' => [
+                'billing_address' => 'chart_of_accounts',
+                'shipping_address' => 'chart_of_accounts'
+            ],
+            'venders' => [
+                'billing_address' => 'chart_of_accounts'
+            ],
+            'bank_accounts' => [
+                'chart_account_id' => 'chart_of_accounts'
+            ],
+            'employees' => ['branch_id' => 'branches', 'department_id' => 'departments', 'designation_id' => 'designations'],
+            'jobs' => ['branch_id' => 'branches', 'department_id' => 'departments', 'category_id' => 'job_categories'],
+            'awards' => ['award_type_id' => 'award_types'],
+            'trainings' => ['training_type_id' => 'training_types'],
+            'leaves' => ['leave_type_id' => 'leave_types'],
+            'contracts' => ['contract_type_id' => 'contract_types'],
+            'warehouse_products' => ['warehouse_id' => 'warehouses'],
+        ];
+        
+        if (isset($masterDataMappings[$tableName])) {
+            foreach ($masterDataMappings[$tableName] as $foreignKey => $referencedTable) {
+                if (isset($recordArray[$foreignKey]) && $recordArray[$foreignKey] > 0) {
+                    $oldForeignId = $recordArray[$foreignKey];
+                    
+                    // Check if we have a mapping for this master data
+                    if (isset($this->idMappings[$referencedTable][$oldForeignId])) {
+                        $newForeignId = $this->idMappings[$referencedTable][$oldForeignId];
+                        $recordArray[$foreignKey] = $newForeignId;
+                        
+                        Log::info("Mapped {$tableName}.{$foreignKey}: {$oldForeignId} -> {$newForeignId} ({$referencedTable})");
+                    } else {
+                        // Try to find by name match
+                        $oldRecord = DB::table($referencedTable)
+                            ->where('created_by', $this->oldCompanyId)
+                            ->where('id', $oldForeignId)
+                            ->first();
+                            
+                        if ($oldRecord && isset($oldRecord->name)) {
+                            $newRecord = DB::table($referencedTable)
+                                ->where('created_by', $this->newCompanyId)
+                                ->where('name', $oldRecord->name)
+                                ->first();
+                                
+                            if ($newRecord) {
+                                $recordArray[$foreignKey] = $newRecord->id;
+                                Log::info("Found name match for {$tableName}.{$foreignKey}: '{$oldRecord->name}' -> {$newRecord->id}");
+                            } else {
+                                Log::warning("No mapping found for {$tableName}.{$foreignKey} = {$oldForeignId} ({$referencedTable})");
+                                // Set to null to avoid broken references
+                                $recordArray[$foreignKey] = null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         return $recordArray;
     }
 
     /**
-     * Step 5: Copy users to new company (COPY operation for safety)
+     * Step 6: Copy users to new company
      */
     private function copyUsersToNewCompany()
     {
-        Log::info("Step 5: Copying users to new company (SAFE COPY operation)");
+        Log::info("Step 6: Copying users to new company (SAFE COPY operation)");
         
         // Get all users from old company (except the main company user)
         $users = User::where('created_by', $this->oldCompanyId)
@@ -651,29 +942,70 @@ class CompanyRefreshService
     }
 
     /**
-     * Copy user roles and permissions
+     * Copy user roles and permissions with proper ID mapping
      */
     private function copyUserRolesAndPermissions($oldUser, $newUser)
     {
-        // Copy user roles
-        $roles = $oldUser->roles;
-        if ($roles) {
-            $newUser->roles()->sync($roles->pluck('id'));
+        // Get old user's role IDs
+        $oldRoleIds = DB::table('model_has_roles')
+            ->where('model_id', $oldUser->id)
+            ->where('model_type', 'App\\Models\\User')
+            ->pluck('role_id');
+            
+        foreach ($oldRoleIds as $oldRoleId) {
+            // Find the equivalent role in new company using our mappings
+            if (isset($this->idMappings['roles'][$oldRoleId])) {
+                $newRoleId = $this->idMappings['roles'][$oldRoleId];
+                
+                DB::table('model_has_roles')->insert([
+                    'role_id' => $newRoleId,
+                    'model_id' => $newUser->id,
+                    'model_type' => 'App\\Models\\User'
+                ]);
+            } else {
+                // Fallback: try to find by role name
+                $oldRole = DB::table('roles')->where('id', $oldRoleId)->first();
+                
+                if ($oldRole) {
+                    $newRole = DB::table('roles')
+                        ->where('created_by', $this->newCompanyId)
+                        ->where('name', $oldRole->name)
+                        ->first();
+                        
+                    if ($newRole) {
+                        DB::table('model_has_roles')->insert([
+                            'role_id' => $newRole->id,
+                            'model_id' => $newUser->id,
+                            'model_type' => 'App\\Models\\User'
+                        ]);
+                    } else {
+                        Log::warning("Role '{$oldRole->name}' not found in new company for user {$newUser->name}");
+                    }
+                }
+            }
         }
         
-        // Copy direct permissions
-        $permissions = $oldUser->permissions;
-        if ($permissions) {
-            $newUser->permissions()->sync($permissions->pluck('id'));
+        // Handle direct permissions (usually global, so copy as-is)
+        $oldPermissionIds = DB::table('model_has_permissions')
+            ->where('model_id', $oldUser->id)
+            ->where('model_type', 'App\\Models\\User')
+            ->pluck('permission_id');
+            
+        foreach ($oldPermissionIds as $permissionId) {
+            DB::table('model_has_permissions')->insert([
+                'permission_id' => $permissionId,
+                'model_id' => $newUser->id,
+                'model_type' => 'App\\Models\\User'
+            ]);
         }
     }
 
     /**
-     * Step 6: Update company information 
+     * Step 7: Update company information
      */
     private function updateCompanyInformation()
     {
-        Log::info("Step 6: Updating company information");
+        Log::info("Step 7: Updating company information");
         
         $oldCompany = User::find($this->oldCompanyId);
         $newCompany = User::find($this->newCompanyId);
@@ -692,11 +1024,11 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 7: Delete old company only if not dry run
+     * Step 8: Delete old company only if not dry run
      */
     private function deleteOldCompany()
     {
-        Log::info("Step 7: Deleting old company {$this->oldCompanyId}");
+        Log::info("Step 8: Deleting old company {$this->oldCompanyId}");
         
         $oldCompany = User::find($this->oldCompanyId);
         if ($oldCompany) {
@@ -709,16 +1041,14 @@ class CompanyRefreshService
     }
 
     /**
-     * Use existing cascade deletion logic (copied from UserController)
+     * Use existing cascade deletion logic
      */
     private function cascadeDeleteCompanyData($companyId)
     {
         Log::info("Starting cascade deletion for company ID: {$companyId}");
 
-        // Get all tables
         $allTables = $this->getAllDatabaseTables();
 
-        // Tables to exclude (system/shared tables)
         $excludedTables = [
             'migrations', 'password_resets', 'failed_jobs', 'personal_access_tokens',
             'sessions', 'permissions', 'plans', 'coupons', 'admin_payment_settings',
@@ -753,7 +1083,6 @@ class CompanyRefreshService
             }
         }
 
-        // Clean up role permissions
         $this->cleanupRolePermissions($companyId);
     }
 
@@ -773,26 +1102,23 @@ class CompanyRefreshService
     }
 
     /**
-     * Clean up role permissions (from UserController)
+     * Clean up role permissions
      */
     private function cleanupRolePermissions($companyId)
     {
         try {
-            // Delete role permissions for this company's roles
             DB::delete("
                 DELETE rp FROM role_has_permissions rp
                 JOIN roles r ON rp.role_id = r.id
                 WHERE r.created_by = ?
             ", [$companyId]);
 
-            // Delete user role assignments
             DB::delete("
                 DELETE ur FROM model_has_roles ur
                 JOIN users u ON ur.model_id = u.id
                 WHERE u.created_by = ? AND ur.model_type = 'App\\\\Models\\\\User'
             ", [$companyId]);
 
-            // Delete user permissions
             DB::delete("
                 DELETE up FROM model_has_permissions up
                 JOIN users u ON up.model_id = u.id
@@ -905,7 +1231,7 @@ class CompanyRefreshService
             return [
                 'success' => false,
                 'error' => "No template company found for currency: {$oldCompanyCurrency}",
-                'available_currencies' => $this->getAvailableTemplateCurrencies()
+                'available_currencies' => TemplateCompanyConfig::getAvailableCurrencies()
             ];
         }
         
@@ -914,11 +1240,21 @@ class CompanyRefreshService
             'old_company_id' => $oldCompanyId,
             'old_company_currency' => $oldCompanyCurrency,
             'template_company_id' => $templateCompanyId,
+            'master_data_to_process' => [],
             'user_data_to_copy' => [],
-            'potential_conflicts' => [],
             'users_to_copy' => 0,
             'recommendation' => ''
         ];
+
+        // Count master data
+        foreach ($this->masterDataTables as $tableName) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'created_by')) {
+                $count = DB::table($tableName)->where('created_by', $oldCompanyId)->count();
+                if ($count > 0) {
+                    $preview['master_data_to_process'][$tableName] = $count;
+                }
+            }
+        }
 
         // Count user data
         foreach ($this->userDataTables as $tableName) {
@@ -930,47 +1266,24 @@ class CompanyRefreshService
             }
         }
 
-        // Check for potential conflicts
-        foreach ($this->conflictTables as $tableName) {
-            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'created_by')) {
-                $oldCount = DB::table($tableName)->where('created_by', $oldCompanyId)->count();
-                $templateCount = DB::table($tableName)->where('created_by', $templateCompanyId)->count();
-                
-                if ($oldCount > 0 || $templateCount > 0) {
-                    $preview['potential_conflicts'][$tableName] = [
-                        'current_records' => $oldCount,
-                        'template_records' => $templateCount
-                    ];
-                }
-            }
-        }
-
         // Count users
         $preview['users_to_copy'] = User::where('created_by', $oldCompanyId)
             ->where('type', '!=', 'company')
             ->count();
 
         // Generate recommendation
-        $totalConflicts = array_sum(array_column($preview['potential_conflicts'], 'current_records'));
+        $totalMasterData = array_sum($preview['master_data_to_process']);
         $totalUserData = array_sum($preview['user_data_to_copy']);
         
-        if ($totalConflicts == 0 && $totalUserData == 0) {
+        if ($totalMasterData == 0 && $totalUserData == 0) {
             $preview['recommendation'] = "Company appears to be empty - refresh will just apply latest template.";
-        } elseif ($totalConflicts > 20) {
-            $preview['recommendation'] = "High number of potential conflicts ({$totalConflicts}). Review carefully before proceeding.";
+        } elseif ($totalMasterData > 50) {
+            $preview['recommendation'] = "Large amount of master data ({$totalMasterData} records). Review carefully before proceeding.";
         } else {
-            $preview['recommendation'] = "Safe to proceed - {$totalConflicts} potential conflicts and {$totalUserData} user records to preserve.";
+            $preview['recommendation'] = "Safe to proceed - {$totalMasterData} master data records and {$totalUserData} user records to preserve.";
         }
 
         return $preview;
-    }
-
-    /**
-     * Get available template currencies
-     */
-    private function getAvailableTemplateCurrencies()
-    {
-        return TemplateCompanyConfig::getAvailableCurrencies();
     }
 
     /**
@@ -1012,7 +1325,7 @@ class CompanyRefreshService
     public function analyzeCurrencyCompatibility($oldCompanyId)
     {
         $oldCurrency = $this->getCompanyCurrency($oldCompanyId);
-        $availableTemplates = $this->getAvailableTemplateCurrencies();
+        $availableTemplates = TemplateCompanyConfig::getAvailableCurrencies();
         
         return [
             'old_company_id' => $oldCompanyId,
@@ -1023,3 +1336,4 @@ class CompanyRefreshService
         ];
     }
 }
+            '

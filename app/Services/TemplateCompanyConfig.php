@@ -17,12 +17,12 @@ class TemplateCompanyConfig
         // Each template company should have a different currency set up
 
         return [
- 		   2 => 'ZAR',  // South African template (your main/existing one)
-   		   3 => 'EUR',  // European template
-    		   4 => 'GBP',  // UK template  
-    		   5 => 'USD',  // US template
-    		   6 => 'CAD',  // Canadian template
-    		   7 => 'AUD',  // Australian template
+                    2 => 'ZAR',  // South African template (your main/existing one)
+                    3 => 'EUR',  // European template
+                    4 => 'GBP',  // UK template
+                    5 => 'USD',  // US template
+                    6 => 'CAD',  // Canadian template
+                    7 => 'AUD',  // Australian template
 ];
 
         // Alternative approach - dynamic discovery:
@@ -62,13 +62,24 @@ class TemplateCompanyConfig
 
         foreach ($templates as $templateId => $templateCurrency) {
             if ($templateCurrency === $currency) {
-                // Verify this template company actually exists
-                $exists = User::where('type', 'company')
+                // Verify this template company actually exists AND has correct currency
+                $company = User::where('type', 'company')
                     ->where('id', $templateId)
-                    ->exists();
+                    ->first();
 
-                if ($exists) {
-                    return $templateId;
+                if ($company) {
+                    // ✅ CRITICAL FIX: Check actual database currency
+                    $actualCurrency = DB::table('settings')
+                        ->where('created_by', $templateId)
+                        ->where('name', 'site_currency')
+                        ->value('value');
+
+                    // Only return if actual currency matches requested currency
+                    if ($actualCurrency === $currency) {
+                        return $templateId;
+                    } else {
+                        \Log::warning("Template {$templateId} config says '{$currency}' but database has '{$actualCurrency}' - skipping");
+                    }
                 }
             }
         }
@@ -77,25 +88,35 @@ class TemplateCompanyConfig
     }
 
     /**
-     * Get available currencies from template companies
+     * Get available currencies from template companies - FIXED VERSION
      */
     public static function getAvailableCurrencies()
     {
         $templates = self::getTemplateCompanies();
         $currencies = [];
 
-        foreach ($templates as $templateId => $currency) {
+        foreach ($templates as $templateId => $configCurrency) {
             // Verify template exists and get company name
             $company = User::where('type', 'company')
                 ->where('id', $templateId)
                 ->first(['id', 'name']);
 
             if ($company) {
-                $currencies[$currency] = [
-                    'template_id' => $templateId,
-                    'template_name' => $company->name,
-                    'currency' => $currency
-                ];
+                // ✅ Get ACTUAL currency from database
+                $actualCurrency = DB::table('settings')
+                    ->where('created_by', $templateId)
+                    ->where('name', 'site_currency')
+                    ->value('value');
+
+                if ($actualCurrency) {
+                    // ✅ Use ACTUAL currency as key
+                    $currencies[$actualCurrency] = [
+                        'template_id' => $templateId,
+                        'template_name' => $company->name,
+                        'currency' => $actualCurrency,  // ✅ Store actual currency
+                        'config_currency' => $configCurrency  // Optional: keep config for reference
+                    ];
+                }
             }
         }
 
