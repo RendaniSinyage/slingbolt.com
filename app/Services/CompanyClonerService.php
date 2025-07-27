@@ -40,7 +40,7 @@ class CompanyClonerService
             
             // Plans & Subscriptions
             'plans', 'user_plans', 'subscriptions', 'plan_requests', 'coupons',
-            'admin_payment_settings',
+            'admin_payment_settings', // Global admin payment settings (not company-specific)
             
             // Activity & Logs  
             'activity_logs', 'referral_transactions', 'login_details',
@@ -227,14 +227,14 @@ class CompanyClonerService
             'custom_questions',
             'documents',
             
-            // LEVEL 13: Settings and Templates
-            'settings',
+            // LEVEL 13: Settings and Templates (EXPANDED)
+            'settings', // This should include currency, timezone, country, etc.
             'email_templates',
             'notification_templates',
             'user_email_templates',
-            'landing_page_settings',
+            'landing_page_settings', // This includes brand settings like logos, colors, etc.
             'templates',
-            'company_payment_settings',
+            'company_payment_settings', // Payment gateways configuration
             'referral_settings',
             
             // LEVEL 14: Certificate Templates (IMPORTANT - these should be cloned!)
@@ -323,6 +323,11 @@ class CompanyClonerService
         try {
             \Log::info("Attempting to clone table: {$tableName}");
             
+            // Special handling for settings table - only clone specific settings
+            if ($tableName === 'settings') {
+                return $this->cloneSettingsSelectively();
+            }
+            
             // Get source data
             $sourceData = DB::table($tableName)
                 ->where('created_by', $this->sourceCompanyId)
@@ -356,6 +361,88 @@ class CompanyClonerService
             \Log::error("Error cloning table {$tableName}: " . $e->getMessage());
             \Log::error("Stack trace: " . $e->getTraceAsString());
         }
+    }
+
+    /**
+     * Clone only specific settings that should be templated
+     */
+    private function cloneSettingsSelectively()
+    {
+        \Log::info("Cloning settings selectively for company template");
+        
+        // Settings that should be cloned (template settings)
+        $settingsToClone = [
+            // Currency Settings
+            'site_currency',
+            'site_currency_symbol', 
+            'site_currency_symbol_position',
+            'site_currency_symbol_space',
+            'site_currency_symbol_name',
+            'decimal_number_format',
+            'site_decimal_separator',
+            'site_thousands_separator',
+            
+            // Regional Settings  
+            'site_date_format',
+            'site_time_format',
+            'timezone', // Company timezone
+            'country', // Company country
+            
+            // Brand Settings (some)
+            'company_name_header',
+            'title_text',
+            'footer_text',
+            'default_language',
+            
+            // Time Tracker Settings
+            'tracking_interval',
+            'application_url',
+            
+            // Theme Settings
+            'color',
+            'layout_settings',
+            'sidebar_mode',
+            'is_sidebar_transperent',
+            'dark_layout',
+            'cust_darklayout',
+            'cust_theme_bg',
+            'cust_logo_img',
+            'cust_favicon_img',
+            
+            // Other template settings you want to preserve
+            'storage_setting',
+            'mail_driver',
+            'chatgpt_key', // If you want to share API keys
+        ];
+        
+        $sourceSettings = DB::table('settings')
+            ->where('created_by', $this->sourceCompanyId)
+            ->whereIn('name', $settingsToClone)
+            ->get();
+            
+        if ($sourceSettings->isEmpty()) {
+            \Log::info("No template settings found to clone");
+            return;
+        }
+        
+        $clonedCount = 0;
+        foreach ($sourceSettings as $setting) {
+            $settingArray = (array) $setting;
+            unset($settingArray['id']);
+            $settingArray['created_by'] = $this->targetCompanyId;
+            $settingArray['created_at'] = now();
+            $settingArray['updated_at'] = now();
+            
+            try {
+                DB::table('settings')->insert($settingArray);
+                $clonedCount++;
+                \Log::info("Cloned setting: {$setting->name} = {$setting->value}");
+            } catch (\Exception $e) {
+                \Log::error("Error cloning setting {$setting->name}: " . $e->getMessage());
+            }
+        }
+        
+        \Log::info("Successfully cloned {$clonedCount} settings");
     }
 
     /**
@@ -802,6 +889,9 @@ class CompanyClonerService
         });
     }
 
+    /**
+     * Get cloning summary with the new settings
+     */
     public function getCloningPreview()
     {
         $summary = [];
@@ -811,9 +901,21 @@ class CompanyClonerService
             $tableName = array_values((array) $tableObj)[0];
             
             if ($this->shouldCloneTable($tableObj)) {
-                $count = DB::table($tableName)
-                    ->where('created_by', $this->sourceCompanyId)
-                    ->count();
+                if ($tableName === 'settings') {
+                    // Special handling for settings preview
+                    $settingsToClone = [
+                        'site_currency', 'site_currency_symbol', 'timezone', 'country',
+                        'color', 'title_text', 'footer_text', 'default_language'
+                    ];
+                    $count = DB::table($tableName)
+                        ->where('created_by', $this->sourceCompanyId)
+                        ->whereIn('name', $settingsToClone)
+                        ->count();
+                } else {
+                    $count = DB::table($tableName)
+                        ->where('created_by', $this->sourceCompanyId)
+                        ->count();
+                }
                 
                 if ($count > 0) {
                     $summary[$tableName] = $count;
