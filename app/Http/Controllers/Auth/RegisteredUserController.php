@@ -49,7 +49,23 @@ class RegisteredUserController extends Controller
      */
     public function store(Request $request)
     {
-     // Rate limiting: Check registrations from this IP in last hour
+        // EMAIL-based rate limiting: Check if this email has been attempted recently
+        $userEmail = $request->email;
+        $recentEmailAttempts = User::where('email', $userEmail)
+            ->where('created_at', '>', now()->subHour())
+            ->count();
+
+        if ($recentEmailAttempts >= 1) {
+            \Log::warning("Registration blocked - Email already attempted recently", [
+                'email' => $userEmail,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            return redirect()->back()->with('status', __('A verification email was already sent to this address. Please check your email and spam folder.'));
+        }
+
+        // IP-based rate limiting: Check registrations from this IP in last hour
         $userIP = $request->ip();
         $recentRegistrations = User::where('registration_ip', $userIP)
             ->where('created_at', '>', now()->subHour())
@@ -114,9 +130,17 @@ class RegisteredUserController extends Controller
             'referral_code'=> $code,
             'used_referral_code'=>$request->ref_code,
             'created_by' => 1,
-	    'registration_ip' => $request->ip(), // ADD THIS LINE
-    	    'user_agent' => $request->userAgent(), // ADD THIS LINE
+            'registration_ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
         ]);
+
+        \Log::info("New user registration", [
+            'user_id' => $user->id,
+            'email' => $user->email,
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent()
+        ]);
+
         \Auth::login($user);
 
         $settings = Utility::settings();
@@ -130,14 +154,19 @@ class RegisteredUserController extends Controller
                 $user->sendEmailVerificationNotification();
 
                 $role_r = Role::findByName('company');
-		$user->assignRole($role_r);
+                $user->assignRole($role_r);
 
-		// Clone all defaults from template company
-		\Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
-		$user->cloneCompanyDefaults($user->id);
-		\Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
+                // Clone all defaults from template company
+                \Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+                $user->cloneCompanyDefaults($user->id);
+                \Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
             } catch (\Exception $e) {
+                \Log::error("Registration email verification failed", [
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'error' => $e->getMessage()
+                ]);
 
                 $user->delete();
                 return redirect()->back()->with('status', __('Email SMTP settings does not configure so please contact to your site admin.'));
@@ -154,12 +183,12 @@ class RegisteredUserController extends Controller
             $user->email_verified_at = date('h:i:s');
             $user->save();
             $role_r = Role::findByName('company');
-		$user->assignRole($role_r);
+            $user->assignRole($role_r);
 
-		// Clone all defaults from template company
-		\Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
-		$user->cloneCompanyDefaults($user->id);
-		\Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
+            // Clone all defaults from template company
+            \Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+            $user->cloneCompanyDefaults($user->id);
+            \Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
             $userArr = [
                 'email' => $user->email,
@@ -174,7 +203,6 @@ class RegisteredUserController extends Controller
                 return redirect(RouteServiceProvider::HOME);
             }
         }
-
     }
 
     public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
