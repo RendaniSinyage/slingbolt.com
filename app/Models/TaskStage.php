@@ -10,6 +10,7 @@ class TaskStage extends Model
         'name',
         'complete',
         'project_id',
+        'type',
         'color',
         'order',
         'created_by',
@@ -21,6 +22,34 @@ class TaskStage extends Model
         "Review",
         "Done",
     ];
+
+/**
+     * Get type label
+     */
+    public function getTypeLabelAttribute()
+    {
+        return ProjectType::getTypeLabel($this->type);
+    }
+
+    /**
+     * Scope for specific type
+     */
+    public function scopeOfType($query, $type)
+    {
+        return $query->where('type', $type);
+    }
+
+    /**
+     * Scope for project types (standard + specific type)
+     */
+    public function scopeForProjectType($query, $projectType)
+    {
+        return $query->where(function($q) use ($projectType) {
+            $q->where('type', ProjectType::STANDARD)
+              ->orWhere('type', $projectType);
+        });
+    }
+
     public static function getChartData()
     {
         $usr     = \Auth::user();

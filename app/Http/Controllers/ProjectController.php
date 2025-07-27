@@ -55,11 +55,12 @@ class ProjectController extends Controller
     {
         if(\Auth::user()->can('create project'))
         {
-          $users   = User::where('created_by', '=', \Auth::user()->creatorId())->whereNotIn('type', ['company', 'client'])->get()->pluck('name', 'id');
-          $clients = User::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'client')->get()->pluck('name', 'id');
-          $clients->prepend('Select Client', '');
-          $users->prepend('Select User', '');
-            return view('projects.create', compact('clients','users'));
+            $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+            $clients->prepend(__('Select Client'), '');
+
+            $projectTypes = ProjectType::getTypes();
+
+            return view('projects.create', compact('clients', 'projectTypes'));
         }
         else
         {
@@ -75,22 +76,24 @@ class ProjectController extends Controller
      */
     public function store(Request $request)
     {
-
-
         if(\Auth::user()->can('create project'))
         {
             $validator = \Validator::make(
                 $request->all(), [
-                                'project_name' => 'required',
-                                'project_image' => 'required',
-                            ]
+                    'project_name' => 'required',
+                    'type' => 'required|in:' . implode(',', array_keys(ProjectType::getTypes())),
+                    'project_image' => 'required',
+                ]
             );
+
             if($validator->fails())
             {
                 return redirect()->back()->with('error', Utility::errorFormat($validator->getMessageBag()));
             }
+
             $project = new Project();
             $project->project_name = $request->project_name;
+            $project->type = $request->type; // ADD THIS LINE - was missing!
             $project->start_date = date("Y-m-d H:i:s", strtotime($request->start_date));
             $project->end_date = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
 
@@ -103,7 +106,7 @@ class ProjectController extends Controller
                 {
                     $imageName = time() . '.' . $request->project_image->extension();
                     $request->file('project_image')->storeAs('projects', $imageName);
-                    $project->project_image      = 'projects/'.$imageName;
+                    $project->project_image = 'projects/'.$imageName;
                 }
             }
 
@@ -114,12 +117,11 @@ class ProjectController extends Controller
             $project->estimated_hrs = $request->estimated_hrs;
             $project->tags = $request->tag;
             $project->created_by = \Auth::user()->creatorId();
-            $project['copylinksetting']   = '{"member":"on","milestone":"off","basic_details":"on","activity":"off","attachment":"on","bug_report":"on","task":"off","tracker_details":"off","timesheet":"off" ,"password_protected":"off"}';
+            $project['copylinksetting'] = '{"member":"on","milestone":"off","basic_details":"on","activity":"off","attachment":"on","bug_report":"on","task":"off","tracker_details":"off","timesheet":"off" ,"password_protected":"off"}';
 
             $project->save();
 
             if(\Auth::user()->type=='company'){
-
                 ProjectUser::create(
                     [
                         'project_id' => $project->id,
@@ -137,8 +139,6 @@ class ProjectController extends Controller
                         );
                     }
                 }
-
-
             }else{
                 ProjectUser::create(
                     [
@@ -166,13 +166,12 @@ class ProjectController extends Controller
                 }
             }
 
-
             //For Notification
-            $setting  = Utility::settings(\Auth::user()->creatorId());
+            $setting = Utility::settings(\Auth::user()->creatorId());
 
             $client = User::find($project->client_id);
-            $user = User::find($request->user[0]);
-            $users = [$client , $user];
+            $user = isset($request->user[0]) ? User::find($request->user[0]) : null;
+            $users = array_filter([$client, $user]); // Remove null values
 
             if(isset($setting['new_project']) && $setting['new_project'] ==1)
             {
@@ -194,6 +193,7 @@ class ProjectController extends Controller
                 'project_name' => $request->project_name,
                 'user_name' => \Auth::user()->name,
             ];
+
             //Slack Notification
             if(isset($setting['project_notification']) && $setting['project_notification'] ==1)
             {
@@ -208,7 +208,7 @@ class ProjectController extends Controller
 
             //webhook
             $module ='New Project';
-            $webhook=  Utility::webhookSetting($module);
+            $webhook = Utility::webhookSetting($module);
             if($webhook)
             {
                 $parameter = json_encode($project);
@@ -217,9 +217,7 @@ class ProjectController extends Controller
                 {
                     return redirect()->back()->with('error', __('Project add successfully, Webhook call failed.'));
                 }
-
             }
-
 
             return redirect()->route('projects.index')->with('success', __('Project Add Successfully'). ((isset($result) && $result!=1) ? '<br> <span class="text-danger">' . $result . '</span>' : ''));
         }
@@ -392,22 +390,25 @@ class ProjectController extends Controller
      * @param  \App\Poject  $poject
      * @return \Illuminate\Http\Response
      */
-    public function edit(Project $project)
+    public function edit($id)
     {
         if(\Auth::user()->can('edit project'))
         {
-          $clients = User::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'client')->get()->pluck('name', 'id');
-          $clients->prepend('Select Client', '');
-          $project = Project::findOrfail($project->id);
-          if($project->created_by == \Auth::user()->creatorId())
-          {
-              return view('projects.edit', compact('project', 'clients'));
-          }
-          else
-          {
-              return response()->json(['error' => __('Permission denied.')], 401);
-          }
-            return view('projects.edit',compact('project'));
+            $project = Project::find($id);
+
+            if($project->created_by == \Auth::user()->creatorId())
+            {
+                $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                $clients->prepend(__('Select Client'), '');
+
+                $projectTypes = ProjectType::getTypes();
+
+                return view('projects.edit', compact('project', 'clients', 'projectTypes'));
+            }
+            else
+            {
+                return redirect()->back()->with('error', __('Permission denied.'));
+            }
         }
         else
         {
@@ -422,55 +423,110 @@ class ProjectController extends Controller
      * @param  \App\Poject  $poject
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, Project $project)
+    public function update(Request $request, $id)
     {
         if(\Auth::user()->can('edit project'))
         {
-            $validator = \Validator::make(
-                $request->all(), [
-                                'project_name' => 'required',
-                            ]
-            );
-            if($validator->fails())
-            {
-                return redirect()->back()->with('error', Utility::errorFormat($validator->getMessageBag()));
-            }
-            $project = Project::find($project->id);
-            $project->project_name = $request->project_name;
-            $project->start_date = date("Y-m-d H:i:s", strtotime($request->start_date));
-            $project->end_date = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
+            $project = Project::find($id);
 
-            if($request->hasFile('project_image'))
+            if($project->created_by == \Auth::user()->creatorId())
             {
-                //storage limit
-                $file_path = $project->project_image;
-                $image_size = $request->file('project_image')->getSize();
-                $result = Utility::updateStorageLimit(\Auth::user()->creatorId(), $image_size);
+                $validator = Validator::make(
+                    $request->all(),
+                    [
+                        'project_name' => 'required',
+                        'type' => 'required|in:' . implode(',', array_keys(ProjectType::getTypes())),
+                        'start_date' => 'required',
+                        'end_date' => 'required',
+                    ]
+                );
 
-                if($result==1) {
-//                Utility::checkFileExistsnDelete([$project->project_image]);
-                    Utility::changeStorageLimit(\Auth::user()->creatorId(), $file_path);
-                    $imageName = time() . '.' . $request->project_image->extension();
-                    $request->file('project_image')->storeAs('projects', $imageName);
-                    $project->project_image = 'projects/' . $imageName;
+                if($validator->fails())
+                {
+                    return redirect()->back()->with('error', Utility::errorFormat($validator->getMessageBag()));
                 }
+
+                $oldType = $project->type;
+                $newType = $request->type;
+
+                // Handle project image upload if present
+                if($request->hasFile('project_image'))
+                {
+                    // Delete old image if exists
+                    if($project->project_image)
+                    {
+                        Utility::checkFileExistsnDelete([$project->project_image]);
+                    }
+
+                    $filenameWithExt = $request->file('project_image')->getClientOriginalName();
+                    $filename = pathinfo($filenameWithExt, PATHINFO_FILENAME);
+                    $extension = $request->file('project_image')->getClientOriginalExtension();
+                    $fileNameToStore = $filename . '_' . time() . '.' . $extension;
+
+                    $settings = Utility::getStorageSetting();
+                    $dir = $settings['storage_setting'] == 'local' ? 'uploads/projects/' : 'uploads/projects';
+
+                    $path = Utility::upload_file($request, 'project_image', $fileNameToStore, $dir, []);
+                    if($path['flag'] == 1)
+                    {
+                        $request->merge(['project_image' => $path['url']]);
+                    }
+                }
+
+                $project->update($request->all());
+
+                // If project type changed, we might need to handle existing tasks
+                if($oldType !== $newType)
+                {
+                    $this->handleProjectTypeChange($project, $oldType, $newType);
+                }
+
+                return redirect()->route('projects.index')->with('success', __('Project updated successfully.'));
             }
-            $project->budget = $request->budget;
-            $project->client_id = $request->client ?? 0;
-            $project->description = $request->description;
-            $project->status = $request->status;
-            $project->estimated_hrs = $request->estimated_hrs;
-            $project->tags = $request->tag;
-            $project->save();
-
-            return redirect()->route('projects.index')->with('success', __('Project Updated Successfully'). ((isset($result) && $result!=1) ? '<br> <span class="text-danger">' . $result . '</span>' : ''));
-
+            else
+            {
+                return redirect()->back()->with('error', __('Permission denied.'));
+            }
         }
         else
         {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }
     }
+
+
+/**
+ * Handle project type change and task stage reassignment.
+ */
+private function handleProjectTypeChange($project, $oldType, $newType)
+{
+    // Get new available stages for the project
+    $newStages = $project->getAvailableStages();
+
+    if($newStages->isEmpty())
+    {
+        // No stages available for new type, create default ones
+        $this->createDefaultStagesForProject($project);
+        $newStages = $project->getAvailableStages();
+    }
+
+    // Get all tasks for this project that might have invalid stages
+    $tasks = $project->tasks;
+    $validStageIds = $newStages->pluck('id')->toArray();
+
+    foreach($tasks as $task)
+    {
+        // If task stage is not valid for new project type
+        if(!in_array($task->stage_id, $validStageIds))
+        {
+            // Move to first available stage of new type
+            $task->stage_id = $newStages->first()->id;
+            $task->is_complete = 0;
+            $task->marked_at = null;
+            $task->save();
+        }
+    }
+}
 
     /**
      * Remove the specified resource from storage.

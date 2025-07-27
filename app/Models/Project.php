@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use App\Models\ProjectTask;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\ProjectType;
 
 class Project extends Model
 {
@@ -23,6 +24,7 @@ class Project extends Model
         'budget',
         'estimated_hrs',
         'project_stage_id',
+	    'type',
         'description',
         'status',
         'tags',
@@ -43,26 +45,77 @@ class Project extends Model
         'canceled' => 'danger',
     ];
 
+    /**
+     * Get project type label
+     */
+    public function getTypeLabelAttribute()
+    {
+        return ProjectType::getTypeLabel($this->type);
+    }
+
+    /**
+     * Get available task stages for this project based on type
+     */
+    public function getAvailableStages()
+    {
+        return TaskStage::where('created_by', $this->created_by)
+            ->where(function($query) {
+                $query->where('type', ProjectType::STANDARD)
+                      ->orWhere('type', $this->type);
+            })
+            ->orderBy('order')
+            ->get();
+    }
+/**
+     * Check if project is of specific type
+     */
+    public function isType($type)
+    {
+        return $this->type === $type;
+    }
+
+    /**
+     * Get stages specifically for this project type (excluding standard)
+     */
+    public function getTypeSpecificStages()
+    {
+        return TaskStage::where('created_by', $this->created_by)
+            ->where('type', $this->type)
+            ->orderBy('order')
+            ->get();
+    }
+
+    /**
+     * Get only standard stages
+     */
+    public function getStandardStages()
+    {
+        return TaskStage::where('created_by', $this->created_by)
+            ->where('type', ProjectType::STANDARD)
+            ->orderBy('order')
+            ->get();
+    }
+
     public function milestones()
-    {
-        return $this->hasMany('App\Models\Milestone', 'project_id', 'id');
-    }
-
-    protected $appends = ['img_image'];
-
-    // Make new attribute for directly get image
-    public function getImgImageAttribute()
-    {
-//
-        if(!empty($this->project_image) && \Storage::exists($this->project_image))
         {
-            return $this->attributes['img_image'] = 'src=' . asset(\Storage::url($this->project_image));
+            return $this->hasMany('App\Models\Milestone', 'project_id', 'id');
         }
-        else
+
+        protected $appends = ['img_image'];
+
+        // Make new attribute for directly get image
+        public function getImgImageAttribute()
         {
-            return $this->attributes['img_image'] = 'src=' . asset(\Storage::url('uploads/avatar/default.png'));
+            if(!empty($this->project_image) && \Storage::exists($this->project_image))
+            {
+                return $this->attributes['img_image'] = 'src=' . asset(\Storage::url($this->project_image));
+            }
+            else
+            {
+                return $this->attributes['img_image'] = 'src=' . asset(\Storage::url('uploads/avatar/default.png'));
+            }
         }
-    }
+
 
     public static function projectHrs($project_id, $task_id = '')
     {
@@ -93,80 +146,83 @@ class Project extends Model
         return self::$projectTask;
     }
 
-    public function project_progress($project,$last_task)
-    {
-
-        $percentage = 0;
-        $total_task     = $this->tasks->count();
-        $completed_task = $project->tasks->where('stage_id', $last_task)->where('is_complete', 1)->count();
-
-        if($total_task > 0)
+    public function project_progress($project, $last_task)
         {
-            $percentage = intval(($completed_task / $total_task) * 100);
+            $percentage = 0;
+            $total_task     = $this->tasks->count();
+            $completed_task = $project->tasks->where('stage_id', $last_task)->where('is_complete', 1)->count();
+
+            if($total_task > 0)
+            {
+                $percentage = intval(($completed_task / $total_task) * 100);
+            }
+
+            $color = Utility::getProgressColor($percentage);
+
+            return [
+                'color' => $color,
+                'percentage' => $percentage . '%',
+            ];
         }
 
-        $color = Utility::getProgressColor($percentage);
-
-        return [
-            'color' => $color,
-            'percentage' => $percentage . '%',
-        ];
-    }
-
-    //for share project
-    public function project_progress_copy($user_id)
-    {
-        $percentage = 0;
-        $last_task      = TaskStage::orderBy('order', 'DESC')->where('created_by', $user_id)->first();
-        $total_task     = $this->tasks->count();
-        $completed_task = $this->tasks()->where('stage_id', '=', $last_task->id)->where('is_complete', '=', 1)->count();
-        if($total_task > 0)
+        //for share project
+        public function project_progress_copy($user_id)
         {
-            $percentage = intval(($completed_task / $total_task) * 100);
+            $percentage = 0;
+            $availableStages = $this->getAvailableStages();
+            $last_task = $availableStages->last();
+
+            $total_task     = $this->tasks->count();
+            $completed_task = $this->tasks()->where('stage_id', '=', $last_task->id)->where('is_complete', '=', 1)->count();
+
+            if($total_task > 0)
+            {
+                $percentage = intval(($completed_task / $total_task) * 100);
+            }
+
+            $color = Utility::getProgressColor($percentage);
+
+            return [
+                'color' => $color,
+                'percentage' => $percentage . '%',
+            ];
         }
-
-        $color = Utility::getProgressColor($percentage);
-
-        return [
-            'color' => $color,
-            'percentage' => $percentage . '%',
-        ];
-    }
 
 
     public function tasks()
-    {
-        return $this->hasMany('App\Models\ProjectTask', 'project_id', 'id')->orderBy('id', 'desc');
-    }
+        {
+            return $this->hasMany('App\Models\ProjectTask', 'project_id', 'id')->orderBy('id', 'desc');
+        }
 
-    public function users()
-    {
-        return $this->belongsToMany('App\Models\User', 'project_users', 'project_id', 'user_id');
-    }
-    //for project-report
-    public function client()
-    {
-        return $this->hasOne('App\Models\User', 'id', 'client_id');
-    }
+        public function users()
+        {
+            return $this->belongsToMany('App\Models\User', 'project_users', 'project_id', 'user_id');
+        }
 
-    public function projectAttachments()
-    {
-        $usr = Auth::user();
-        $tasks = $this->tasks->pluck('id');
-        return TaskFile::whereIn('task_id', $tasks)->get();
-    }
+        //for project-report
+        public function client()
+        {
+            return $this->hasOne('App\Models\User', 'id', 'client_id');
+        }
 
-    public function activities()
-    {
-        $usr = Auth::user();
-        $activity = $this->hasMany('App\Models\ActivityLog', 'project_id', 'id')->orderBy('id', 'desc');
-        return $activity;
-    }
+        public function projectAttachments()
+        {
+            $usr = Auth::user();
+            $tasks = $this->tasks->pluck('id');
+            return TaskFile::whereIn('task_id', $tasks)->get();
+        }
 
-    public function expense()
-    {
-        return $this->hasMany('App\Models\ProjectExpense', 'project_id', 'id')->orderBy('id', 'desc');
-    }
+        public function activities()
+        {
+            $usr = Auth::user();
+            $activity = $this->hasMany('App\Models\ActivityLog', 'project_id', 'id')->orderBy('id', 'desc');
+            return $activity;
+        }
+
+        public function expense()
+        {
+            return $this->hasMany('App\Models\ProjectExpense', 'project_id', 'id')->orderBy('id', 'desc');
+        }
 
     // Return timesheet html in table format
     public static function getProjectAssignedTimesheetHTML($projects_timesheet = null, $timesheets = [], $days = [], $project_id = null)
@@ -451,36 +507,38 @@ class Project extends Model
         return $projectData;
     }
     public function project_last_stage()
-    {
-        return TaskStage::where('created_by', '=', \Auth::user()->creatorId())->orderBy('order', 'desc')->first();
-    }
-    public function project_total_task($project_id)
-    {
-        return ProjectTask::where('project_id', '=', $project_id)->count();
-    }
-    public function project_complete_task($project_id, $last_stage_id)
-    {
-        return ProjectTask::where('project_id', '=', $project_id)->where('stage_id', '=', $last_stage_id)->count();
-    }
-    public function project_milestone_progress()
-    {
-        $total_milestone     = Milestone::where('project_id', '=', $this->id)->count();
-        $total_progress_sum  = Milestone::where('project_id', '=', $this->id)->sum('progress');
-
-        if($total_milestone > 0)
         {
-            $percentage = intval(($total_progress_sum /$total_milestone));
-            return [
-                'percentage' => $percentage . '%',
-            ];
+            return $this->getAvailableStages()->last();
         }
-        else{
-            return [
-                'percentage' => 0,
-            ];
 
+        public function project_total_task($project_id)
+        {
+            return ProjectTask::where('project_id', '=', $project_id)->count();
         }
-    }
+
+        public function project_complete_task($project_id, $last_stage_id)
+        {
+            return ProjectTask::where('project_id', '=', $project_id)->where('stage_id', '=', $last_stage_id)->count();
+        }
+
+        public function project_milestone_progress()
+        {
+            $total_milestone     = Milestone::where('project_id', '=', $this->id)->count();
+            $total_progress_sum  = Milestone::where('project_id', '=', $this->id)->sum('progress');
+
+            if($total_milestone > 0)
+            {
+                $percentage = intval(($total_progress_sum /$total_milestone));
+                return [
+                    'percentage' => $percentage . '%',
+                ];
+            }
+            else{
+                return [
+                    'percentage' => 0,
+                ];
+            }
+        }
 
 
 

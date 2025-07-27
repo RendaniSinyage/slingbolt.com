@@ -156,6 +156,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReferralProgramController;
 use App\Http\Controllers\TapController;
 use App\Http\Controllers\OAuth2Controller;
+use App\Models\ProjectType;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 
@@ -1214,6 +1215,8 @@ Route::group(['middleware' => ['verified']], function () {
 
     Route::resource('project-task-stages', TaskStageController::class)->middleware(['auth', 'XSS']);
     Route::post('/project-task-stages/order', [TaskStageController::class, 'order'])->name('project-task-stages.order');
+    // AJAX route for getting stages by project type
+    Route::get('task-stages/by-type', [TaskStageController::class, 'getStagesByType'])->name('task-stages.by-type')->middleware(['auth', 'XSS']);
 
     Route::post('project-task-new-stage', [TaskStageController::class, 'storingValue'])->name('new-task-stage')->middleware(['auth', 'XSS']);
     // End Task Module

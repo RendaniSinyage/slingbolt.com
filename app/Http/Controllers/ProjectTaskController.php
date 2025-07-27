@@ -24,81 +24,83 @@ class ProjectTaskController extends Controller
 {
 
     public function index($project_id)
-    {
+{
+    $usr = \Auth::user();
+    if (\Auth::user()->can('manage project task')) {
+        $project = Project::where('id', $project_id)->where('created_by', \Auth::user()->creatorId())->first();
 
-        $usr = \Auth::user();
-        if (\Auth::user()->can('manage project task')) {
-            $project = Project::where('id', $project_id)->where('created_by', \Auth::user()->creatorId())->first();
+        if ($project != null) {
+            // Use the project's getAvailableStages method to get type-specific stages
+            $stages = $project->getAvailableStages();
 
-            if ($project != null) {
-
-                $stages = TaskStage::orderBy('order')->where('created_by', \Auth::user()->creatorId())->get();
-                foreach ($stages as $status) {
-                    $stageClass[] = 'task-list-' . $status->id;
-                    $task = ProjectTask::where('project_id', '=', $project_id);
-                    // check project is shared or owner
-
-                    //end
-                    $task->orderBy('order');
-                    $status['tasks'] = $task->where('stage_id', '=', $status->id)->get();
-                }
-
-                return view('project_task.index', compact('stages', 'stageClass', 'project'));
-            } else {
-                return redirect()->route('projects.index')->with('error', __('Projeat not found'));
+            foreach ($stages as $status) {
+                $stageClass[] = 'task-list-' . $status->id;
+                $task = ProjectTask::where('project_id', '=', $project_id);
+                $task->orderBy('order');
+                $status['tasks'] = $task->where('stage_id', '=', $status->id)->get();
             }
 
+            return view('project_task.index', compact('stages', 'stageClass', 'project'));
         } else {
-            return redirect()->back()->with('error', __('Permission Denied.'));
+            return redirect()->route('projects.index')->with('error', __('Project not found'));
         }
+    } else {
+        return redirect()->back()->with('error', __('Permission Denied.'));
     }
+}
 
     public function create($project_id)
-    {
-        if (\Auth::user()->can('create project task')) {
-            $project = Project::find($project_id);
-            $hrs = Project::projectHrs($project_id);
-            $settings = Utility::settings();
-            $stages = TaskStage::orderBy('order')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name','id');
-            $stages->prepend(__('Select task stage'), '');
+{
+    if (\Auth::user()->can('create project task')) {
+        $project = Project::find($project_id);
+        $hrs = Project::projectHrs($project_id);
+        $settings = Utility::settings();
 
-            return view('project_task.create', compact('project_id', 'stages', 'project', 'hrs', 'settings'));
-        } else {
-            return redirect()->back()->with('error', __('Permission Denied.'));
-        }
+        // Get stages that match the project's type
+        $stages = $project->getAvailableStages()->pluck('name', 'id');
+        $stages->prepend(__('Select task stage'), '');
+
+        return view('project_task.create', compact('project_id', 'stages', 'project', 'hrs', 'settings'));
+    } else {
+        return redirect()->back()->with('error', __('Permission Denied.'));
     }
+}
 
     public function store(Request $request, $project_id)
     {
         if (\Auth::user()->can('create project task')) {
-            $validator = Validator::make(
-                $request->all(), [
-                    'name' => 'required',
-                    'estimated_hrs' => 'required',
-                    'priority' => 'required',
-                    'stage_id' => 'required',
-                ]
-            );
+                $project = Project::find($project_id);
 
-            if ($validator->fails()) {
-                return redirect()->back()->with('error', Utility::errorFormat($validator->getMessageBag()));
-            }
+                $validStageIds = $project->getAvailableStages()->pluck('id')->toArray();
 
-            $usr = Auth::user();
-            $project = Project::find($project_id);
-            $last_stage = $project->first()->id;
-            $post = $request->all();
-            $post['project_id'] = $project->id;
-            $post['stage_id'] = $request->stage_id;
-            $post['assign_to'] = $request->assign_to;
-            $post['created_by'] = \Auth::user()->creatorId();
-            $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date));
-            $post['end_date'] = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
+                $validator = Validator::make(
+                    $request->all(), [
+                        'name' => 'required',
+                        'estimated_hrs' => 'required',
+                        'priority' => 'required',
+                        'stage_id' => 'required|in:' . implode(',', $validStageIds),
+                    ]
+                );
 
-            if ($request->stage_id == $last_stage) {
-                $post['marked_at'] = date('Y-m-d');
-            }
-            $task = ProjectTask::create($post);
+                if ($validator->fails()) {
+                    return redirect()->back()->with('error', Utility::errorFormat($validator->getMessageBag()));
+                }
+
+                    $usr = Auth::user();
+                    $last_stage = $project->getAvailableStages()->last();
+                    $post = $request->all();
+                    $post['project_id'] = $project->id;
+                    $post['stage_id'] = $request->stage_id;
+                    $post['assign_to'] = $request->assign_to;
+                    $post['created_by'] = \Auth::user()->creatorId();
+                    $post['start_date'] = date("Y-m-d H:i:s", strtotime($request->start_date));
+                    $post['end_date'] = isset($request->end_date) ? date("Y-m-d H:i:s", strtotime($request->end_date)) : null;
+
+                    if ($request->stage_id == $last_stage->id) {
+                        $post['marked_at'] = date('Y-m-d');
+                    }
+
+                    $task = ProjectTask::create($post);
 
             //Make entry in activity log
             ActivityLog::create(
@@ -351,7 +353,9 @@ class ProjectTaskController extends Controller
             $project = Project::find($project_id);
             $task = ProjectTask::find($task_id);
             $hrs = Project::projectHrs($project_id);
-            $stages = TaskStage::orderBy('order')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name','id');
+
+            // Get stages that match the project's type
+            $stages = $project->getAvailableStages()->pluck('name', 'id');
             $stages->prepend(__('Select task stage'), '');
 
             return view('project_task.edit', compact('project', 'task', 'hrs', 'stages'));
@@ -360,15 +364,19 @@ class ProjectTaskController extends Controller
         }
     }
 
+
     public function update(Request $request, $project_id, $task_id)
     {
         if (\Auth::user()->can('edit project task')) {
+            $project = Project::find($project_id);
+            $validStageIds = $project->getAvailableStages()->pluck('id')->toArray();
+
             $validator = Validator::make(
                 $request->all(), [
                     'name' => 'required',
                     'estimated_hrs' => 'required',
                     'priority' => 'required',
-                    'stage_id' => 'required',
+                    'stage_id' => 'required|in:' . implode(',', $validStageIds),
                 ]
             );
 
