@@ -141,6 +141,7 @@ class RefreshCompanyCommand extends Command
         $this->line("  php artisan company:refresh 6 --preview     # Preview");
         $this->line("  php artisan company:refresh 6 --dry-run     # Test");
         $this->line("  php artisan company:refresh 6               # Execute");
+	$this->line("  php artisan company:refresh --cleanup=137   # Cleanup");
     }
 
     /**
