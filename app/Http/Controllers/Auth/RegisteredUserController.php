@@ -258,42 +258,6 @@ class RegisteredUserController extends Controller
             }
         }
 
-        public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
-        {
-            $settings = Utility::settings();
-
-            if($settings['enable_signup'] == 'on')
-            {
-                $langList = Utility::languages()->toArray();
-                $lang = array_key_exists($lang, $langList) ? $lang : 'en';
-
-                if($lang == '')
-                {
-                    $lang = Utility::getValByName('default_language');
-                }
-                \App::setLocale($lang);
-                if($ref == '')
-                {
-                    $ref = 0;
-                }
-
-                $refCode = User::where('referral_code' , '=', $ref)->first();
-                if(isset($refCode) && $refCode->referral_code != $ref)
-                {
-                    return redirect()->route('register');
-                }
-
-                $plan = null;
-                if($request->plan){
-                    $plan = $request->plan;
-                }
-                return view('auth.register', compact('lang' , 'ref', 'plan'));
-            }
-            else
-            {
-                return \Redirect::to('login');
-            }
-        }
 
     public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
     {
