@@ -9,7 +9,8 @@ use App\Models\GenerateOfferLetter;
 use App\Models\JoiningLetter;
 use App\Models\NOC;
 use App\Models\User;
-use  App\Models\Utility;
+use App\Models\Plan;
+use App\Models\Utility;
 use Auth;
 use App\Providers\RouteServiceProvider;
 use Illuminate\Auth\Events\Registered;
@@ -40,170 +41,259 @@ class RegisteredUserController extends Controller
     }
 
     /**
-     * Handle an incoming registration request.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public function store(Request $request)
-    {
-        // EMAIL-based rate limiting: Check if this email has been attempted recently
-        $userEmail = $request->email;
-        $recentEmailAttempts = User::where('email', $userEmail)
-            ->where('created_at', '>', now()->subHour())
-            ->count();
-
-        if ($recentEmailAttempts >= 1) {
-            \Log::warning("Registration blocked - Email already attempted recently", [
-                'email' => $userEmail,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent()
-            ]);
-
-            return redirect()->back()->with('status', __('A verification email was already sent to this address. Please check your email and spam folder.'));
-        }
-
-        // IP-based rate limiting: Check registrations from this IP in last hour
-        $userIP = $request->ip();
-        $recentRegistrations = User::where('registration_ip', $userIP)
-            ->where('created_at', '>', now()->subHour())
-            ->count();
-
-        if ($recentRegistrations >= 3) {
-            \Log::warning("Public registration blocked - IP rate limit exceeded", [
-                'ip' => $userIP,
-                'recent_count' => $recentRegistrations,
-                'user_agent' => $request->userAgent()
-            ]);
-
-            return redirect()->back()->with('status', __('Too many registration attempts. Please try again later.'));
-        }
-
-        $settings = Utility::settings();
-        //ReCpatcha
-        $validation = [];
-
-        if(isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
+         * Handle an incoming registration request.
+         *
+         * @param  \Illuminate\Http\Request  $request
+         * @return \Illuminate\Http\RedirectResponse
+         *
+         * @throws \Illuminate\Validation\ValidationException
+         */
+        public function store(Request $request)
         {
-            if($settings['google_recaptcha_version'] == 'v2-checkbox'){
-                $validation['g-recaptcha-response'] = 'required|captcha';
+            // EMAIL-based rate limiting: Check if this email has been attempted recently
+            $userEmail = $request->email;
+            $recentEmailAttempts = User::where('email', $userEmail)
+                ->where('created_at', '>', now()->subHour())
+                ->count();
+
+            if ($recentEmailAttempts >= 1) {
+                \Log::warning("Registration blocked - Email already attempted recently", [
+                    'email' => $userEmail,
+                    'ip' => $request->ip(),
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                return redirect()->back()->with('status', __('A verification email was already sent to this address. Please check your email and spam folder.'));
             }
-            elseif($settings['google_recaptcha_version'] == 'v3-checkbox'){
-                $result = event(new VerifyReCaptchaToken($request));
 
-                if (!isset($result[0]['status']) || $result[0]['status'] != true) {
-                    $key = 'g-recaptcha-response';
-                    $request->merge([$key => null]); // Set the key to null
+            // IP-based rate limiting: Check registrations from this IP in last hour
+            $userIP = $request->ip();
+            $recentRegistrations = User::where('registration_ip', $userIP)
+                ->where('created_at', '>', now()->subHour())
+                ->count();
 
-                    $validation['g-recaptcha-response'] = 'required';
+            if ($recentRegistrations >= 3) {
+                \Log::warning("Public registration blocked - IP rate limit exceeded", [
+                    'ip' => $userIP,
+                    'recent_count' => $recentRegistrations,
+                    'user_agent' => $request->userAgent()
+                ]);
+
+                return redirect()->back()->with('status', __('Too many registration attempts. Please try again later.'));
+            }
+
+            $settings = Utility::settings();
+            //ReCpatcha
+            $validation = [];
+
+            if(isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
+            {
+                if($settings['google_recaptcha_version'] == 'v2-checkbox'){
+                    $validation['g-recaptcha-response'] = 'required|captcha';
+                }
+                elseif($settings['google_recaptcha_version'] == 'v3-checkbox'){
+                    $result = event(new VerifyReCaptchaToken($request));
+
+                    if (!isset($result[0]['status']) || $result[0]['status'] != true) {
+                        $key = 'g-recaptcha-response';
+                        $request->merge([$key => null]); // Set the key to null
+
+                        $validation['g-recaptcha-response'] = 'required';
+                    }
+                }else{
+                    $validation = [];
                 }
             }else{
                 $validation = [];
             }
-        }else{
-            $validation = [];
-        }
-        $this->validate($request, $validation);
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => ['required', 'string',
-                         'min:8','confirmed', Rules\Password::defaults()],
-            'terms' => 'required',
-        ]);
+            $this->validate($request, $validation);
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'required|string|email|max:255|unique:users',
+                'password' => ['required', 'string',
+                             'min:8','confirmed', Rules\Password::defaults()],
+                'terms' => 'required',
+            ]);
 
-        do {
-            $code = rand(100000, 999999);
-        } while (User::where('referral_code', $code)->exists());
+            do {
+                $code = rand(100000, 999999);
+            } while (User::where('referral_code', $code)->exists());
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'type' => 'company',
-            'default_pipeline' => 1,
-            'plan' => 1,
-            'lang' => Utility::getValByName('default_language'),
-            'avatar' => '',
-            'referral_code'=> $code,
-            'used_referral_code'=>$request->ref_code,
-            'created_by' => 1,
-            'registration_ip' => $request->ip(),
-            'user_agent' => $request->userAgent(),
-        ]);
+            // Handle plan selection and trial assignment
+            $selectedPlan = 1; // Default free plan
+            $trialPlan = 0;
+            $trialExpireDate = null;
+            $requestedPlan = 0;
 
-        \Log::info("New user registration", [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'ip' => $request->ip(),
-            'user_agent' => $request->userAgent()
-        ]);
+            if (isset($request->plan) && !empty($request->plan)) {
+                try {
+                    $planId = Crypt::decrypt($request->plan);
+                    $plan = Plan::find($planId);
 
-        \Auth::login($user);
+                    if ($plan && $plan->is_disable == 1) {
+                        // Give them a trial of the selected plan
+                        $selectedPlan = $planId;
+                        $trialPlan = $planId;
 
-        $settings = Utility::settings();
+                        // Set trial expiration - use plan's trial_days or default to 14 days
+                        $trialDays = $plan->trial_days && $plan->trial_days > 0 ? $plan->trial_days : 14;
+                        $trialExpireDate = now()->addDays($trialDays)->toDateString();
 
-        if ($settings['email_verification'] == 'on') {
-            try {
+                        \Log::info("User selected plan trial", [
+                            'plan_id' => $planId,
+                            'plan_name' => $plan->name,
+                            'trial_days' => $trialDays,
+                            'trial_expire_date' => $trialExpireDate
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    \Log::warning("Invalid plan parameter provided", [
+                        'plan_param' => $request->plan,
+                        'error' => $e->getMessage()
+                    ]);
+                    // Fall back to default plan
+                    $selectedPlan = 1;
+                }
+            } else {
+                // No plan selected - give them a trial of plan 3 by default
+                $defaultTrialPlan = Plan::find(3);
+                if ($defaultTrialPlan && $defaultTrialPlan->is_disable == 1) {
+                    $selectedPlan = 3;
+                    $trialPlan = 3;
+                    $trialDays = $defaultTrialPlan->trial_days && $defaultTrialPlan->trial_days > 0 ? $defaultTrialPlan->trial_days : 14;
+                    $trialExpireDate = now()->addDays($trialDays)->toDateString();
 
-                Utility::smtpDetail(1);
+                    \Log::info("User given default trial plan", [
+                        'plan_id' => 3,
+                        'plan_name' => $defaultTrialPlan->name,
+                        'trial_days' => $trialDays
+                    ]);
+                }
+            }
 
-                // event(new Registered($user));
-                $user->sendEmailVerificationNotification();
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'type' => 'company',
+                'default_pipeline' => 1,
+                'plan' => $selectedPlan,
+                'trial_plan' => $trialPlan,
+                'trial_expire_date' => $trialExpireDate,
+                'requested_plan' => $requestedPlan,
+                'lang' => Utility::getValByName('default_language'),
+                'avatar' => '',
+                'referral_code'=> $code,
+                'used_referral_code'=>$request->ref_code,
+                'created_by' => 1,
+                'registration_ip' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+            ]);
 
+            \Log::info("New user registration", [
+                'user_id' => $user->id,
+                'email' => $user->email,
+                'plan' => $selectedPlan,
+                'trial_plan' => $trialPlan,
+                'trial_expire_date' => $trialExpireDate,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+
+            \Auth::login($user);
+
+            $settings = Utility::settings();
+
+            if ($settings['email_verification'] == 'on') {
+                try {
+
+                    Utility::smtpDetail(1);
+
+                    // event(new Registered($user));
+                    $user->sendEmailVerificationNotification();
+
+                    $role_r = Role::findByName('company');
+                    $user->assignRole($role_r);
+
+                    // Clone all defaults from template company
+                    \Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+                    $user->cloneCompanyDefaults($user->id);
+                    \Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
+
+                } catch (\Exception $e) {
+                    \Log::error("Registration email verification failed", [
+                        'user_id' => $user->id,
+                        'email' => $user->email,
+                        'error' => $e->getMessage()
+                    ]);
+
+                    $user->delete();
+                    return redirect()->back()->with('status', __('Email SMTP settings does not configure so please contact to your site admin.'));
+                }
+
+                // For email verification flow, don't redirect to payment
+                return redirect(RouteServiceProvider::HOME);
+
+            } else {
+                $user->email_verified_at = date('Y-m-d H:i:s'); // Fixed timestamp format
+                $user->save();
                 $role_r = Role::findByName('company');
                 $user->assignRole($role_r);
 
                 // Clone all defaults from template company
-                \Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
+                \Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
                 $user->cloneCompanyDefaults($user->id);
-                \Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
+                \Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
-            } catch (\Exception $e) {
-                \Log::error("Registration email verification failed", [
-                    'user_id' => $user->id,
+                // Send welcome email (fix the method name)
+                $userArr = [
                     'email' => $user->email,
-                    'error' => $e->getMessage()
-                ]);
+                    'password' => $request->password, // Use plain password for email
+                ];
 
-                $user->delete();
-                return redirect()->back()->with('status', __('Email SMTP settings does not configure so please contact to your site admin.'));
-            }
+                $resp = Utility::sendEmailTemplate('new_user', [$user->id => $user->email], $userArr);
 
-            if (isset($request->plan) && Crypt::decrypt($request->plan) && Crypt::decrypt($request->plan) != 1) {
-                return redirect()->route('stripe', ['code' => $request->plan]);
-            } else {
-                return redirect(RouteServiceProvider::HOME);
-                // return view('auth.verify');
-            }
-
-        } else {
-            $user->email_verified_at = date('h:i:s');
-            $user->save();
-            $role_r = Role::findByName('company');
-            $user->assignRole($role_r);
-
-            // Clone all defaults from template company
-            \Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
-            $user->cloneCompanyDefaults($user->id);
-            \Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
-
-            $userArr = [
-                'email' => $user->email,
-                'password' => $user->password,
-            ];
-
-            $resp = Utility::sendUserEmailTemplate('new_user', [$user->id => $user->email], $userArr);
-
-            if (isset($request->plan) && Crypt::decrypt($request->plan) && Crypt::decrypt($request->plan) != 1) {
-                return redirect()->route('stripe', ['code' => $request->plan]);
-            } else {
+                // Always redirect to home for trial users - no payment needed
                 return redirect(RouteServiceProvider::HOME);
             }
         }
-    }
+
+        public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
+        {
+            $settings = Utility::settings();
+
+            if($settings['enable_signup'] == 'on')
+            {
+                $langList = Utility::languages()->toArray();
+                $lang = array_key_exists($lang, $langList) ? $lang : 'en';
+
+                if($lang == '')
+                {
+                    $lang = Utility::getValByName('default_language');
+                }
+                \App::setLocale($lang);
+                if($ref == '')
+                {
+                    $ref = 0;
+                }
+
+                $refCode = User::where('referral_code' , '=', $ref)->first();
+                if(isset($refCode) && $refCode->referral_code != $ref)
+                {
+                    return redirect()->route('register');
+                }
+
+                $plan = null;
+                if($request->plan){
+                    $plan = $request->plan;
+                }
+                return view('auth.register', compact('lang' , 'ref', 'plan'));
+            }
+            else
+            {
+                return \Redirect::to('login');
+            }
+        }
 
     public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
     {
