@@ -19,6 +19,14 @@
                 {{ Form::label('project_name', __('Project Name'), ['class' => 'form-label']) }}<x-required></x-required>
                 {{ Form::text('project_name', null, ['class' => 'form-control', 'required' => 'required']) }}
             </div>
+        <div class="row">
+            <div class="col-sm-12 col-md-12">
+                <div class="form-group">
+                    {{ Form::label('type', __('Project Type'), ['class' => 'form-label']) }}<x-required></x-required>
+                    {{ Form::select('type', $projectTypes, null, ['class' => 'form-control', 'required' => 'required', 'id' => 'project_type']) }}
+                </div>
+            </div>
+        </div>
         </div>
     </div>
     <div class="row">

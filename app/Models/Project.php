@@ -59,10 +59,7 @@ class Project extends Model
     public function getAvailableStages()
     {
         return TaskStage::where('created_by', $this->created_by)
-            ->where(function($query) {
-                $query->where('type', ProjectType::STANDARD)
-                      ->orWhere('type', $this->type);
-            })
+            ->where('type', $this->type)
             ->orderBy('order')
             ->get();
     }

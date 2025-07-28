@@ -6,6 +6,10 @@
                 {{Form::label('name',__('Project Task Stage Name'),['class'=>'form-label'])}}<x-required></x-required>
                 {{Form::text('name',null,array('class'=>'form-control', 'placeholder'=>__('Enter Project Stage Name'), 'required' => 'required'))}}
             </div>
+            <div class="form-group col-12">
+                {{ Form::label('type', __('Project Type'),['class'=>'form-label']) }}<x-required></x-required>
+                {{ Form::select('type', $projectTypes, null, array('class' => 'form-control','required'=>'required', 'placeholder'=>__('Select Project Type'))) }}
+            </div>
         </div>
         <div class="form-group col-12">
             {{ Form::label('color', __('Color'),['class'=>'form-label']) }}<x-required></x-required>

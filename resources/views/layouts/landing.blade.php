@@ -59,7 +59,7 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="description" content="Dashboard Template Description" />
     <meta name="keywords" content="Dashboard Template" />
-    <meta name="author" content="WorkDo" />
+    <meta name="author" content="Juvo" />
 
     <!-- Favicon icon -->
     <link rel="icon" href="{{asset('assets/images/favicon.png')}}" type="image/x-icon" />

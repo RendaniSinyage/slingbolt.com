@@ -4,7 +4,7 @@
             <div class="card-body table-border-style">
                 <div class="table-responsive">
                     <table class="table datatable">
-                        <thead>
+                        <thead> 
                             <tr>
                                 <th scope="col">{{ __('Name') }}</th>
                                 <th scope="col">{{ __('Stage') }}</th>
@@ -34,7 +34,7 @@
                                                     {{ __($checkProject) }}</span>
                                             </span>
                                         </td>
-                                        <td>{{ $task->stage->name }}</td>
+                                        <td>{{ $task->stage ? $task->stage->name : '-' }}</td>
                                         <td>
                                             <span
                                                 class="status_badge badge p-2 px-3 rounded bg-{{ __(\App\Models\ProjectTask::$priority_color[$task->priority]) }}">{{ __(\App\Models\ProjectTask::$priority[$task->priority]) }}</span>

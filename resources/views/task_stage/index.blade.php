@@ -43,24 +43,40 @@
             <a href="#" data-url="{{ route('project-task-stages.create') }}"  data-bs-toggle="tooltip" title="{{__('Create')}}" class="btn btn-sm btn-primary" data-ajax-popup="true" data-title="{{__('Create Project Task Stage')}}">
                 <i class="ti ti-plus"></i>
             </a>
-
     @endcan
 </div>
-
 @endsection
+
 @section('content')
     <div class="row justify-content-center">
         <div class="col-sm-12 col-md-10 col-xxl-8">
+            @php($groupedStages = $task_stages->groupBy('type'))
+            @php($projectTypes = \App\Models\ProjectType::getTypes())
 
-                <div class="card mt-5">
-                    <div class="card-body">
-                        <div class="tab-content" id="pills-tabContent">
-                            @php($i=0)
-                            @foreach ($task_stages as $key => $task_stage)
+            <div class="p-3 card">
+                <ul class="nav nav-pills nav-fill" id="pills-tab" role="tablist">
+                    @php($i=0)
+                    @foreach($groupedStages as $type => $stages)
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link @if($i==0) active @endif" id="pills-type-tab-{{$i}}" data-bs-toggle="pill"
+                                    data-bs-target="#tab-{{$type}}" type="button">
+                                {{ $projectTypes[$type] ?? ucfirst($type) }}
+                                <span class="badge bg-secondary ms-1">{{ $stages->count() }}</span>
+                            </button>
+                        </li>
+                        @php($i++)
+                    @endforeach
+                </ul>
+            </div>
 
-                            <div class="tab-pane fade show  @if($i==0) active @endif" role="tabpanel">
+            <div class="card mt-3">
+                <div class="card-body">
+                    <div class="tab-content" id="pills-tabContent">
+                        @php($i=0)
+                        @foreach($groupedStages as $type => $stages)
+                            <div class="tab-pane fade show @if($i==0) active @endif" id="tab-{{$type}}" role="tabpanel" aria-labelledby="pills-type-tab-{{$i}}">
                                 <ul class="list-unstyled list-group sortable stage">
-                                    @foreach ($task_stages as $task_stage)
+                                    @foreach ($stages as $task_stage)
                                         <li class="d-flex align-items-center justify-content-between list-group-item" data-id="{{$task_stage->id}}">
                                             <h6 class="mb-0">
                                                 <i class="me-3 ti ti-arrows-maximize " data-feather="move"></i>
@@ -69,7 +85,7 @@
                                             <span class="float-end">
                                                 @can('edit project task stage')
                                                     <div class="action-btn me-2">
-                                                        <a href="#" data-url="{{ URL::to('project-task-stages/'.$task_stage->id.'/edit') }}" data-ajax-popup="true"  data-bs-toggle="tooltip" title="{{__('Edit')}}" data-title="{{__('Edit Bug Status')}}" class="mx-3 btn btn-sm align-items-center bg-info">
+                                                        <a href="#" data-url="{{ URL::to('project-task-stages/'.$task_stage->id.'/edit') }}" data-ajax-popup="true"  data-bs-toggle="tooltip" title="{{__('Edit')}}" data-title="{{__('Edit Task Stage')}}" class="mx-3 btn btn-sm align-items-center bg-info">
                                                           <i class="ti ti-pencil text-white"></i>
                                                       </a>
                                                     </div>
@@ -82,7 +98,6 @@
                                                               </a>
                                                             {!! Form::close() !!}
                                                         </div>
-
                                                 @endcan
                                             </span>
                                         </li>
@@ -90,13 +105,11 @@
                                 </ul>
                             </div>
                             @php($i++)
-                            @endforeach
-                        </div>
-                        <p class=" mt-4"><strong>{{__('Note')}} : </strong><b>{{__('You can easily change order of project task stage using drag & drop.')}}</b></p>
-
+                        @endforeach
                     </div>
+                    <p class=" mt-4"><strong>{{__('Note')}} : </strong><b>{{__('You can easily change order of project task stage using drag & drop.')}}</b></p>
                 </div>
-
+            </div>
         </div>
     </div>
 @endsection

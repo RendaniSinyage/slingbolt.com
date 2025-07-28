@@ -254,6 +254,14 @@ class ProjectTaskController extends Controller
         if ($request->ajax() && $request->has('view') && $request->has('sort')) {
             $sort = explode('-', $request->sort);
             $tasks = ProjectTask::whereIn('project_id', $user_projects)->orderBy($sort[0], $sort[1]);
+
+            // Add project type filtering if requested
+                    if ($request->has('project_type') && $request->project_type) {
+                        $projectsOfType = Project::whereIn('id', $user_projects)
+                                               ->where('type', $request->project_type)
+                                               ->pluck('id');
+                        $tasks->whereIn('project_id', $projectsOfType);
+                    }
             if (\Auth::user()->type != 'company') {
                 if (\Auth::user()->type == 'client') {
                     $tasks->where('created_by', \Auth::user()->creatorId());
@@ -298,7 +306,7 @@ class ProjectTaskController extends Controller
                 }
             }
 
-            $tasks = $tasks->with(['project'])->get();
+            $tasks = $tasks->with(['project', 'stage'])->get();
             $view=$request->view;
             $returnHTML = view('project_task.' . $request->view, compact('tasks','view'))->render();
 

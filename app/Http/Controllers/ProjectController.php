@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Validator;
+use App\Models\ProjectType;
 
 class ProjectController extends Controller
 {
@@ -58,15 +59,18 @@ class ProjectController extends Controller
             $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
             $clients->prepend(__('Select Client'), '');
 
+            $users = User::where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+
             $projectTypes = ProjectType::getTypes();
 
-            return view('projects.create', compact('clients', 'projectTypes'));
+            return view('projects.create', compact('clients', 'users', 'projectTypes'));
         }
         else
         {
             return redirect()->back()->with('error', __('Permission Denied.'));
         }
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -82,7 +86,7 @@ class ProjectController extends Controller
                 $request->all(), [
                     'project_name' => 'required',
                     'type' => 'required|in:' . implode(',', array_keys(ProjectType::getTypes())),
-                    'project_image' => 'required',
+                   // 'project_image' => 'required',
                 ]
             );
 
@@ -391,30 +395,30 @@ class ProjectController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
-    {
-        if(\Auth::user()->can('edit project'))
         {
-            $project = Project::find($id);
-
-            if($project->created_by == \Auth::user()->creatorId())
+            if(\Auth::user()->can('edit project'))
             {
-                $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
-                $clients->prepend(__('Select Client'), '');
+                $project = Project::find($id);
 
-                $projectTypes = ProjectType::getTypes();
+                if($project->created_by == \Auth::user()->creatorId())
+                {
+                    $clients = User::where('type', 'client')->where('created_by', \Auth::user()->creatorId())->get()->pluck('name', 'id');
+                    $clients->prepend(__('Select Client'), '');
 
-                return view('projects.edit', compact('project', 'clients', 'projectTypes'));
+                    $projectTypes = ProjectType::getTypes();
+
+                    return view('projects.edit', compact('project', 'clients', 'projectTypes'));
+                }
+                else
+                {
+                    return redirect()->back()->with('error', __('Permission denied.'));
+                }
             }
             else
             {
-                return redirect()->back()->with('error', __('Permission denied.'));
+                return redirect()->back()->with('error', __('Permission Denied.'));
             }
         }
-        else
-        {
-            return redirect()->back()->with('error', __('Permission Denied.'));
-        }
-    }
 
     /**
      * Update the specified resource in storage.
@@ -437,7 +441,7 @@ class ProjectController extends Controller
                         'project_name' => 'required',
                         'type' => 'required|in:' . implode(',', array_keys(ProjectType::getTypes())),
                         'start_date' => 'required',
-                        'end_date' => 'required',
+                        //'end_date' => 'required',
                     ]
                 );
 
@@ -1349,6 +1353,7 @@ private function handleProjectTypeChange($project, $oldType, $newType)
             $project                            = Project::find($id);
             $duplicate                          = new Project();
             $duplicate['project_name']          = $project->project_name;
+            $duplicate['type']                  = $project->type;
             $duplicate['status']                = $project->status;
             $duplicate['project_image']         = $project->project_image;
             $duplicate['client_id']             = $project->client_id;
