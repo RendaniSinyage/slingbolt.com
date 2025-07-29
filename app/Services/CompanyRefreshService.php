@@ -227,7 +227,7 @@ class CompanyRefreshService
     }
 
     /**
-     * Main refresh method - creates new company and COPIES data
+     * Main refresh method - UNIFIED approach for both dry run and actual refresh
      */
     public function refreshCompany($oldCompanyId, $options = [])
     {
@@ -242,8 +242,8 @@ class CompanyRefreshService
                 // Step 1: Determine template company based on currency
                 $this->templateCompanyId = $this->determineTemplateCompany();
 
-                // Step 2: Clone template to new company using CompanyClonerService
-                $this->newCompanyId = $this->cloneTemplateToNewCompany();
+                // Step 2: Clone template to new company with PREFIXED data (ALWAYS)
+                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix();
 
                 // Step 3: Process all master data (unified approach)
                 $this->processMasterData();
@@ -254,17 +254,18 @@ class CompanyRefreshService
                 // Step 5: Copy all user-generated data (COPY operation for safety)
                 $this->copyUserGeneratedData();
 
-                // Step 6: Copy users to new company (COPY operation)
-                $this->copyUsersToNewCompany();
+                // Step 6: Copy users to new company with PREFIXED emails (ALWAYS)
+                $this->copyUsersToNewCompanyWithPrefix();
 
-                // Step 7: Update company information
-                $this->updateCompanyInformation();
-
-                // Step 8: Only delete old company if NOT dry run and everything succeeded
+                // === ACTUAL REFRESH ONLY: Additional steps ===
                 if (!$this->isDryRun) {
+                    // Step 7: Delete old company (now safe since new company has prefixed data)
                     $this->deleteOldCompany();
+
+                    // Step 8: Remove prefixes and finalize company data
+                    $this->removePrefixesAndFinalize();
                 } else {
-                    Log::info("DRY RUN: Old company {$this->oldCompanyId} preserved for testing");
+                    Log::info("DRY RUN: Old company {$this->oldCompanyId} preserved, new company has prefixed data");
                 }
 
                 return $this->generateSuccessResponse();
@@ -338,25 +339,26 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 2: Clone template company to new company using CompanyClonerService
+     * Step 2: Clone template to new company with prefixed data (ALWAYS)
      */
-    private function cloneTemplateToNewCompany()
+    private function cloneTemplateToNewCompanyWithPrefix()
     {
-        Log::info("Step 2: Cloning template company {$this->templateCompanyId} to new company");
+        Log::info("Step 2: Cloning template company {$this->templateCompanyId} to new company with prefixed data");
 
         $oldCompany = User::find($this->oldCompanyId);
+        $prefix = $this->isDryRun ? 'dryrun_' : 'refresh_';
 
-        // Create new company record with proper fields
+        // Create new company record with prefixed email
         $newCompanyId = DB::table('users')->insertGetId([
-            'name' => $oldCompany->name . ($this->isDryRun ? ' (DRY RUN)' : ''),
-            'email' => $this->generateTempEmail($oldCompany->email),
-            'email_verified_at' => $this->isDryRun ? now() : $oldCompany->email_verified_at, // FIX: Set email as verified for dry run
-            'password' => $oldCompany->password, // FIX: Copy password from original company
+            'name' => $oldCompany->name . ($this->isDryRun ? ' (DRY RUN)' : ' (REFRESH)'),
+            'email' => $prefix . time() . '_' . $oldCompany->email,
+            'email_verified_at' => $oldCompany->email_verified_at,
+            'password' => $oldCompany->password,
             'type' => 'company',
             'lang' => $oldCompany->lang ?? 'en',
-            'avatar' => $oldCompany->avatar ?? 'avatar.png', // FIX: Default avatar
-            'plan' => $oldCompany->plan, // FIX: Copy plan
-            'plan_expire_date' => $oldCompany->plan_expire_date, // FIX: Copy plan expiry
+            'avatar' => $oldCompany->avatar ?? 'avatar.png',
+            'plan' => $oldCompany->plan,
+            'plan_expire_date' => $oldCompany->plan_expire_date,
             'trial_plan' => $oldCompany->trial_plan ?? 0,
             'trial_expire_date' => $oldCompany->trial_expire_date,
             'requested_plan' => $oldCompany->requested_plan ?? 0,
@@ -367,9 +369,9 @@ class CompanyRefreshService
             'delete_status' => $oldCompany->delete_status ?? 1,
             'mode' => $oldCompany->mode ?? 'light',
             'dark_mode' => $oldCompany->dark_mode ?? 0,
-            'is_disable' => $oldCompany->is_disable, // Copy from old company
-            'is_enable_login' => $oldCompany->is_enable_login, // Copy from old company
-            'is_active' => $oldCompany->is_active ?? 1, // Copy from old company
+            'is_disable' => $oldCompany->is_disable,
+            'is_enable_login' => $oldCompany->is_enable_login,
+            'is_active' => $oldCompany->is_active ?? 1,
             'referral_code' => $oldCompany->referral_code,
             'used_referral_code' => $oldCompany->used_referral_code ?? 0,
             'commission_amount' => $oldCompany->commission_amount ?? 0,
@@ -378,16 +380,16 @@ class CompanyRefreshService
             'last_login_ip' => $oldCompany->last_login_ip,
             'user_agent' => $oldCompany->user_agent,
             'created_by' => $oldCompany->created_by,
-            'remember_token' => null, // Reset remember token
+            'remember_token' => null,
             'created_at' => $oldCompany->created_at,
             'updated_at' => now(),
-            'is_email_verified' => $this->isDryRun ? 0 : $oldCompany->is_email_verified ?? 0,
-            'payfast_subscription_token' => $this->isDryRun ? null : $oldCompany->payfast_subscription_token,
-            'payfast_token_created_at' => $this->isDryRun ? null : $oldCompany->payfast_token_created_at,
-            'card_last_four' => $this->isDryRun ? null : $oldCompany->card_last_four,
-            'card_type' => $this->isDryRun ? null : $oldCompany->card_type,
-            'card_exp_month' => $this->isDryRun ? null : $oldCompany->card_exp_month,
-            'card_exp_year' => $this->isDryRun ? null : $oldCompany->card_exp_year,
+            'is_email_verified' => $oldCompany->is_email_verified ?? 0,
+            'payfast_subscription_token' => $oldCompany->payfast_subscription_token,
+            'payfast_token_created_at' => $oldCompany->payfast_token_created_at,
+            'card_last_four' => $oldCompany->card_last_four,
+            'card_type' => $oldCompany->card_type,
+            'card_exp_month' => $oldCompany->card_exp_month,
+            'card_exp_year' => $oldCompany->card_exp_year,
         ]);
 
         Log::info("Created new company record with ID: {$newCompanyId}");
@@ -399,17 +401,6 @@ class CompanyRefreshService
         Log::info("Successfully cloned template data to new company {$newCompanyId}");
 
         return $newCompanyId;
-    }
-
-    /**
-     * Generate temporary email to avoid conflicts during testing
-     */
-    private function generateTempEmail($originalEmail)
-    {
-        if ($this->isDryRun) {
-            return 'dryrun_' . time() . '_' . $originalEmail;
-        }
-        return 'temp_' . time() . '_' . $originalEmail;
     }
 
     /**
@@ -833,14 +824,14 @@ class CompanyRefreshService
 
             // SPECIAL HANDLING FOR USERS TABLE
             if ($tableName === 'users') {
-                // Skip company type users (they're handled in cloneTemplateToNewCompany)
+                // Skip company type users (they're handled in cloneTemplateToNewCompanyWithPrefix)
                 if (isset($recordArray['type']) && $recordArray['type'] === 'company') {
                     Log::info("Skipping company type user in copyTableData");
                     continue;
                 }
 
-                // Skip non-company users - they should be handled by copyUsersToNewCompany method
-                Log::info("Skipping user in copyTableData - will be handled by copyUsersToNewCompany");
+                // Skip non-company users - they should be handled by copyUsersToNewCompanyWithPrefix method
+                Log::info("Skipping user in copyTableData - will be handled by copyUsersToNewCompanyWithPrefix");
                 continue;
             }
 
@@ -948,11 +939,11 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 6: Copy users to new company
+     * Step 6: Copy users to new company with prefixed emails (ALWAYS)
      */
-    private function copyUsersToNewCompany()
+    private function copyUsersToNewCompanyWithPrefix()
     {
-        Log::info("Step 6: Copying users to new company (SAFE COPY operation)");
+        Log::info("Step 6: Copying users to new company with prefixed emails");
 
         // Get all users from old company (except the main company user)
         $users = User::where('created_by', $this->oldCompanyId)
@@ -961,25 +952,21 @@ class CompanyRefreshService
 
         Log::info("Found {$users->count()} users to copy");
 
+        $prefix = $this->isDryRun ? 'dryrun_' : 'refresh_';
+
         foreach ($users as $user) {
             // Create copy of user in new company using replicate to preserve all fields
             $newUser = $user->replicate();
 
             // Update necessary fields
             $newUser->created_by = $this->newCompanyId;
+            $newUser->email = $prefix . time() . '_' . $user->email; // ALWAYS prefix
             $newUser->updated_at = now();
 
-            // Handle email for dry run
-            if ($this->isDryRun) {
-                $newUser->email = 'dryrun_' . time() . '_' . $user->email;
-                //$newUser->is_enable_login = 0; // Disable login for dry run
-            }
-
-
             // Preserve important fields that might get lost
-            $newUser->password = $user->password; // Ensure password is copied
-            $newUser->plan = $user->plan; // Preserve plan
-            $newUser->plan_expire_date = $user->plan_expire_date; // Preserve plan expiry
+            $newUser->password = $user->password;
+            $newUser->plan = $user->plan;
+            $newUser->plan_expire_date = $user->plan_expire_date;
             $newUser->trial_plan = $user->trial_plan;
             $newUser->trial_expire_date = $user->trial_expire_date;
             $newUser->storage_limit = $user->storage_limit;
@@ -1004,12 +991,12 @@ class CompanyRefreshService
             // Copy user roles and permissions
             $this->copyUserRolesAndPermissions($user, $newUser);
 
-            Log::info("Copied user {$user->name} (Old ID: {$user->id}, New ID: {$newUser->id})");
+            Log::info("Copied user {$user->name} with prefixed email (Old ID: {$user->id}, New ID: {$newUser->id})");
         }
 
         $this->transferLog[] = [
             'table' => 'users',
-            'action' => 'copied',
+            'action' => 'copied_with_prefix',
             'count' => $users->count()
         ];
     }
@@ -1074,34 +1061,11 @@ class CompanyRefreshService
     }
 
     /**
-     * ADDITIONAL METHOD: Update company information after all data is copied
-     */
-    private function updateCompanyInformation()
-    {
-        Log::info("Step 7: Updating company information");
-
-        $oldCompany = User::find($this->oldCompanyId);
-
-        // Update company with final settings
-        DB::table('users')->where('id', $this->newCompanyId)->update([
-            'name' => $oldCompany->name, // Remove "(DRY RUN)" suffix for actual refresh
-            'email' => $this->isDryRun ? 'dryrun_' . time() . '_' . $oldCompany->email : $oldCompany->email,
-            'email_verified_at' => $oldCompany->email_verified_at, // Restore original verification status
-            'is_enable_login' => $oldCompany->is_enable_login, // Copy from old company
-            'is_active' => $oldCompany->is_active,
-            'is_disable' => $oldCompany->is_disable,
-            'updated_at' => now(),
-        ]);
-
-        Log::info("Updated new company information");
-    }
-
-    /**
-     * Step 8: Delete old company only if not dry run
+     * Step 7: Delete old company (ACTUAL REFRESH ONLY)
      */
     private function deleteOldCompany()
     {
-        Log::info("Step 8: Deleting old company {$this->oldCompanyId}");
+        Log::info("Step 7: Deleting old company {$this->oldCompanyId}");
 
         $oldCompany = User::find($this->oldCompanyId);
         if ($oldCompany) {
@@ -1111,6 +1075,49 @@ class CompanyRefreshService
 
             Log::info("Successfully deleted old company {$this->oldCompanyId}");
         }
+    }
+
+    /**
+     * Step 8: Remove prefixes and finalize company data (ACTUAL REFRESH ONLY)
+     */
+    private function removePrefixesAndFinalize()
+    {
+        Log::info("Step 8: Removing prefixes and finalizing company data");
+
+        // Get the original company data (we still have access to it since we haven't deleted anything yet)
+        $originalCompanyData = DB::table('users')->where('id', $this->oldCompanyId)->first();
+
+        // Update main company record to remove prefix and restore original data
+        DB::table('users')->where('id', $this->newCompanyId)->update([
+            'name' => $originalCompanyData->name, // Remove (REFRESH) suffix
+            'email' => $originalCompanyData->email, // Restore original email
+            'updated_at' => now(),
+        ]);
+
+        Log::info("Restored company email to: {$originalCompanyData->email}");
+
+        // Get all copied users and restore their original emails
+        $copiedUsers = User::where('created_by', $this->newCompanyId)
+            ->where('type', '!=', 'company')
+            ->where('email', 'like', 'refresh_%')
+            ->get();
+
+        foreach ($copiedUsers as $copiedUser) {
+            // Extract original email from prefixed email
+            $originalEmail = preg_replace('/^refresh_\d+_/', '', $copiedUser->email);
+
+            try {
+                $copiedUser->email = $originalEmail;
+                $copiedUser->save();
+
+                Log::info("Restored original email for user {$copiedUser->name}: {$originalEmail}");
+            } catch (\Exception $e) {
+                Log::warning("Could not restore email for user {$copiedUser->name}: " . $e->getMessage());
+                // Continue with other users even if one fails
+            }
+        }
+
+        Log::info("Successfully removed all prefixes and finalized company data");
     }
 
     /**
@@ -1225,8 +1232,8 @@ class CompanyRefreshService
     private function generateSuccessResponse()
     {
         $message = $this->isDryRun ?
-            'Company refresh dry run completed successfully' :
-            'Company refreshed successfully';
+            'Company refresh dry run completed successfully - data created with prefixes for testing' :
+            'Company refreshed successfully - old company deleted and prefixes removed';
 
         return [
             'success' => true,
@@ -1238,7 +1245,8 @@ class CompanyRefreshService
             'currency_matched' => $this->getCompanyCurrency($this->oldCompanyId),
             'transfer_log' => $this->transferLog,
             'summary' => $this->generateTransferSummary(),
-            'completed_at' => now()
+            'completed_at' => now(),
+            'prefixes_removed' => !$this->isDryRun
         ];
     }
 
@@ -1255,9 +1263,11 @@ class CompanyRefreshService
         ];
 
         foreach ($this->transferLog as $log) {
-            if ($log['action'] === 'copied') {
+            if ($log['action'] === 'copied' || $log['action'] === 'copied_with_prefix') {
                 $summary['tables_processed']++;
-                $summary['records_copied'] += $log['count'];
+                if (isset($log['count'])) {
+                    $summary['records_copied'] += $log['count'];
+                }
 
                 if ($log['table'] === 'users') {
                     $summary['users_copied'] = $log['count'];
