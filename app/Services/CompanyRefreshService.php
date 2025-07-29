@@ -972,7 +972,7 @@ class CompanyRefreshService
             // Handle email for dry run
             if ($this->isDryRun) {
                 $newUser->email = 'dryrun_' . time() . '_' . $user->email;
-                $newUser->is_enable_login = 0; // Disable login for dry run
+                //$newUser->is_enable_login = 0; // Disable login for dry run
             }
 
 
