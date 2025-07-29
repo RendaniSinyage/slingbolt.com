@@ -1,4 +1,3 @@
-@ -1,1339 +1,1379 @@
 <?php
 
 namespace App\Services;
@@ -78,7 +77,7 @@ class CompanyRefreshService
     // User-generated transactional data that should be COPIED to new company
     private $userDataTables = [
         // Core user data
-        'users',
+        //'users',
         'employees',
         'customers',
         'venders',
@@ -368,9 +367,9 @@ class CompanyRefreshService
             'delete_status' => $oldCompany->delete_status ?? 1,
             'mode' => $oldCompany->mode ?? 'light',
             'dark_mode' => $oldCompany->dark_mode ?? 0,
-            'is_disable' => 0, // Enable during transfer
-            'is_enable_login' => $this->isDryRun ? 0 : 1, // FIX: Disable login only for dry run
-            'is_active' => 1, // FIX: Set as active
+            'is_disable' => $oldCompany->is_disable, // Copy from old company
+            'is_enable_login' => $oldCompany->is_enable_login, // Copy from old company
+            'is_active' => $oldCompany->is_active ?? 1, // Copy from old company
             'referral_code' => $oldCompany->referral_code,
             'used_referral_code' => $oldCompany->used_referral_code ?? 0,
             'commission_amount' => $oldCompany->commission_amount ?? 0,
@@ -380,7 +379,7 @@ class CompanyRefreshService
             'user_agent' => $oldCompany->user_agent,
             'created_by' => $oldCompany->created_by,
             'remember_token' => null, // Reset remember token
-            'created_at' => now(),
+            'created_at' => $oldCompany->created_at,
             'updated_at' => now(),
             'is_email_verified' => $this->isDryRun ? 0 : $oldCompany->is_email_verified ?? 0,
             'payfast_subscription_token' => $this->isDryRun ? null : $oldCompany->payfast_subscription_token,
@@ -831,26 +830,26 @@ class CompanyRefreshService
 
         foreach ($records as $record) {
             $recordArray = (array) $record;
-            unset($recordArray['id']);
-            $recordArray['created_by'] = $this->newCompanyId;
-            $recordArray['updated_at'] = now();
 
             // SPECIAL HANDLING FOR USERS TABLE
             if ($tableName === 'users') {
-                // Apply dry-run email logic for users
-                if ($this->isDryRun && isset($recordArray['email'])) {
-                    $recordArray['email'] = 'dryrun_' . time() . '_' . $recordArray['email'];
-                }
-
                 // Skip company type users (they're handled in cloneTemplateToNewCompany)
                 if (isset($recordArray['type']) && $recordArray['type'] === 'company') {
                     Log::info("Skipping company type user in copyTableData");
                     continue;
                 }
+
+                // Skip non-company users - they should be handled by copyUsersToNewCompany method
+                Log::info("Skipping user in copyTableData - will be handled by copyUsersToNewCompany");
+                continue;
             }
 
+            unset($recordArray['id']);
+            $recordArray['created_by'] = $this->newCompanyId;
+            $recordArray['updated_at'] = now();
+
             // Handle special fields and relationship mappings
-            $recordArray = $this->handleRelationshipMappings($tableName, $recordArray);
+            $recordArray = $this->updateCompanyReferences($recordArray, $tableName);
 
             try {
                 $newId = DB::table($tableName)->insertGetId($recordArray);
@@ -963,12 +962,44 @@ class CompanyRefreshService
         Log::info("Found {$users->count()} users to copy");
 
         foreach ($users as $user) {
-            // Create copy of user in new company
+            // Create copy of user in new company using replicate to preserve all fields
             $newUser = $user->replicate();
+
+            // Update necessary fields
             $newUser->created_by = $this->newCompanyId;
-            $newUser->email = $this->isDryRun ? 'dryrun_' . time() . '_' . $user->email : $user->email;
             $newUser->updated_at = now();
+
+            // Handle email for dry run
+            if ($this->isDryRun) {
+                $newUser->email = 'dryrun_' . time() . '_' . $user->email;
+                $newUser->is_enable_login = 0; // Disable login for dry run
+            }
+
+
+            // Preserve important fields that might get lost
+            $newUser->password = $user->password; // Ensure password is copied
+            $newUser->plan = $user->plan; // Preserve plan
+            $newUser->plan_expire_date = $user->plan_expire_date; // Preserve plan expiry
+            $newUser->trial_plan = $user->trial_plan;
+            $newUser->trial_expire_date = $user->trial_expire_date;
+            $newUser->storage_limit = $user->storage_limit;
+            $newUser->lang = $user->lang;
+            $newUser->avatar = $user->avatar;
+            $newUser->messenger_color = $user->messenger_color;
+            $newUser->active_status = $user->active_status;
+            $newUser->delete_status = $user->delete_status;
+            $newUser->mode = $user->mode;
+            $newUser->dark_mode = $user->dark_mode;
+            $newUser->is_active = $user->is_active;
+            $newUser->referral_code = $user->referral_code;
+            $newUser->used_referral_code = $user->used_referral_code;
+            $newUser->commission_amount = $user->commission_amount;
+
+            // Save the new user
             $newUser->save();
+
+            // Store ID mapping for relationship fixing later
+            $this->idMappings['users'][$user->id] = $newUser->id;
 
             // Copy user roles and permissions
             $this->copyUserRolesAndPermissions($user, $newUser);
@@ -1056,9 +1087,9 @@ class CompanyRefreshService
             'name' => $oldCompany->name, // Remove "(DRY RUN)" suffix for actual refresh
             'email' => $this->isDryRun ? 'dryrun_' . time() . '_' . $oldCompany->email : $oldCompany->email,
             'email_verified_at' => $oldCompany->email_verified_at, // Restore original verification status
-            'is_enable_login' => $this->isDryRun ? 0 : 1, // Enable login for actual refresh
-            'is_active' => 1,
-            'is_disable' => 0,
+            'is_enable_login' => $oldCompany->is_enable_login, // Copy from old company
+            'is_active' => $oldCompany->is_active,
+            'is_disable' => $oldCompany->is_disable,
             'updated_at' => now(),
         ]);
 
