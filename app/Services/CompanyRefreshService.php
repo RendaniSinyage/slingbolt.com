@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use App\Models\User;
 use App\Services\TemplateCompanyConfig;
+use App\Services\CompanyCleanupService;
+use App\Services\CompanyClonerService;
 
 class CompanyRefreshService
 {
@@ -1338,8 +1340,9 @@ class CompanyRefreshService
         $oldCompany = User::find($this->oldCompanyId);
         if ($oldCompany) {
             // Use existing cascade deletion logic from UserController
-            $this->cascadeDeleteCompanyData($this->oldCompanyId);
-            $oldCompany->delete();
+            CompanyCleanupService::cascadeDeleteCompanyData($this->oldCompanyId);
+                    $oldCompany->delete();
+
 
             Log::info("Successfully deleted old company {$this->oldCompanyId}");
         }
@@ -1510,96 +1513,6 @@ class CompanyRefreshService
     }
 
     /**
-     * Use existing cascade deletion logic
-     */
-    private function cascadeDeleteCompanyData($companyId)
-    {
-        Log::info("Starting cascade deletion for company ID: {$companyId}");
-
-        $allTables = $this->getAllDatabaseTables();
-
-        $excludedTables = [
-            'migrations', 'password_resets', 'failed_jobs', 'personal_access_tokens',
-            'sessions', 'permissions', 'plans', 'coupons', 'admin_payment_settings',
-            'orders', 'order_products', 'plan_requests', 'subscriptions', 'user_plans',
-            'order_coupons', 'user_coupons', 'transaction_orders'
-        ];
-
-        foreach ($allTables as $table) {
-            if (in_array($table, $excludedTables)) {
-                continue;
-            }
-
-            try {
-                if (!Schema::hasTable($table)) {
-                    continue;
-                }
-
-                $columns = Schema::getColumnListing($table);
-                $companyIdColumns = ['created_by', 'company_id', 'user_id'];
-
-                foreach ($companyIdColumns as $column) {
-                    if (in_array($column, $columns)) {
-                        $deleted = DB::table($table)->where($column, $companyId)->delete();
-                        if ($deleted > 0) {
-                            Log::info("Deleted {$deleted} records from {$table}");
-                        }
-                        break;
-                    }
-                }
-            } catch (\Exception $e) {
-                Log::error("Error deleting from table {$table}: " . $e->getMessage());
-            }
-        }
-
-        $this->cleanupRolePermissions($companyId);
-    }
-
-    /**
-     * Get all database tables
-     */
-    private function getAllDatabaseTables()
-    {
-        $tables = [];
-        $results = DB::select('SHOW TABLES');
-
-        foreach ($results as $result) {
-            $tables[] = array_values((array) $result)[0];
-        }
-
-        return $tables;
-    }
-
-    /**
-     * Clean up role permissions
-     */
-    private function cleanupRolePermissions($companyId)
-    {
-        try {
-            DB::delete("
-                DELETE rp FROM role_has_permissions rp
-                JOIN roles r ON rp.role_id = r.id
-                WHERE r.created_by = ?
-            ", [$companyId]);
-
-            DB::delete("
-                DELETE ur FROM model_has_roles ur
-                JOIN users u ON ur.model_id = u.id
-                WHERE u.created_by = ? AND ur.model_type = 'App\\\\Models\\\\User'
-            ", [$companyId]);
-
-            DB::delete("
-                DELETE up FROM model_has_permissions up
-                JOIN users u ON up.model_id = u.id
-                WHERE u.created_by = ? AND up.model_type = 'App\\\\Models\\\\User'
-            ", [$companyId]);
-
-        } catch (\Exception $e) {
-            Log::error("Error cleaning up role permissions: " . $e->getMessage());
-        }
-    }
-
-    /**
      * Log conflict resolution
      */
     private function logConflictResolution($table, $field, $resolution, $usedValue, $rejectedValue)
@@ -1678,8 +1591,8 @@ class CompanyRefreshService
             Log::info("Cleaning up failed refresh - deleting new company {$this->newCompanyId}");
 
             try {
-                $this->cascadeDeleteCompanyData($this->newCompanyId);
-                User::where('id', $this->newCompanyId)->delete();
+                CompanyCleanupService::cascadeDeleteCompanyData($this->newCompanyId);
+                            User::where('id', $this->newCompanyId)->delete();
 
                 Log::info("Cleanup completed");
             } catch (\Exception $e) {
@@ -1777,8 +1690,9 @@ class CompanyRefreshService
             Log::info("Cleaning up dry run company {$newCompanyId}");
 
             try {
-                $this->cascadeDeleteCompanyData($newCompanyId);
-                User::where('id', $newCompanyId)->delete();
+                CompanyCleanupService::cascadeDeleteCompanyData($newCompanyId);
+                            User::where('id', $newCompanyId)->delete();
+
 
                 Log::info("Dry run cleanup completed");
                 return ['success' => true, 'message' => 'Dry run data cleaned up successfully'];
