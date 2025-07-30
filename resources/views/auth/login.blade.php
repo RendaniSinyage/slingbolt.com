@@ -4,6 +4,19 @@
     $logo = \App\Models\Utility::get_file('uploads/logo');
     $settings = Utility::settings();
     $company_logo = $settings['company_logo'] ?? '';
+    $adminSettings = $settings;
+    $setting = \App\Models\Utility::colorset();
+    $SITE_RTL = $adminSettings['SITE_RTL'] ? $adminSettings['SITE_RTL'] : '';
+    $lang = \App::getLocale('lang');
+    if ($lang == 'ar' || $lang == 'he') {
+        $SITE_RTL = 'on';
+    }
+    $color = !empty($setting['color']) ? $setting['color'] : 'theme-3';
+    if(isset($setting['color_flag']) && $setting['color_flag'] == 'true') {
+        $themeColor = 'custom-color';
+    } else {
+        $themeColor = $color;
+    }
 @endphp
 
 @push('custom-scripts')
@@ -47,187 +60,128 @@
 @endsection
 
 @section('content')
-    <div class="login-container">
-        <!-- Welcome Back Section -->
-        <div class="login-header text-center mb-5">
-            <div class="welcome-icon mb-3">
-                <div class="icon-circle">
-                    <i class="ti ti-login-2 fs-1"></i>
-                </div>
-            </div>
-            <h1 class="display-6 fw-bold mb-2">{{ __('Welcome Back') }}</h1>
-            <p class="text-muted fs-5">{{ __('Sign in to continue to your account') }}</p>
-        </div>
-
-        <!-- Login Form -->
-        <div class="login-form-wrapper">
-            {{ Form::open(['route' => 'login', 'method' => 'post', 'id' => 'loginForm', 'class' => 'login-form needs-validation', 'novalidate']) }}
-            
-            @if (session('status'))
-                <div class="alert alert-danger alert-modern mb-4" role="alert">
-                    <div class="d-flex align-items-center">
-                        <i class="ti ti-alert-triangle me-2 fs-5"></i>
-                        <div>{{ session('status') }}</div>
-                    </div>
-                </div>
-            @endif
-
-            <div class="form-floating mb-4">
-                {{ Form::email('email', null, [
-                    'class' => 'form-control form-control-modern', 
-                    'id' => 'email',
-                    'placeholder' => __('Enter Your Email'), 
-                    'required' => 'required'
-                ]) }}
-                <label for="email" class="form-label-modern">
-                    <i class="ti ti-mail me-2"></i>{{ __('Email Address') }}
-                </label>
-                @error('email')
-                    <div class="invalid-feedback-modern">
-                        <i class="ti ti-alert-circle me-1"></i>{{ $message }}
-                    </div>
-                @enderror
-            </div>
-
-            <div class="form-floating mb-4">
-                <div class="position-relative">
-                    {{ Form::password('password', [
-                        'class' => 'form-control form-control-modern', 
-                        'id' => 'password',
-                        'placeholder' => __('Enter Your Password'), 
-                        'required' => 'required'
-                    ]) }}
-                    <label for="password" class="form-label-modern">
-                        <i class="ti ti-lock me-2"></i>{{ __('Password') }}
-                    </label>
-                    <button type="button" class="password-toggle" onclick="togglePassword()">
-                        <i class="ti ti-eye" id="toggleIcon"></i>
-                    </button>
-                </div>
-                @error('password')
-                    <div class="invalid-feedback-modern">
-                        <i class="ti ti-alert-circle me-1"></i>{{ $message }}
-                    </div>
-                @enderror
-            </div>
-
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <div class="form-check custom-checkbox-modern">
-                    <input class="form-check-input" type="checkbox" id="rememberMe" name="remember">
-                    <label class="form-check-label" for="rememberMe">
-                        {{ __('Remember me') }}
-                    </label>
-                </div>
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request', $lang) }}" class="forgot-password-link">
-                        {{ __('Forgot Password?') }}
-                    </a>
-                @endif
-            </div>
-
-            @if ($settings['recaptcha_module'] == 'on')
-                @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
-                    <div class="form-group mb-4">
-                        <div class="recaptcha-wrapper">
-                            {!! NoCaptcha::display() !!}
-                        </div>
-                        @error('g-recaptcha-response')
-                            <div class="invalid-feedback-modern">
-                                <i class="ti ti-alert-circle me-1"></i>{{ $message }}
-                            </div>
-                        @enderror
-                    </div>
-                @else
-                    <div class="form-group mb-4">
-                        <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response" class="form-control">
-                        @error('g-recaptcha-response')
-                            <div class="invalid-feedback-modern">
-                                <i class="ti ti-alert-circle me-1"></i>{{ $message }}
-                            </div>
-                        @enderror
-                    </div>
-                @endif
-            @endif
-
-            <div class="d-grid mb-4">
-                {{ Form::submit(__('Sign In'), ['class' => 'btn btn-primary btn-modern btn-lg', 'id' => 'saveBtn']) }}
-            </div>
-
-            @if ($settings['enable_signup'] == 'on')
-                <div class="text-center">
-                    <p class="text-muted mb-0">{{ __("Don't have an account?") }}</p>
-                    <a href="{{ route('register', ['0',$lang]) }}" class="register-link">
-                        {{ __('Create Account') }} <i class="ti ti-arrow-right ms-1"></i>
-                    </a>
-                </div>
-            @endif
-
-            {{ Form::close() }}
-        </div>
-    </div>
-
+<!DOCTYPE html>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $SITE_RTL == 'on' ? 'rtl' : '' }}">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
+    <title>{{ $setting['title_text'] ? $setting['title_text'] : config('app.name', 'SLINGBOLT') }} - Login</title>
+    
+    <link rel="icon" href="{{ $logo . '/' . $adminSettings['company_favicon'] . '?' . time() }}" type="image/x-icon" />
+    <link rel="stylesheet" href="{{ asset('assets/fonts/tabler-icons.min.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/fonts/feather.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/fonts/fontawesome.css') }}" />
+    <link rel="stylesheet" href="{{ asset('assets/fonts/material.css') }}" />
+    
+    @if ($SITE_RTL == 'on')
+        <link rel="stylesheet" href="{{ asset('assets/css/style-rtl.css') }}">
+    @endif
+    
+    @if ($setting['cust_darklayout'] == 'on')
+        <link rel="stylesheet" href="{{ asset('assets/css/style-dark.css') }}">
+    @else
+        <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" id="main-style-link">
+    @endif
+    
+    <link rel="stylesheet" href=" {{ asset('assets/css/customizer.css') }}" />
+    <link rel="stylesheet" href=" {{ asset('assets/landingpage/css/landing-page.css') }}" />
+    <link rel="stylesheet" href=" {{ asset('assets/landingpage/css/custom.css') }}" />
+    <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
+    
     <style>
-        .login-container {
-            max-width: 420px;
-            margin: 0 auto;
-            padding: 2rem 1.5rem;
+        :root {
+            --color-customColor: <?= $color ?>;
         }
-
-        .login-header .welcome-icon {
-            position: relative;
-        }
-
-        .icon-circle {
-            width: 80px;
-            height: 80px;
+        
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        .auth-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            z-index: -1;
+        }
+
+        .auth-header {
+            position: relative;
+            z-index: 10;
+            padding: 1rem 0;
+        }
+
+        .auth-container {
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 auto;
-            color: white;
-            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+            padding: 2rem 1rem;
             position: relative;
-            overflow: hidden;
+            z-index: 1;
         }
 
-        .icon-circle::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-            transform: rotate(45deg);
-            animation: shimmer 3s infinite;
-        }
-
-        @keyframes shimmer {
-            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
-        }
-
-        .login-form-wrapper {
+        .login-card {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(20px);
             border-radius: 24px;
-            padding: 2.5rem;
+            padding: 3rem;
             box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.1),
+                0 25px 50px rgba(0, 0, 0, 0.15),
                 0 0 0 1px rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.18);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .auth-logo {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-logo img {
+            height: 48px;
+            filter: brightness(0) invert(1);
+        }
+
+        .auth-title {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .auth-title h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 0.5rem;
+        }
+
+        .auth-title p {
+            color: #64748b;
+            font-size: 1.1rem;
+        }
+
+        .form-floating {
+            position: relative;
+            margin-bottom: 1.5rem;
         }
 
         .form-control-modern {
             background: rgba(248, 249, 250, 0.8);
-            border: 2px solid rgba(108, 117, 125, 0.15);
+            border: 2px solid rgba(148, 163, 184, 0.2);
             border-radius: 16px;
-            padding: 1rem 1rem 1rem 3rem;
+            padding: 1.25rem 1rem;
             font-size: 1rem;
             line-height: 1.5;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: all 0.3s ease;
+            width: 100%;
             min-height: 60px;
         }
 
@@ -235,26 +189,25 @@
             background: rgba(255, 255, 255, 1);
             border-color: #667eea;
             box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            transform: translateY(-2px);
+            outline: none;
         }
 
-        .form-floating .form-label-modern {
+        .form-floating label {
             position: absolute;
             top: 50%;
             left: 1rem;
             transform: translateY(-50%);
-            background: transparent;
-            padding: 0;
             font-size: 1rem;
-            color: #6c757d;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            color: #64748b;
+            transition: all 0.3s ease;
             pointer-events: none;
-            z-index: 2;
+            background: transparent;
+            padding: 0 0.25rem;
         }
 
-        .form-floating .form-control-modern:focus ~ .form-label-modern,
-        .form-floating .form-control-modern:not(:placeholder-shown) ~ .form-label-modern {
-            top: 0.5rem;
+        .form-floating .form-control-modern:focus ~ label,
+        .form-floating .form-control-modern:not(:placeholder-shown) ~ label {
+            top: 0;
             font-size: 0.875rem;
             color: #667eea;
             background: rgba(255, 255, 255, 0.9);
@@ -262,239 +215,243 @@
             border-radius: 8px;
         }
 
-        .password-toggle {
-            position: absolute;
-            right: 1rem;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #6c757d;
-            font-size: 1.25rem;
-            cursor: pointer;
-            z-index: 3;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: all 0.2s ease;
+        .form-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
         }
 
-        .password-toggle:hover {
-            color: #667eea;
-            background: rgba(102, 126, 234, 0.1);
+        .form-check {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .custom-checkbox-modern .form-check-input {
+        .form-check input {
             width: 1.25rem;
             height: 1.25rem;
-            border: 2px solid #dee2e6;
+            border: 2px solid #d1d5db;
             border-radius: 6px;
-            transition: all 0.2s ease;
+            margin: 0;
         }
 
-        .custom-checkbox-modern .form-check-input:checked {
+        .form-check input:checked {
             background-color: #667eea;
             border-color: #667eea;
         }
 
-        .forgot-password-link {
+        .forgot-link {
             color: #667eea;
             text-decoration: none;
             font-weight: 500;
             transition: all 0.2s ease;
-            position: relative;
         }
 
-        .forgot-password-link::after {
-            content: '';
-            position: absolute;
-            bottom: -2px;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: #667eea;
-            transition: width 0.3s ease;
-        }
-
-        .forgot-password-link:hover {
+        .forgot-link:hover {
             color: #5a6fd8;
         }
 
-        .forgot-password-link:hover::after {
-            width: 100%;
-        }
-
-        .btn-modern {
+        .login-btn {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border: none;
             border-radius: 16px;
             padding: 1rem 2rem;
             font-weight: 600;
             font-size: 1.1rem;
-            letter-spacing: 0.5px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .btn-modern::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
+            color: white;
             width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-            transition: left 0.5s ease;
+            transition: all 0.3s ease;
+            margin-bottom: 2rem;
         }
 
-        .btn-modern:hover {
+        .login-btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
         }
 
-        .btn-modern:hover::before {
-            left: 100%;
-        }
-
-        .btn-modern:active {
-            transform: translateY(0);
+        .auth-footer {
+            text-align: center;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(148, 163, 184, 0.2);
         }
 
         .register-link {
             color: #667eea;
             text-decoration: none;
             font-weight: 600;
-            font-size: 1.1rem;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
         }
 
         .register-link:hover {
             color: #5a6fd8;
-            transform: translateX(4px);
         }
 
         .alert-modern {
             background: rgba(248, 215, 218, 0.9);
             border: 1px solid rgba(245, 198, 203, 0.5);
-            border-radius: 16px;
-            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            color: #721c24;
         }
 
-        .invalid-feedback-modern {
+        .invalid-feedback {
             display: block;
-            width: 100%;
-            margin-top: 0.5rem;
-            font-size: 0.875rem;
             color: #dc3545;
-            background: rgba(248, 215, 218, 0.1);
+            font-size: 0.875rem;
+            margin-top: 0.5rem;
             padding: 0.5rem 1rem;
-            border-radius: 12px;
+            background: rgba(248, 215, 218, 0.1);
+            border-radius: 8px;
             border-left: 4px solid #dc3545;
         }
 
-        .recaptcha-wrapper {
-            display: flex;
-            justify-content: center;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        /* Dark mode adjustments */
-        @media (prefers-color-scheme: dark) {
-            .login-form-wrapper {
-                background: rgba(33, 37, 41, 0.95);
-                border: 1px solid rgba(255, 255, 255, 0.1);
-            }
-
-            .form-control-modern {
-                background: rgba(52, 58, 64, 0.8);
-                color: #fff;
-                border-color: rgba(255, 255, 255, 0.15);
-            }
-
-            .form-control-modern:focus {
-                background: rgba(52, 58, 64, 1);
-            }
-
-            .form-label-modern {
-                color: #adb5bd !important;
-            }
-        }
-
-        /* Mobile responsiveness */
         @media (max-width: 576px) {
-            .login-container {
-                padding: 1rem;
-            }
-
-            .login-form-wrapper {
+            .login-card {
                 padding: 2rem 1.5rem;
                 border-radius: 20px;
+                margin: 1rem;
             }
-
-            .icon-circle {
-                width: 70px;
-                height: 70px;
-            }
-
-            .display-6 {
+            
+            .auth-title h1 {
                 font-size: 1.75rem;
             }
         }
     </style>
+</head>
 
-    <script>
-        function togglePassword() {
-            const passwordField = document.getElementById('password');
-            const toggleIcon = document.getElementById('toggleIcon');
+@if ($setting['cust_darklayout'] == 'on')
+    <body class="{{ $themeColor }} landing-dark">
+@else
+    <body class="{{ $themeColor }}">
+@endif
+
+    <div class="auth-gradient"></div>
+
+    <!-- Header same as landing page -->
+    <header class="main-header position-relative z-10 auth-header">
+        <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3">
+            <div class="container d-flex align-items-center justify-content-between">
+                <a class="navbar-brand" href="/">
+                    <img src="{{ $logo . '/' . $company_logo }}" alt="logo" height="40">
+                </a>
+                <div class="d-flex gap-2">
+                    <a href="{{ route('register', ['0', $lang]) }}" class="btn rounded-pill px-4" style="background-color: white; color: #333; border: 1px solid rgba(255,255,255,0.3);">
+                        {{ __('Get Started') }}
+                    </a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="auth-container">
+        <div class="login-card">
+            <div class="auth-title">
+                <h1>{{ __('Welcome Back') }}</h1>
+                <p>{{ __('Sign in to your account') }}</p>
+            </div>
+
+            {{ Form::open(['route' => 'login', 'method' => 'post', 'id' => 'loginForm', 'class' => 'needs-validation', 'novalidate']) }}
             
-            if (passwordField.type === 'password') {
-                passwordField.type = 'text';
-                toggleIcon.className = 'ti ti-eye-off';
-            } else {
-                passwordField.type = 'password';
-                toggleIcon.className = 'ti ti-eye';
-            }
-        }
+            @if (session('status'))
+                <div class="alert-modern">
+                    {{ session('status') }}
+                </div>
+            @endif
 
-        // Add smooth focus transitions
-        document.addEventListener('DOMContentLoaded', function() {
-            const formControls = document.querySelectorAll('.form-control-modern');
-            
-            formControls.forEach(control => {
-                control.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                
-                control.addEventListener('blur', function() {
-                    if (!this.value) {
-                        this.parentElement.classList.remove('focused');
-                    }
-                });
-            });
-        });
-    </script>
-@endsection
+            <div class="form-floating">
+                {{ Form::email('email', null, [
+                    'class' => 'form-control form-control-modern', 
+                    'id' => 'email',
+                    'placeholder' => 'Email', 
+                    'required' => 'required'
+                ]) }}
+                <label for="email">{{ __('Email Address') }}</label>
+                @error('email')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
 
-<script src="{{ asset('js/jquery.min.js') }}"></script>
-@if (isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
-    @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
-        {!! NoCaptcha::renderJs() !!}
-    @else
-        <script src="https://www.google.com/recaptcha/api.js?render={{ $settings['google_recaptcha_key'] }}"></script>
-        <script>
-            $(document).ready(function() {
-                grecaptcha.ready(function() {
-                    grecaptcha.execute('{{ $settings['google_recaptcha_key'] }}', {
-                        action: 'submit'
-                    }).then(function(token) {
-                        $('#g-recaptcha-response').val(token);
+            <div class="form-floating">
+                {{ Form::password('password', [
+                    'class' => 'form-control form-control-modern', 
+                    'id' => 'password',
+                    'placeholder' => 'Password', 
+                    'required' => 'required'
+                ]) }}
+                <label for="password">{{ __('Password') }}</label>
+                @error('password')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="form-options">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                    <label class="form-check-label" for="remember">
+                        {{ __('Remember me') }}
+                    </label>
+                </div>
+                @if (Route::has('password.request'))
+                    <a href="{{ route('password.request', $lang) }}" class="forgot-link">
+                        {{ __('Forgot Password?') }}
+                    </a>
+                @endif
+            </div>
+
+            @if ($settings['recaptcha_module'] == 'on')
+                @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
+                    <div class="mb-3 d-flex justify-content-center">
+                        {!! NoCaptcha::display() !!}
+                        @error('g-recaptcha-response')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                @else
+                    <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
+                    @error('g-recaptcha-response')
+                        <div class="invalid-feedback">{{ $message }}</div>
+                    @enderror
+                @endif
+            @endif
+
+            {{ Form::submit(__('Sign In'), ['class' => 'login-btn', 'id' => 'saveBtn']) }}
+
+            @if ($settings['enable_signup'] == 'on')
+                <div class="auth-footer">
+                    <p class="mb-0 text-muted">{{ __("Don't have an account?") }} 
+                        <a href="{{ route('register', ['0',$lang]) }}" class="register-link">{{ __('Create Account') }}</a>
+                    </p>
+                </div>
+            @endif
+
+            {{ Form::close() }}
+        </div>
+    </div>
+
+    <script src="{{ asset('assets/js/plugins/popper.min.js')}}"></script>
+    <script src="{{ asset('assets/js/plugins/bootstrap.min.js')}}"></script>
+    <script src="{{ asset('js/jquery.min.js') }}"></script>
+
+    @if (isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
+        @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
+            {!! NoCaptcha::renderJs() !!}
+        @else
+            <script src="https://www.google.com/recaptcha/api.js?render={{ $settings['google_recaptcha_key'] }}"></script>
+            <script>
+                $(document).ready(function() {
+                    grecaptcha.ready(function() {
+                        grecaptcha.execute('{{ $settings['google_recaptcha_key'] }}', {
+                            action: 'submit'
+                        }).then(function(token) {
+                            $('#g-recaptcha-response').val(token);
+                        });
                     });
                 });
-            });
-        </script>
+            </script>
+        @endif
     @endif
-@endif
+
+</body>
+</html>
+@endsection
