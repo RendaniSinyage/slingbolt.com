@@ -667,6 +667,7 @@ class CompanyCleanupService
             'password_resets', 'failed_jobs', 'admin_payment_settings',
             'orders', 'plan_requests', 'subscriptions', 'order_coupons',
             'user_coupons', 'transaction_orders'
+
         ];
 
         $companyIdColumns = ['created_by', 'company_id', 'user_id'];
