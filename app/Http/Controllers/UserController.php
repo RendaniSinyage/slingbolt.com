@@ -339,7 +339,7 @@ class UserController extends Controller
                     });
 
                     // Then run cleanup to catch anything missed
-                    \Artisan::call('cleanup:orphaned-data', ['--limit' => 10000]);
+                //    \Artisan::call('cleanup:orphaned-data', ['--limit' => 10000]);
 
                     return redirect()->back()->with('success', __('Company and all associated data successfully deleted'));
 
