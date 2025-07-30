@@ -1129,6 +1129,9 @@ class CompanyRefreshService
     {
         Log::info("Step 7: Deleting old company {$this->oldCompanyId}");
 
+        // FIRST: Transfer ownership of payment/subscription records to new company
+        $this->transferPaymentAndSubscriptionRecords();
+
         $oldCompany = User::find($this->oldCompanyId);
         if ($oldCompany) {
             // Use existing cascade deletion logic from UserController
@@ -1136,6 +1139,103 @@ class CompanyRefreshService
             $oldCompany->delete();
 
             Log::info("Successfully deleted old company {$this->oldCompanyId}");
+        }
+    }
+
+    /**
+     * Transfer payment and subscription records to new company
+     * These should NOT be deleted as they represent actual financial transactions
+     */
+    private function transferPaymentAndSubscriptionRecords()
+    {
+        Log::info("Transferring payment and subscription records to new company {$this->newCompanyId}");
+
+        // Tables that should be transferred (not deleted) because they represent financial records
+        $paymentTables = [
+            'orders' => ['user_id'], // Orders placed by the company
+            'order_products' => [], // Products in orders (no direct company reference, linked via orders)
+            'subscriptions' => ['user_id'], // Active subscriptions
+            'user_plans' => ['user_id'], // Current plan assignments
+            'plan_requests' => ['user_id'], // Plan change requests
+            'user_coupons' => ['user_id'], // Coupons assigned to company
+            'order_coupons' => [], // Coupons used in orders (linked via orders)
+            'transactions' => ['user_id'], // Financial transactions
+            'transaction_orders' => [], // Links between transactions and orders
+        ];
+
+        foreach ($paymentTables as $tableName => $companyFields) {
+            if (!Schema::hasTable($tableName)) {
+                continue;
+            }
+
+            // If table has direct company reference fields, update them
+            if (!empty($companyFields)) {
+                foreach ($companyFields as $field) {
+                    if (Schema::hasColumn($tableName, $field)) {
+                        $updated = DB::table($tableName)
+                            ->where($field, $this->oldCompanyId)
+                            ->update([$field => $this->newCompanyId]);
+
+                        if ($updated > 0) {
+                            Log::info("Transferred {$updated} {$tableName} records to new company");
+                        }
+                    }
+                }
+            }
+
+            // Special handling for tables linked through orders
+            if (in_array($tableName, ['order_products', 'order_coupons', 'transaction_orders'])) {
+                // These will be automatically linked to new company through the updated orders
+                $count = DB::table($tableName)
+                    ->join('orders', 'orders.id', '=', $tableName . '.order_id')
+                    ->where('orders.user_id', $this->newCompanyId)
+                    ->count();
+
+                if ($count > 0) {
+                    Log::info("Verified {$count} {$tableName} records are now linked to new company via orders");
+                }
+            }
+        }
+
+        // Special case: Update any user references in payment tables to point to new company user
+        $this->updateUserReferencesInPaymentTables();
+    }
+
+    /**
+     * Update user references in payment-related tables
+     */
+    private function updateUserReferencesInPaymentTables()
+    {
+        Log::info("Updating user references in payment tables");
+
+        // Find the main company user in the new company (should be the new company ID itself)
+        $newCompanyUser = User::find($this->newCompanyId);
+
+        if (!$newCompanyUser) {
+            Log::warning("Could not find new company user {$this->newCompanyId}");
+            return;
+        }
+
+        // Tables that might reference the company user directly
+        $userReferenceTables = [
+            'orders' => 'user_id',
+            'subscriptions' => 'user_id',
+            'user_plans' => 'user_id',
+            'plan_requests' => 'user_id',
+            'user_coupons' => 'user_id',
+            'transactions' => 'user_id',
+        ];
+
+        foreach ($userReferenceTables as $tableName => $userField) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, $userField)) {
+                $updated = DB::table($tableName)
+                    ->where($userField, $this->oldCompanyId)
+                    ->update([$userField => $this->newCompanyId]);
+
+                if ($updated > 0) {
+                    Log::info("Updated {$updated} user references in {$tableName}");
+                }
+            }
         }
     }
 
