@@ -48,98 +48,48 @@
 
 @section('content')
 <style>
-    body {
+    * {
         margin: 0;
         padding: 0;
-        min-height: 100vh;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        box-sizing: border-box;
     }
 
-    .auth-wrapper {
-        min-height: 100vh;
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+    }
+
+    .auth-container {
         display: flex;
+        height: 100vh;
+        width: 100vw;
     }
 
     .auth-left {
-        width: 50%;
+        width: 50vw;
+        background: white;
         display: flex;
         align-items: center;
-        justify-content: flex-start;
-        padding: 2rem;
-        background: white;
+        padding-left: 5rem;
     }
 
     .auth-right {
-        width: 50%;
+        width: 50vw;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        position: relative;
-        overflow: hidden;
     }
 
-    .auth-right::before {
-        display: none;
-    }
-
-    .login-card {
-        background: white;
-        border-radius: 0;
-        padding: 3rem;
-        box-shadow: none;
-        border: none;
+    .login-form-container {
+        max-width: 400px;
         width: 100%;
-        max-width: 420px;
-        margin-left: 2rem;
-    }
-
-    .welcome-content {
-        text-align: center;
-        color: white;
-        z-index: 2;
-        position: relative;
-        max-width: 500px;
-        padding: 2rem;
-    }
-
-    .welcome-content h2 {
-        font-size: 3rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        line-height: 1.2;
-    }
-
-    .welcome-content p {
-        font-size: 1.25rem;
-        opacity: 0.9;
-        margin-bottom: 2rem;
-    }
-
-    .feature-list {
-        text-align: left;
-    }
-
-    .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
-    }
-
-    .feature-item i {
-        margin-right: 1rem;
-        opacity: 0.8;
-    }
-
-    .auth-title {
-        text-align: center;
-        margin-bottom: 2rem;
     }
 
     .auth-title h1 {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 700;
         color: #1a202c;
         margin-bottom: 0.5rem;
@@ -148,6 +98,7 @@
     .auth-title p {
         color: #64748b;
         font-size: 1.1rem;
+        margin-bottom: 2rem;
     }
 
     .form-floating {
@@ -156,19 +107,18 @@
     }
 
     .form-control-modern {
-        background: rgba(248, 249, 250, 0.8);
-        border: 2px solid rgba(148, 163, 184, 0.2);
-        border-radius: 16px;
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
         padding: 1.25rem 1rem;
         font-size: 1rem;
-        line-height: 1.5;
-        transition: all 0.3s ease;
         width: 100%;
         min-height: 60px;
+        transition: all 0.3s ease;
     }
 
     .form-control-modern:focus {
-        background: rgba(255, 255, 255, 1);
+        background: white;
         border-color: #667eea;
         box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
         outline: none;
@@ -192,7 +142,7 @@
         top: 0;
         font-size: 0.875rem;
         color: #667eea;
-        background: rgba(255, 255, 255, 0.9);
+        background: white;
         padding: 0 0.5rem;
         border-radius: 8px;
     }
@@ -204,58 +154,34 @@
         margin-bottom: 2rem;
     }
 
-    .form-check {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .form-check input {
-        width: 1.25rem;
-        height: 1.25rem;
-        border: 2px solid #d1d5db;
-        border-radius: 6px;
-        margin: 0;
-    }
-
-    .form-check input:checked {
-        background-color: #667eea;
-        border-color: #667eea;
-    }
-
     .forgot-link {
         color: #667eea;
         text-decoration: none;
         font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .forgot-link:hover {
-        color: #5a6fd8;
     }
 
     .login-btn {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
-        border-radius: 16px;
-        padding: 1rem 2rem;
+        border-radius: 12px;
+        padding: 1rem;
         font-weight: 600;
         font-size: 1.1rem;
         color: white;
         width: 100%;
-        transition: all 0.3s ease;
         margin-bottom: 2rem;
+        cursor: pointer;
+        transition: transform 0.2s ease;
     }
 
     .login-btn:hover {
         transform: translateY(-2px);
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
     }
 
     .auth-footer {
         text-align: center;
         padding-top: 1.5rem;
-        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        border-top: 1px solid #e9ecef;
     }
 
     .register-link {
@@ -264,14 +190,40 @@
         font-weight: 600;
     }
 
-    .register-link:hover {
-        color: #5a6fd8;
+    .welcome-content {
+        text-align: center;
+        color: white;
+        max-width: 400px;
+    }
+
+    .welcome-content h2 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    .welcome-content p {
+        font-size: 1.2rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        text-align: left;
+    }
+
+    .feature-item i {
+        margin-right: 1rem;
     }
 
     .alert-modern {
-        background: rgba(248, 215, 218, 0.9);
-        border: 1px solid rgba(245, 198, 203, 0.5);
-        border-radius: 12px;
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
         padding: 1rem;
         margin-bottom: 1.5rem;
         color: #721c24;
@@ -282,34 +234,21 @@
         color: #dc3545;
         font-size: 0.875rem;
         margin-top: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: rgba(248, 215, 218, 0.1);
-        border-radius: 8px;
-        border-left: 4px solid #dc3545;
     }
 
     @media (max-width: 768px) {
-        .auth-wrapper {
+        .auth-container {
             flex-direction: column;
         }
         
+        .auth-left, .auth-right {
+            width: 100vw;
+            height: 50vh;
+        }
+        
         .auth-left {
-            order: 2;
-        }
-        
-        .auth-right {
-            order: 1;
-            min-height: 60vh;
-        }
-        
-        .login-card {
-            padding: 2rem 1.5rem;
-            border-radius: 20px;
-            margin: 1rem;
-        }
-        
-        .auth-title h1 {
-            font-size: 1.75rem;
+            padding: 2rem;
+            justify-content: center;
         }
         
         .welcome-content h2 {
@@ -318,9 +257,9 @@
     }
 </style>
 
-<div class="auth-wrapper">
+<div class="auth-container">
     <div class="auth-left">
-        <div class="login-card">
+        <div class="login-form-container">
             <div class="auth-title">
                 <h1>{{ __('Welcome Back') }}</h1>
                 <p>{{ __('Sign in to your account') }}</p>
