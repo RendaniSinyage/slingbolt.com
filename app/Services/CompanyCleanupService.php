@@ -196,25 +196,27 @@ class CompanyCleanupService
                            WHERE c.created_by = ?",
                 'params' => [$companyId]
             ],
-            'form_fields' => [
-                'query' => "DELETE ff FROM form_fields ff
-                           JOIN forms f ON ff.form_id = f.id
-                           WHERE f.created_by = ?",
-                'params' => [$companyId]
-            ],
-            'form_field_responses' => [
-                'query' => "DELETE ffr FROM form_field_responses ffr
-                           JOIN form_responses fr ON ffr.response_id = fr.id
-                           JOIN forms f ON fr.form_id = f.id
-                           WHERE f.created_by = ?",
-                'params' => [$companyId]
-            ],
-            'form_responses' => [
-                'query' => "DELETE fr FROM form_responses fr
-                           JOIN forms f ON fr.form_id = f.id
-                           WHERE f.created_by = ?",
-                'params' => [$companyId]
-            ]
+           [
+               'form_field_responses' => [
+                   'query' => "DELETE ffr FROM form_field_responses ffr
+                              JOIN form_fields ff ON ffr.form_id = ff.id
+                              WHERE ff.created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_field_responses for company_id = $companyId"
+               ],
+               'form_responses' => [
+                   'query' => "DELETE fr FROM form_responses fr
+                              JOIN form_fields ff ON fr.form_id = ff.id
+                              WHERE ff.created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_responses for company_id = $companyId"
+               ],
+               'form_fields' => [
+                   'query' => "DELETE FROM form_fields WHERE created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_fields for company_id = $companyId"
+               ],
+           ]
         ];
 
         // Alternative company identification columns - no need to check user types since we have the specific companyId
