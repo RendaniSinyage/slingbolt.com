@@ -80,7 +80,7 @@
                             <div class="plan-toggle-wrapper">
                                 <span class="plan-toggle-label plan-monthly">Monthly</span>
                                 <div class="plan-toggle-switch">
-                                    <input type="checkbox" id="planBillingToggle" class="plan-toggle-input">
+                                    <input type="checkbox" id="planBillingToggle" class="plan-toggle-input" checked>
                                     <label for="planBillingToggle" class="plan-toggle-slider"></label>
                                 </div>
                                 <span class="plan-toggle-label plan-yearly">
@@ -96,7 +96,7 @@
             <!-- Combined Pricing and Features Section -->
             <div class="pricing-container">
                 <!-- Monthly Plans -->
-                <div id="plan-monthly-container" class="plan-container {{ $has_yearly_plans ? 'd-none' : '' }}">
+                <div id="plan-monthly-container" class="plan-container d-none">
                     @if($monthly_plans->count() > 0)
                         <!-- Plan Headers with Pricing -->
                         <div class="plan-headers-row">
@@ -128,11 +128,19 @@
 
                         <!-- Feature Categories -->
                         @if(!empty($monthly_categories))
+                            @php $category_index = 0; @endphp
                             @foreach($monthly_categories as $category_name => $features)
                                 <div class="feature-category">
-                                    <div class="feature-category-header">
+                                    <div class="feature-category-header collapsible-header" 
+                                         data-bs-toggle="collapse" 
+                                         data-bs-target="#monthly-category-{{ $category_index }}" 
+                                         aria-expanded="{{ $category_index == 0 ? 'true' : 'false' }}"
+                                         aria-controls="monthly-category-{{ $category_index }}">
                                         <div class="feature-column">
-                                            <h4 class="category-title">{{ $category_name }}</h4>
+                                            <h4 class="category-title">
+                                                {{ $category_name }}
+                                                <i class="ti ti-chevron-down collapse-icon ms-2"></i>
+                                            </h4>
                                         </div>
                                         @foreach($monthly_plans as $key => $plan)
                                             <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
@@ -141,25 +149,28 @@
                                         @endforeach
                                     </div>
                                     
-                                    @foreach($features as $feature)
-                                        <div class="feature-row">
-                                            <div class="feature-column">
-                                                <span class="feature-name">{{ $feature }}</span>
-                                            </div>
-                                            @foreach($monthly_plans as $key => $plan)
-                                                <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
-                                                    <div class="feature-check">
-                                                        @if(str_contains($plan->description, $feature))
-                                                            <i class="ti ti-check text-success fs-5"></i>
-                                                        @else
-                                                            <i class="ti ti-x text-muted fs-5"></i>
-                                                        @endif
-                                                    </div>
+                                    <div class="collapse {{ $category_index == 0 ? 'show' : '' }}" id="monthly-category-{{ $category_index }}">
+                                        @foreach($features as $feature)
+                                            <div class="feature-row">
+                                                <div class="feature-column">
+                                                    <span class="feature-name">{{ $feature }}</span>
                                                 </div>
-                                            @endforeach
-                                        </div>
-                                    @endforeach
+                                                @foreach($monthly_plans as $key => $plan)
+                                                    <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                        <div class="feature-check">
+                                                            @if(str_contains($plan->description, $feature))
+                                                                <i class="ti ti-check text-success fs-5"></i>
+                                                            @else
+                                                                <i class="ti ti-x text-muted fs-5"></i>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
+                                @php $category_index++; @endphp
                             @endforeach
                         @endif
 
@@ -217,11 +228,19 @@
 
                         <!-- Feature Categories -->
                         @if(!empty($yearly_categories))
+                            @php $category_index = 0; @endphp
                             @foreach($yearly_categories as $category_name => $features)
                                 <div class="feature-category">
-                                    <div class="feature-category-header">
+                                    <div class="feature-category-header collapsible-header" 
+                                         data-bs-toggle="collapse" 
+                                         data-bs-target="#yearly-category-{{ $category_index }}" 
+                                         aria-expanded="{{ $category_index == 0 ? 'true' : 'false' }}"
+                                         aria-controls="yearly-category-{{ $category_index }}">
                                         <div class="feature-column">
-                                            <h4 class="category-title">{{ $category_name }}</h4>
+                                            <h4 class="category-title">
+                                                {{ $category_name }}
+                                                <i class="ti ti-chevron-down collapse-icon ms-2"></i>
+                                            </h4>
                                         </div>
                                         @foreach($yearly_plans as $key => $plan)
                                             <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
@@ -230,25 +249,28 @@
                                         @endforeach
                                     </div>
                                     
-                                    @foreach($features as $feature)
-                                        <div class="feature-row">
-                                            <div class="feature-column">
-                                                <span class="feature-name">{{ $feature }}</span>
-                                            </div>
-                                            @foreach($yearly_plans as $key => $plan)
-                                                <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
-                                                    <div class="feature-check">
-                                                        @if(str_contains($plan->description, $feature))
-                                                            <i class="ti ti-check text-success fs-5"></i>
-                                                        @else
-                                                            <i class="ti ti-x text-muted fs-5"></i>
-                                                        @endif
-                                                    </div>
+                                    <div class="collapse {{ $category_index == 0 ? 'show' : '' }}" id="yearly-category-{{ $category_index }}">
+                                        @foreach($features as $feature)
+                                            <div class="feature-row">
+                                                <div class="feature-column">
+                                                    <span class="feature-name">{{ $feature }}</span>
                                                 </div>
-                                            @endforeach
-                                        </div>
-                                    @endforeach
+                                                @foreach($yearly_plans as $key => $plan)
+                                                    <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                        <div class="feature-check">
+                                                            @if(str_contains($plan->description, $feature))
+                                                                <i class="ti ti-check text-success fs-5"></i>
+                                                            @else
+                                                                <i class="ti ti-x text-muted fs-5"></i>
+                                                            @endif
+                                                        </div>
+                                                    </div>
+                                                @endforeach
+                                            </div>
+                                        @endforeach
+                                    </div>
                                 </div>
+                                @php $category_index++; @endphp
                             @endforeach
                         @endif
 
@@ -280,11 +302,12 @@
         .pricing-container {
             max-width: 1200px;
             margin: 0 auto;
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.15);
             border-radius: 20px;
             overflow: hidden;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(15px);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
         }
 
         .plan-container {
@@ -306,8 +329,8 @@
             padding: 1.5rem 2rem;
             display: flex;
             align-items: center;
-            background: rgba(255, 255, 255, 0.15);
-            border-right: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.25);
+            border-right: 2px solid rgba(255, 255, 255, 0.4);
         }
 
         .plan-column {
@@ -316,8 +339,8 @@
             align-items: center;
             justify-content: center;
             padding: 1rem;
-            border-right: 1px solid rgba(255, 255, 255, 0.1);
-            background: rgba(255, 255, 255, 0.05);
+            border-right: 1px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
             position: relative;
         }
 
@@ -326,9 +349,9 @@
         }
 
         .plan-column.popular-column {
-            background: rgba(255, 255, 255, 0.15);
-            border-left: 2px solid rgba(255, 255, 255, 0.4);
-            border-right: 2px solid rgba(255, 255, 255, 0.4);
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 3px solid rgba(255, 255, 255, 0.6);
+            border-right: 3px solid rgba(255, 255, 255, 0.6);
         }
 
         /* Billing Toggle */
@@ -486,17 +509,68 @@
             border-bottom: none;
         }
 
+        .feature-category-header.collapsible-header {
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            user-select: none;
+            background: rgba(255, 255, 255, 0.15);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .feature-category-header.collapsible-header:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         .category-title {
             color: white;
-            font-size: 1.25rem;
-            font-weight: 600;
+            font-size: 1.4rem;
+            font-weight: 700;
             margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .collapse-icon {
+            font-size: 1.4rem;
+            transition: transform 0.3s ease;
+            color: white;
+            margin-left: auto;
+            font-weight: bold;
+        }
+
+        .feature-category-header[aria-expanded="true"] .collapse-icon {
+            transform: rotate(180deg);
         }
 
         .feature-name {
             color: white;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 1rem;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .feature-check {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .feature-check .ti-check {
+            color: #22c55e !important;
+            font-size: 1.5rem !important;
+            font-weight: bold;
+        }
+
+        .feature-check .ti-x {
+            color: #ef4444 !important;
+            font-size: 1.5rem !important;
+            font-weight: bold;
+            opacity: 0.7;
         }
 
         .feature-check {
