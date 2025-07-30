@@ -304,28 +304,34 @@
                     </span>
                 @enderror
             </div>
-            <div class="form-group mb-3">
-                <input id="password" type="password" data-indicator="pwindicator"
-                    class="form-control pwstrength @error('password') is-invalid @enderror" name="password"
-                    autocomplete="new-password" placeholder=" " required="required">
-                <label for="password" class="form-label">{{ __('Password') }}</label>
-                @error('password')
-                    <span class="invalid-feedback" role="alert">
-                        <strong>{{ $message }}</strong>
-                    </span>
-                @enderror
-            </div>
-            <div class="form-group mb-3">
-                <input id="password_confirmation" type="password" data-indicator="password_confirmation"
-                    class="form-control pwstrength @error('password_confirmation') is-invalid @enderror"
-                    name="password_confirmation" autocomplete="new-password"
-                    placeholder=" " required="required">
-                <label for="password_confirmation" class="form-label">{{ __('Password Confirmation') }}</label>
-                @error('password_confirmation')
-                    <span class="invalid-feedback" role="alert">
-                        <strong>{{ $message }}</strong>
-                    </span>
-                @enderror
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <input id="password" type="password" data-indicator="pwindicator"
+                            class="form-control pwstrength @error('password') is-invalid @enderror" name="password"
+                            autocomplete="new-password" placeholder=" " required="required">
+                        <label for="password" class="form-label">{{ __('Password') }}</label>
+                        @error('password')
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
+                        @enderror
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <input id="password_confirmation" type="password" data-indicator="password_confirmation"
+                            class="form-control pwstrength @error('password_confirmation') is-invalid @enderror"
+                            name="password_confirmation" autocomplete="new-password"
+                            placeholder=" " required="required">
+                        <label for="password_confirmation" class="form-label">{{ __('Confirm') }}</label>
+                        @error('password_confirmation')
+                            <span class="invalid-feedback" role="alert">
+                                <strong>{{ $message }}</strong>
+                            </span>
+                        @enderror
+                    </div>
+                </div>
             </div>
             <div class="form-check custom-checkbox">
                 <input type="checkbox" class="form-check-input" id="termsCheckbox" name="terms" required="required">
