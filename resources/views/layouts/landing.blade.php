@@ -111,7 +111,7 @@
                     <a class="nav-link active" href="#home">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#features">Features4</a>
+                    <a class="nav-link" href="#features">Features</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#layouts">Layouts</a>
