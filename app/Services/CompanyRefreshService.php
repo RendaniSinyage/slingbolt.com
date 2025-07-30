@@ -16,9 +16,9 @@ class CompanyRefreshService
     private $newCompanyId;
     private $transferLog = [];
     private $refreshSummary = [];
-    private $isDryRun = false;
     private $idMappings = []; // Track old ID -> new ID mappings
     private $deferredRelationships = []; // Store relationships to fix later
+    private $originalCompanyData = null; // Store original company data for restoration
 
     // ALL master data tables that users can add to OR modify
     private $masterDataTables = [
@@ -77,7 +77,7 @@ class CompanyRefreshService
     // User-generated transactional data that should be COPIED to new company
     private $userDataTables = [
         // Core user data
-        //'users',
+        //'users', // Handled separately
         'employees',
         'customers',
         'venders',
@@ -227,52 +227,114 @@ class CompanyRefreshService
     }
 
     /**
-     * Main refresh method - UNIFIED approach for both dry run and actual refresh
+     * MAIN ENTRY POINT - Uses unified approach
      */
     public function refreshCompany($oldCompanyId, $options = [])
     {
         $this->oldCompanyId = $oldCompanyId;
-        $this->isDryRun = $options['dry_run'] ?? false;
+        $isDryRun = $options['dry_run'] ?? false;
 
-        Log::info("Starting company refresh for company {$this->oldCompanyId}" .
-            ($this->isDryRun ? " (DRY RUN)" : ""));
+        // Store original company data for later restoration (actual refresh needs this)
+        $this->originalCompanyData = DB::table('users')->where('id', $oldCompanyId)->first();
+        if (!$this->originalCompanyData) {
+            throw new \Exception("Company {$oldCompanyId} not found");
+        }
 
+        if ($isDryRun) {
+            Log::info("Starting DRY RUN for company {$oldCompanyId}");
+            return $this->performDryRun();
+        } else {
+            Log::info("Starting ACTUAL REFRESH for company {$oldCompanyId}");
+            return $this->performActualRefresh();
+        }
+    }
+
+    /**
+     * Perform dry run - creates prefixed company, preserves original
+     */
+    private function performDryRun()
+    {
         try {
-            return DB::transaction(function () use ($options) {
+            return DB::transaction(function () {
+                Log::info("DRY RUN: Creating new company with prefixed data...");
+
                 // Step 1: Determine template company based on currency
                 $this->templateCompanyId = $this->determineTemplateCompany();
 
-                // Step 2: Clone template to new company with PREFIXED data (ALWAYS)
-                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix();
+                // Step 2: Clone template to new company with PREFIXED data
+                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix(true); // true = dry run
 
-                // Step 3: Process all master data (unified approach)
+                // Step 3: Process all master data
                 $this->processMasterData();
 
                 // Step 4: Handle special settings
                 $this->processSettings();
 
-                // Step 5: Copy all user-generated data (COPY operation for safety)
+                // Step 5: Copy all user-generated data
                 $this->copyUserGeneratedData();
 
-                // Step 6: Copy users to new company with PREFIXED emails (ALWAYS)
-                $this->copyUsersToNewCompanyWithPrefix();
+                // Step 6: Copy users to new company with PREFIXED emails
+                $this->copyUsersToNewCompanyWithPrefix(true); // true = dry run
 
-                // === ACTUAL REFRESH ONLY: Additional steps ===
-                if (!$this->isDryRun) {
-                    // Step 7: Delete old company (now safe since new company has prefixed data)
-                    $this->deleteOldCompany();
+                Log::info("DRY RUN: Old company {$this->oldCompanyId} preserved, new company has prefixed data");
 
-                    // Step 8: Remove prefixes and finalize company data
-                    $this->removePrefixesAndFinalize();
-                } else {
-                    Log::info("DRY RUN: Old company {$this->oldCompanyId} preserved, new company has prefixed data");
-                }
-
-                return $this->generateSuccessResponse();
+                return $this->generateSuccessResponse(true); // true = dry run
             });
 
         } catch (\Exception $e) {
-            Log::error("Company refresh failed: " . $e->getMessage());
+            Log::error("Dry run failed: " . $e->getMessage());
+
+            // Cleanup new company if something went wrong
+            if ($this->newCompanyId) {
+                $this->cleanupFailedRefresh();
+            }
+
+            throw $e;
+        }
+    }
+
+    /**
+     * Perform actual refresh - uses dry run logic + finalization
+     */
+    private function performActualRefresh()
+    {
+        try {
+            return DB::transaction(function () {
+                Log::info("ACTUAL REFRESH: Step 1 - Performing dry run to create new company safely...");
+
+                // Step 1: Determine template company based on currency
+                $this->templateCompanyId = $this->determineTemplateCompany();
+
+                // Step 2: Clone template to new company with PREFIXED data
+                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix(false); // false = actual refresh
+
+                // Step 3: Process all master data
+                $this->processMasterData();
+
+                // Step 4: Handle special settings
+                $this->processSettings();
+
+                // Step 5: Copy all user-generated data
+                $this->copyUserGeneratedData();
+
+                // Step 6: Copy users to new company with PREFIXED emails
+                $this->copyUsersToNewCompanyWithPrefix(false); // false = actual refresh
+
+                Log::info("ACTUAL REFRESH: Step 2 - Data migration successful, now finalizing...");
+
+                // Step 7: Delete old company (point of no return)
+                $this->deleteOldCompany();
+
+                // Step 8: Remove prefixes and restore original identity
+                $this->removePrefixesAndFinalize();
+
+                Log::info("ACTUAL REFRESH: Successfully completed");
+
+                return $this->generateSuccessResponse(false); // false = actual refresh
+            });
+
+        } catch (\Exception $e) {
+            Log::error("Actual refresh failed: " . $e->getMessage());
             Log::error("Stack trace: " . $e->getTraceAsString());
 
             // Cleanup new company if something went wrong
@@ -339,18 +401,18 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 2: Clone template to new company with prefixed data (ALWAYS)
+     * Step 2: Clone template to new company with prefixed data
      */
-    private function cloneTemplateToNewCompanyWithPrefix()
+    private function cloneTemplateToNewCompanyWithPrefix($isDryRun)
     {
         Log::info("Step 2: Cloning template company {$this->templateCompanyId} to new company with prefixed data");
 
         $oldCompany = User::find($this->oldCompanyId);
-        $prefix = $this->isDryRun ? 'dryrun_' : 'refresh_';
+        $prefix = $isDryRun ? 'dryrun_' : 'refresh_';
 
         // Create new company record with prefixed email
         $newCompanyId = DB::table('users')->insertGetId([
-            'name' => $oldCompany->name . ($this->isDryRun ? ' (DRY RUN)' : ' (REFRESH)'),
+            'name' => $oldCompany->name . ($isDryRun ? ' (DRY RUN)' : ' (REFRESH)'),
             'email' => $prefix . time() . '_' . $oldCompany->email,
             'email_verified_at' => $oldCompany->email_verified_at,
             'password' => $oldCompany->password,
@@ -939,9 +1001,9 @@ class CompanyRefreshService
     }
 
     /**
-     * Step 6: Copy users to new company with prefixed emails (ALWAYS)
+     * Step 6: Copy users to new company with prefixed emails
      */
-    private function copyUsersToNewCompanyWithPrefix()
+    private function copyUsersToNewCompanyWithPrefix($isDryRun)
     {
         Log::info("Step 6: Copying users to new company with prefixed emails");
 
@@ -952,7 +1014,7 @@ class CompanyRefreshService
 
         Log::info("Found {$users->count()} users to copy");
 
-        $prefix = $this->isDryRun ? 'dryrun_' : 'refresh_';
+        $prefix = $isDryRun ? 'dryrun_' : 'refresh_';
 
         foreach ($users as $user) {
             // Create copy of user in new company using replicate to preserve all fields
@@ -1084,17 +1146,19 @@ class CompanyRefreshService
     {
         Log::info("Step 8: Removing prefixes and finalizing company data");
 
-        // Get the original company data (we still have access to it since we haven't deleted anything yet)
-        $originalCompanyData = DB::table('users')->where('id', $this->oldCompanyId)->first();
+        // Use the stored original company data (since old company is now deleted)
+        if (!$this->originalCompanyData) {
+            throw new \Exception("Original company data not available for restoration");
+        }
 
         // Update main company record to remove prefix and restore original data
         DB::table('users')->where('id', $this->newCompanyId)->update([
-            'name' => $originalCompanyData->name, // Remove (REFRESH) suffix
-            'email' => $originalCompanyData->email, // Restore original email
+            'name' => $this->originalCompanyData->name, // Remove (REFRESH) suffix
+            'email' => $this->originalCompanyData->email, // Restore original email
             'updated_at' => now(),
         ]);
 
-        Log::info("Restored company email to: {$originalCompanyData->email}");
+        Log::info("Restored company email to: {$this->originalCompanyData->email}");
 
         // Get all copied users and restore their original emails
         $copiedUsers = User::where('created_by', $this->newCompanyId)
@@ -1229,16 +1293,16 @@ class CompanyRefreshService
     /**
      * Generate success response
      */
-    private function generateSuccessResponse()
+    private function generateSuccessResponse($isDryRun)
     {
-        $message = $this->isDryRun ?
+        $message = $isDryRun ?
             'Company refresh dry run completed successfully - data created with prefixes for testing' :
             'Company refreshed successfully - old company deleted and prefixes removed';
 
         return [
             'success' => true,
             'message' => $message,
-            'is_dry_run' => $this->isDryRun,
+            'is_dry_run' => $isDryRun,
             'template_company_id' => $this->templateCompanyId,
             'old_company_id' => $this->oldCompanyId,
             'new_company_id' => $this->newCompanyId,
@@ -1246,7 +1310,7 @@ class CompanyRefreshService
             'transfer_log' => $this->transferLog,
             'summary' => $this->generateTransferSummary(),
             'completed_at' => now(),
-            'prefixes_removed' => !$this->isDryRun
+            'prefixes_removed' => !$isDryRun
         ];
     }
 
