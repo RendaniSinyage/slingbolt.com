@@ -4,19 +4,6 @@
     $logo = \App\Models\Utility::get_file('uploads/logo');
     $settings = Utility::settings();
     $company_logo = $settings['company_logo'] ?? '';
-    $adminSettings = $settings;
-    $setting = \App\Models\Utility::colorset();
-    $SITE_RTL = $adminSettings['SITE_RTL'] ? $adminSettings['SITE_RTL'] : '';
-    $lang = \App::getLocale('lang');
-    if ($lang == 'ar' || $lang == 'he') {
-        $SITE_RTL = 'on';
-    }
-    $color = !empty($setting['color']) ? $setting['color'] : 'theme-3';
-    if(isset($setting['color_flag']) && $setting['color_flag'] == 'true') {
-        $themeColor = 'custom-color';
-    } else {
-        $themeColor = $color;
-    }
 @endphp
 
 @push('custom-scripts')
@@ -60,282 +47,289 @@
 @endsection
 
 @section('content')
-<!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ $SITE_RTL == 'on' ? 'rtl' : '' }}">
-<head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
-    <title>{{ $setting['title_text'] ? $setting['title_text'] : config('app.name', 'SLINGBOLT') }} - Login</title>
-    
-    <link rel="icon" href="{{ $logo . '/' . $adminSettings['company_favicon'] . '?' . time() }}" type="image/x-icon" />
-    <link rel="stylesheet" href="{{ asset('assets/fonts/tabler-icons.min.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/fonts/feather.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/fonts/fontawesome.css') }}" />
-    <link rel="stylesheet" href="{{ asset('assets/fonts/material.css') }}" />
-    
-    @if ($SITE_RTL == 'on')
-        <link rel="stylesheet" href="{{ asset('assets/css/style-rtl.css') }}">
-    @endif
-    
-    @if ($setting['cust_darklayout'] == 'on')
-        <link rel="stylesheet" href="{{ asset('assets/css/style-dark.css') }}">
-    @else
-        <link rel="stylesheet" href="{{ asset('assets/css/style.css') }}" id="main-style-link">
-    @endif
-    
-    <link rel="stylesheet" href=" {{ asset('assets/css/customizer.css') }}" />
-    <link rel="stylesheet" href=" {{ asset('assets/landingpage/css/landing-page.css') }}" />
-    <link rel="stylesheet" href=" {{ asset('assets/landingpage/css/custom.css') }}" />
-    <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
-    
-    <style>
-        :root {
-            --color-customColor: <?= $color ?>;
+<style>
+    body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    .auth-wrapper {
+        min-height: 100vh;
+        display: flex;
+    }
+
+    .auth-left {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .auth-right {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f8fafc;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .auth-right::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(45deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-radius: 50%;
+    }
+
+    .login-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 3rem;
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            0 0 0 1px rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 100%;
+        max-width: 420px;
+    }
+
+    .welcome-content {
+        text-align: center;
+        color: white;
+        z-index: 2;
+        position: relative;
+        max-width: 500px;
+        padding: 2rem;
+    }
+
+    .welcome-content h2 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+    }
+
+    .welcome-content p {
+        font-size: 1.25rem;
+        opacity: 0.9;
+        margin-bottom: 2rem;
+    }
+
+    .feature-list {
+        text-align: left;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .feature-item i {
+        margin-right: 1rem;
+        opacity: 0.8;
+    }
+
+    .auth-title {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .auth-title h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 0.5rem;
+    }
+
+    .auth-title p {
+        color: #64748b;
+        font-size: 1.1rem;
+    }
+
+    .form-floating {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-control-modern {
+        background: rgba(248, 249, 250, 0.8);
+        border: 2px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        padding: 1.25rem 1rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        transition: all 0.3s ease;
+        width: 100%;
+        min-height: 60px;
+    }
+
+    .form-control-modern:focus {
+        background: rgba(255, 255, 255, 1);
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .form-floating label {
+        position: absolute;
+        top: 50%;
+        left: 1rem;
+        transform: translateY(-50%);
+        font-size: 1rem;
+        color: #64748b;
+        transition: all 0.3s ease;
+        pointer-events: none;
+        background: transparent;
+        padding: 0 0.25rem;
+    }
+
+    .form-floating .form-control-modern:focus ~ label,
+    .form-floating .form-control-modern:not(:placeholder-shown) ~ label {
+        top: 0;
+        font-size: 0.875rem;
+        color: #667eea;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0 0.5rem;
+        border-radius: 8px;
+    }
+
+    .form-options {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-check input {
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid #d1d5db;
+        border-radius: 6px;
+        margin: 0;
+    }
+
+    .form-check input:checked {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    .forgot-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    .forgot-link:hover {
+        color: #5a6fd8;
+    }
+
+    .login-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        border-radius: 16px;
+        padding: 1rem 2rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: white;
+        width: 100%;
+        transition: all 0.3s ease;
+        margin-bottom: 2rem;
+    }
+
+    .login-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+    }
+
+    .auth-footer {
+        text-align: center;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+    }
+
+    .register-link {
+        color: #667eea;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    .register-link:hover {
+        color: #5a6fd8;
+    }
+
+    .alert-modern {
+        background: rgba(248, 215, 218, 0.9);
+        border: 1px solid rgba(245, 198, 203, 0.5);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: #721c24;
+    }
+
+    .invalid-feedback {
+        display: block;
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(248, 215, 218, 0.1);
+        border-radius: 8px;
+        border-left: 4px solid #dc3545;
+    }
+
+    @media (max-width: 768px) {
+        .auth-wrapper {
+            flex-direction: column;
         }
         
-        body {
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+        .auth-left {
+            order: 2;
         }
-
-        .auth-gradient {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            z-index: -1;
+        
+        .auth-right {
+            order: 1;
+            min-height: 60vh;
         }
-
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
-            z-index: 1;
-        }
-
-        .bg-gradient-custom {
-            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
-        }
-
+        
         .login-card {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            border-radius: 24px;
-            padding: 3rem;
-            box-shadow: 
-                0 25px 50px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            width: 100%;
-            max-width: 480px;
-            margin: 2rem;
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            margin: 1rem;
         }
-
-        .auth-logo {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 2rem;
-        }
-
-        .auth-logo img {
-            height: 48px;
-            filter: brightness(0) invert(1);
-        }
-
-        .auth-title {
-            text-align: center;
-            margin-bottom: 2rem;
-        }
-
+        
         .auth-title h1 {
+            font-size: 1.75rem;
+        }
+        
+        .welcome-content h2 {
             font-size: 2rem;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 0.5rem;
         }
+    }
+</style>
 
-        .auth-title p {
-            color: #64748b;
-            font-size: 1.1rem;
-        }
-
-        .form-floating {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
-        .form-control-modern {
-            background: rgba(248, 249, 250, 0.8);
-            border: 2px solid rgba(148, 163, 184, 0.2);
-            border-radius: 16px;
-            padding: 1.25rem 1rem;
-            font-size: 1rem;
-            line-height: 1.5;
-            transition: all 0.3s ease;
-            width: 100%;
-            min-height: 60px;
-        }
-
-        .form-control-modern:focus {
-            background: rgba(255, 255, 255, 1);
-            border-color: #667eea;
-            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-            outline: none;
-        }
-
-        .form-floating label {
-            position: absolute;
-            top: 50%;
-            left: 1rem;
-            transform: translateY(-50%);
-            font-size: 1rem;
-            color: #64748b;
-            transition: all 0.3s ease;
-            pointer-events: none;
-            background: transparent;
-            padding: 0 0.25rem;
-        }
-
-        .form-floating .form-control-modern:focus ~ label,
-        .form-floating .form-control-modern:not(:placeholder-shown) ~ label {
-            top: 0;
-            font-size: 0.875rem;
-            color: #667eea;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 0 0.5rem;
-            border-radius: 8px;
-        }
-
-        .form-options {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .form-check {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .form-check input {
-            width: 1.25rem;
-            height: 1.25rem;
-            border: 2px solid #d1d5db;
-            border-radius: 6px;
-            margin: 0;
-        }
-
-        .form-check input:checked {
-            background-color: #667eea;
-            border-color: #667eea;
-        }
-
-        .forgot-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-        .forgot-link:hover {
-            color: #5a6fd8;
-        }
-
-        .login-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 16px;
-            padding: 1rem 2rem;
-            font-weight: 600;
-            font-size: 1.1rem;
-            color: white;
-            width: 100%;
-            transition: all 0.3s ease;
-            margin-bottom: 2rem;
-        }
-
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
-        }
-
-        .auth-footer {
-            text-align: center;
-            padding-top: 1.5rem;
-            border-top: 1px solid rgba(148, 163, 184, 0.2);
-        }
-
-        .register-link {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 600;
-        }
-
-        .register-link:hover {
-            color: #5a6fd8;
-        }
-
-        .alert-modern {
-            background: rgba(248, 215, 218, 0.9);
-            border: 1px solid rgba(245, 198, 203, 0.5);
-            border-radius: 12px;
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            color: #721c24;
-        }
-
-        .invalid-feedback {
-            display: block;
-            color: #dc3545;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: rgba(248, 215, 218, 0.1);
-            border-radius: 8px;
-            border-left: 4px solid #dc3545;
-        }
-
-        @media (max-width: 576px) {
-            .login-card {
-                padding: 2rem 1.5rem;
-                border-radius: 20px;
-                margin: 1rem;
-            }
-            
-            .auth-title h1 {
-                font-size: 1.75rem;
-            }
-        }
-
-        @media (max-width: 991px) {
-            .auth-container .row {
-                min-height: 100vh;
-            }
-        }
-    </style>
-</head>
-
-@if ($setting['cust_darklayout'] == 'on')
-    <body class="{{ $themeColor }} landing-dark">
-@else
-    <body class="{{ $themeColor }}">
-@endif
-
-    <div class="auth-gradient"></div>
-
-    <div class="auth-container">
-        <div class="row w-100 h-100 g-0">
-            <div class="col-lg-6 d-flex align-items-center justify-content-center">
-                <div class="login-card">
+<div class="auth-wrapper">
+    <div class="auth-left">
+        <div class="login-card">
             <div class="auth-title">
                 <h1>{{ __('Welcome Back') }}</h1>
                 <p>{{ __('Sign in to your account') }}</p>
@@ -416,54 +410,48 @@
             @endif
 
             {{ Form::close() }}
+        </div>
+    </div>
+
+    <div class="auth-right">
+        <div class="welcome-content">
+            <h2>Welcome to Our Platform</h2>
+            <p>Join thousands of users who trust our platform for their business needs.</p>
+            <div class="feature-list">
+                <div class="feature-item">
+                    <i class="ti ti-check-circle"></i>
+                    <span>Secure and reliable platform</span>
                 </div>
-            </div>
-            <div class="col-lg-6 d-none d-lg-flex align-items-center justify-content-center bg-gradient-custom">
-                <div class="text-center text-white p-5">
-                    <h2 class="display-4 fw-bold mb-4">Welcome to Our Platform</h2>
-                    <p class="lead mb-4">Join thousands of users who trust our platform for their business needs.</p>
-                    <div class="feature-list text-start">
-                        <div class="feature-item d-flex align-items-center mb-3">
-                            <i class="ti ti-check-circle fs-4 me-3"></i>
-                            <span>Secure and reliable platform</span>
-                        </div>
-                        <div class="feature-item d-flex align-items-center mb-3">
-                            <i class="ti ti-check-circle fs-4 me-3"></i>
-                            <span>24/7 customer support</span>
-                        </div>
-                        <div class="feature-item d-flex align-items-center">
-                            <i class="ti ti-check-circle fs-4 me-3"></i>
-                            <span>Easy to use interface</span>
-                        </div>
-                    </div>
+                <div class="feature-item">
+                    <i class="ti ti-check-circle"></i>
+                    <span>24/7 customer support</span>
+                </div>
+                <div class="feature-item">
+                    <i class="ti ti-check-circle"></i>
+                    <span>Easy to use interface</span>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <script src="{{ asset('assets/js/plugins/popper.min.js')}}"></script>
-    <script src="{{ asset('assets/js/plugins/bootstrap.min.js')}}"></script>
-    <script src="{{ asset('js/jquery.min.js') }}"></script>
-
-    @if (isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
-        @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
-            {!! NoCaptcha::renderJs() !!}
-        @else
-            <script src="https://www.google.com/recaptcha/api.js?render={{ $settings['google_recaptcha_key'] }}"></script>
-            <script>
-                $(document).ready(function() {
-                    grecaptcha.ready(function() {
-                        grecaptcha.execute('{{ $settings['google_recaptcha_key'] }}', {
-                            action: 'submit'
-                        }).then(function(token) {
-                            $('#g-recaptcha-response').val(token);
-                        });
+<script src="{{ asset('js/jquery.min.js') }}"></script>
+@if (isset($settings['recaptcha_module']) && $settings['recaptcha_module'] == 'on')
+    @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
+        {!! NoCaptcha::renderJs() !!}
+    @else
+        <script src="https://www.google.com/recaptcha/api.js?render={{ $settings['google_recaptcha_key'] }}"></script>
+        <script>
+            $(document).ready(function() {
+                grecaptcha.ready(function() {
+                    grecaptcha.execute('{{ $settings['google_recaptcha_key'] }}', {
+                        action: 'submit'
+                    }).then(function(token) {
+                        $('#g-recaptcha-response').val(token);
                     });
                 });
-            </script>
-        @endif
+            });
+        </script>
     @endif
-
-</body>
-</html>
+@endif
 @endsection
