@@ -18,6 +18,37 @@
 
 @if ($settings['cust_darklayout'] == 'on')
     <style>
+    .card-body {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 3rem;
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            0 0 0 1px rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        width: 100%;
+        max-width: 450px;
+        margin: 2rem auto;
+    }
+
+    h2 {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    /* Dark mode support */
+    .landing-dark .card-body {
+        background: rgba(33, 37, 41, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .landing-dark h2 {
+        color: #fff !important;
+    }
         .g-recaptcha {
             filter: invert(1) hue-rotate(180deg) !important;
         }
@@ -81,33 +112,33 @@
     }
 
     .landing-dark .form-control {
-        background: rgba(52, 58, 64, 0.8);
-        color: #fff;
-        border-color: rgba(255, 255, 255, 0.15);
+        background: rgba(52, 58, 64, 0.8) !important;
+        color: #fff !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
     }
 
     .landing-dark .form-control:focus {
-        background: rgba(52, 58, 64, 1);
-        border-color: #667eea;
+        background: rgba(52, 58, 64, 1) !important;
+        border-color: #667eea !important;
     }
 
     .landing-dark .form-label {
-        color: #adb5bd;
+        color: #adb5bd !important;
     }
 
     .landing-dark .form-control:focus + .form-label,
     .landing-dark .form-control:not(:placeholder-shown) + .form-label {
-        color: #667eea;
-        background: rgba(33, 37, 41, 0.9);
+        color: #667eea !important;
+        background: rgba(33, 37, 41, 0.9) !important;
     }
 
     .landing-dark .text-center p {
-        color: #adb5bd;
-        border-top-color: rgba(255, 255, 255, 0.1);
+        color: #adb5bd !important;
+        border-top-color: rgba(255, 255, 255, 0.1) !important;
     }
 
     .landing-dark .d-flex.flex-wrap a {
-        color: #667eea;
+        color: #667eea !important;
     }
 
     .form-group {
