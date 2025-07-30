@@ -93,53 +93,104 @@
                 </div>
             @endif
 
-            <!-- Pricing Cards -->
-            <div class="row justify-content-center gy-3 gx-4">
+            <!-- Combined Pricing and Features Section -->
+            <div class="pricing-container">
                 <!-- Monthly Plans -->
-                <div id="plan-monthly-pricing" class="col-12 {{ $has_yearly_plans ? 'd-none' : '' }}">
-                    <div class="row justify-content-center gy-3 gx-4">
-                        @if($monthly_plans->count() > 0)
+                <div id="plan-monthly-container" class="plan-container {{ $has_yearly_plans ? 'd-none' : '' }}">
+                    @if($monthly_plans->count() > 0)
+                        <!-- Plan Headers with Pricing -->
+                        <div class="plan-headers-row">
+                            <div class="feature-column">
+                                <div class="feature-header-space"></div>
+                            </div>
                             @foreach($monthly_plans as $key => $plan)
                                 @php
                                     $display_name = str_replace(' (yearly)', '', $plan->name);
                                     $monthly_price = intval($plan->price);
                                     $is_popular = $key == 1;
                                 @endphp
-                                
-                                <div class="col-lg-4 col-sm-6">
-                                    <div class="card plan-pricing-card {{ $is_popular ? 'plan-popular' : '' }}">
+                                <div class="plan-column">
+                                    <div class="plan-header-card {{ $is_popular ? 'popular-plan' : '' }}">
                                         @if($is_popular)
-                                            <div class="plan-popular-badge">
-                                                <span>Most Popular</span>
-                                            </div>
+                                            <div class="popular-badge">Most Popular</div>
                                         @endif
-                                        
-                                        <div class="card-body text-center">
-                                            <h3 class="plan-card-name">{{ $display_name }}</h3>
-                                            <div class="plan-price-container">
-                                                <span class="plan-currency">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}</span>
-                                                <span class="plan-price">{{ $monthly_price }}</span>
-                                                <span class="plan-period">/{{ $plan->duration }}</span>
-                                            </div>
-                                            <p class="plan-card-description">Perfect for getting started</p>
-                                            
-                                            <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
-                                               class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill d-inline-flex align-items-center">
-                                                Get Started
-                                                <i data-feather="arrow-right" class="ms-2"></i>
-                                            </a>
+                                        <h3 class="plan-name">{{ $display_name }}</h3>
+                                        <div class="plan-pricing">
+                                            <span class="currency">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}</span>
+                                            <span class="price">{{ $monthly_price }}</span>
+                                            <span class="period">/{{ $plan->duration }}</span>
                                         </div>
+                                        <p class="plan-description">Perfect for getting started</p>
                                     </div>
                                 </div>
                             @endforeach
+                        </div>
+
+                        <!-- Feature Categories -->
+                        @if(!empty($monthly_categories))
+                            @foreach($monthly_categories as $category_name => $features)
+                                <div class="feature-category">
+                                    <div class="feature-category-header">
+                                        <div class="feature-column">
+                                            <h4 class="category-title">{{ $category_name }}</h4>
+                                        </div>
+                                        @foreach($monthly_plans as $key => $plan)
+                                            <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                <div class="plan-category-spacer"></div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    
+                                    @foreach($features as $feature)
+                                        <div class="feature-row">
+                                            <div class="feature-column">
+                                                <span class="feature-name">{{ $feature }}</span>
+                                            </div>
+                                            @foreach($monthly_plans as $key => $plan)
+                                                <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                    <div class="feature-check">
+                                                        @if(str_contains($plan->description, $feature))
+                                                            <i class="ti ti-check text-success fs-5"></i>
+                                                        @else
+                                                            <i class="ti ti-x text-muted fs-5"></i>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
                         @endif
-                    </div>
+
+                        <!-- CTA Buttons -->
+                        <div class="cta-buttons-row">
+                            <div class="feature-column">
+                                <div class="cta-spacer"></div>
+                            </div>
+                            @foreach($monthly_plans as $key => $plan)
+                                @php $is_popular = $key == 1; @endphp
+                                <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
+                                    <div class="cta-button-container">
+                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
+                                           class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
+                                            Get Started
+                                        </a>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    @endif
                 </div>
 
                 <!-- Yearly Plans -->
                 @if($has_yearly_plans)
-                    <div id="plan-yearly-pricing" class="col-12">
-                        <div class="row justify-content-center gy-3 gx-4">
+                    <div id="plan-yearly-container" class="plan-container">
+                        <!-- Plan Headers with Pricing -->
+                        <div class="plan-headers-row">
+                            <div class="feature-column">
+                                <div class="feature-header-space"></div>
+                            </div>
                             @foreach($yearly_plans as $key => $plan)
                                 @php
                                     $display_name = str_replace(' (yearly)', '', $plan->name);
@@ -147,30 +198,73 @@
                                     $monthly_equivalent = round($yearly_price / 12, 2);
                                     $is_popular = $key == 1;
                                 @endphp
-                                
-                                <div class="col-lg-4 col-sm-6">
-                                    <div class="card plan-pricing-card {{ $is_popular ? 'plan-popular' : '' }}">
+                                <div class="plan-column">
+                                    <div class="plan-header-card {{ $is_popular ? 'popular-plan' : '' }}">
                                         @if($is_popular)
-                                            <div class="plan-popular-badge">
-                                                <span>Most Popular</span>
-                                            </div>
+                                            <div class="popular-badge">Most Popular</div>
                                         @endif
-                                        
-                                        <div class="card-body text-center">
-                                            <h3 class="plan-card-name">{{ $display_name }}</h3>
-                                            <div class="plan-price-container">
-                                                <span class="plan-currency">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}</span>
-                                                <span class="plan-price">{{ $monthly_equivalent }}</span>
-                                                <span class="plan-period">/month</span>
-                                            </div>
-                                            <p class="plan-card-description">Billed annually ({{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ $yearly_price }})</p>
-                                            
-                                            <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
-                                               class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill d-inline-flex align-items-center">
-                                                Get Started
-                                                <i data-feather="arrow-right" class="ms-2"></i>
-                                            </a>
+                                        <h3 class="plan-name">{{ $display_name }}</h3>
+                                        <div class="plan-pricing">
+                                            <span class="currency">{{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}</span>
+                                            <span class="price">{{ $monthly_equivalent }}</span>
+                                            <span class="period">/month</span>
                                         </div>
+                                        <p class="plan-description">Billed annually ({{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ $yearly_price }})</p>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <!-- Feature Categories -->
+                        @if(!empty($yearly_categories))
+                            @foreach($yearly_categories as $category_name => $features)
+                                <div class="feature-category">
+                                    <div class="feature-category-header">
+                                        <div class="feature-column">
+                                            <h4 class="category-title">{{ $category_name }}</h4>
+                                        </div>
+                                        @foreach($yearly_plans as $key => $plan)
+                                            <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                <div class="plan-category-spacer"></div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                    
+                                    @foreach($features as $feature)
+                                        <div class="feature-row">
+                                            <div class="feature-column">
+                                                <span class="feature-name">{{ $feature }}</span>
+                                            </div>
+                                            @foreach($yearly_plans as $key => $plan)
+                                                <div class="plan-column {{ $key == 1 ? 'popular-column' : '' }}">
+                                                    <div class="feature-check">
+                                                        @if(str_contains($plan->description, $feature))
+                                                            <i class="ti ti-check text-success fs-5"></i>
+                                                        @else
+                                                            <i class="ti ti-x text-muted fs-5"></i>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endforeach
+                        @endif
+
+                        <!-- CTA Buttons -->
+                        <div class="cta-buttons-row">
+                            <div class="feature-column">
+                                <div class="cta-spacer"></div>
+                            </div>
+                            @foreach($yearly_plans as $key => $plan)
+                                @php $is_popular = $key == 1; @endphp
+                                <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
+                                    <div class="cta-button-container">
+                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
+                                           class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
+                                            Get Started
+                                        </a>
                                     </div>
                                 </div>
                             @endforeach
@@ -178,112 +272,66 @@
                     </div>
                 @endif
             </div>
-
-            <!-- Feature Comparison Tables -->
-            <div class="plan-feature-comparison mt-5">
-                <!-- Monthly Features -->
-                <div id="plan-monthly-features" class="plan-feature-tables {{ $has_yearly_plans ? 'd-none' : '' }}">
-                    @if(!empty($monthly_categories))
-                        @php $category_index = 0; @endphp
-                        @foreach($monthly_categories as $category_name => $features)
-                            @php $is_first = $category_index === 0; @endphp
-                            <div class="plan-feature-category mb-4">
-                                <div class="plan-category-header" data-bs-toggle="collapse" data-bs-target="#plan-monthly-category-{{ $category_index }}" aria-expanded="{{ $is_first ? 'true' : 'false' }}">
-                                    <h4 class="plan-category-title">{{ $category_name }}</h4>
-                                    <i class="ti ti-chevron-down plan-collapse-icon"></i>
-                                </div>
-                                <div class="collapse {{ $is_first ? 'show' : '' }}" id="plan-monthly-category-{{ $category_index }}">
-                                    <div class="table-responsive">
-                                        <table class="table plan-feature-table">
-                                            <thead>
-                                                <tr>
-                                                    <th class="plan-feature-header">Features</th>
-                                                    @foreach($monthly_plans as $key => $plan)
-                                                        @php $display_name = str_replace(' (yearly)', '', $plan->name); @endphp
-                                                        <th class="plan-plan-header {{ $key == 1 ? 'plan-popular-plan' : '' }}">{{ $display_name }}</th>
-                                                    @endforeach
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @foreach($features as $feature)
-                                                    <tr>
-                                                        <td class="plan-feature-name">{{ $feature }}</td>
-                                                        @foreach($monthly_plans as $key => $plan)
-                                                            <td class="text-center">
-                                                                @if(str_contains($plan->description, $feature))
-                                                                    <i class="ti ti-check text-success fs-5"></i>
-                                                                @else
-                                                                    <i class="ti ti-x text-muted fs-5"></i>
-                                                                @endif
-                                                            </td>
-                                                        @endforeach
-                                                    </tr>
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            @php $category_index++; @endphp
-                        @endforeach
-                    @endif
-                </div>
-
-                <!-- Yearly Features -->
-                @if($has_yearly_plans)
-                    <div id="plan-yearly-features" class="plan-feature-tables">
-                        @if(!empty($yearly_categories))
-                            @php $category_index = 0; @endphp
-                            @foreach($yearly_categories as $category_name => $features)
-                                @php $is_first = $category_index === 0; @endphp
-                                <div class="plan-feature-category mb-4">
-                                    <div class="plan-category-header" data-bs-toggle="collapse" data-bs-target="#plan-yearly-category-{{ $category_index }}" aria-expanded="{{ $is_first ? 'true' : 'false' }}">
-                                        <h4 class="plan-category-title">{{ $category_name }}</h4>
-                                        <i class="ti ti-chevron-down plan-collapse-icon"></i>
-                                    </div>
-                                    <div class="collapse {{ $is_first ? 'show' : '' }}" id="plan-yearly-category-{{ $category_index }}">
-                                        <div class="table-responsive">
-                                            <table class="table plan-feature-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th class="plan-feature-header">Features</th>
-                                                        @foreach($yearly_plans as $key => $plan)
-                                                            @php $display_name = str_replace(' (yearly)', '', $plan->name); @endphp
-                                                            <th class="plan-plan-header {{ $key == 1 ? 'plan-popular-plan' : '' }}">{{ $display_name }}</th>
-                                                        @endforeach
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    @foreach($features as $feature)
-                                                        <tr>
-                                                            <td class="plan-feature-name">{{ $feature }}</td>
-                                                            @foreach($yearly_plans as $key => $plan)
-                                                                <td class="text-center">
-                                                                    @if(str_contains($plan->description, $feature))
-                                                                        <i class="ti ti-check text-success fs-5"></i>
-                                                                    @else
-                                                                        <i class="ti ti-x text-muted fs-5"></i>
-                                                                    @endif
-                                                                </td>
-                                                            @endforeach
-                                                        </tr>
-                                                    @endforeach
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                                @php $category_index++; @endphp
-                            @endforeach
-                        @endif
-                    </div>
-                @endif
-            </div>
         </div>
     </section>
 
     <style>
-        /* Scoped Pricing Styles */
+        /* Pricing Container Layout */
+        .pricing-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .plan-container {
+            width: 100%;
+        }
+
+        /* Grid Layout */
+        .plan-headers-row,
+        .feature-category-header,
+        .feature-row,
+        .cta-buttons-row {
+            display: flex;
+            align-items: stretch;
+            min-height: 60px;
+        }
+
+        .feature-column {
+            flex: 0 0 35%;
+            padding: 1.5rem 2rem;
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.15);
+            border-right: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .plan-column {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            position: relative;
+        }
+
+        .plan-column:last-child {
+            border-right: none;
+        }
+
+        .plan-column.popular-column {
+            background: rgba(255, 255, 255, 0.15);
+            border-left: 2px solid rgba(255, 255, 255, 0.4);
+            border-right: 2px solid rgba(255, 255, 255, 0.4);
+        }
+
+        /* Billing Toggle */
         .plan-billing-toggle {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 50px;
@@ -357,65 +405,59 @@
             transform: translateX(24px);
         }
 
-        .plan-pricing-card {
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            transition: all 0.3s ease;
+        /* Plan Header Cards */
+        .plan-header-card {
+            text-align: center;
+            padding: 2rem 1rem;
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
             position: relative;
-            overflow: hidden;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px 15px 0 0;
         }
 
-        .plan-pricing-card:hover {
-            transform: translateY(-5px);
-            border-color: rgba(255, 255, 255, 0.4);
+        .plan-header-card.popular-plan {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-10px);
+            z-index: 10;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
         }
 
-        .plan-pricing-card.plan-popular {
-            border-color: rgba(255, 255, 255, 0.8);
-            transform: scale(1.05);
-        }
-
-        .plan-popular-badge {
+        .popular-badge {
             position: absolute;
-            top: 0;
+            top: -15px;
             left: 50%;
             transform: translateX(-50%);
             background: linear-gradient(135deg, #f59e0b, #d97706);
             color: white;
-            padding: 8px 24px;
-            border-radius: 0 0 16px 16px;
-            font-size: 0.875rem;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.8rem;
             font-weight: 600;
-            z-index: 10;
+            white-space: nowrap;
         }
 
-        .plan-card-name {
+        .plan-name {
             color: white;
             font-size: 1.5rem;
             font-weight: 700;
             margin-bottom: 1rem;
-            margin-top: 1rem;
         }
 
-        .plan-pricing-card.plan-popular .plan-card-name {
-            margin-top: 2.5rem;
+        .plan-pricing {
+            margin-bottom: 1rem;
         }
 
-        .plan-price-container {
-            display: flex;
-            align-items: baseline;
-            justify-content: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .plan-currency {
-            font-size: 1.25rem;
+        .currency {
+            font-size: 1.2rem;
             font-weight: 600;
             color: rgba(255, 255, 255, 0.9);
         }
 
-        .plan-price {
+        .price {
             font-size: 3rem;
             font-weight: 800;
             color: white;
@@ -423,118 +465,103 @@
             margin: 0 4px;
         }
 
-        .plan-period {
+        .period {
             font-size: 1rem;
             color: rgba(255, 255, 255, 0.9);
             font-weight: 500;
         }
 
-        .plan-card-description {
+        .plan-description {
             color: rgba(255, 255, 255, 0.8);
             font-size: 0.9rem;
-            margin-bottom: 2rem;
-        }
-
-        .plan-feature-comparison {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        .plan-feature-tables {
-            transition: opacity 0.3s ease;
-        }
-
-        .plan-feature-category {
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-        }
-
-        .plan-category-header {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.1));
-            color: white;
-            padding: 1.5rem 2rem;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.3s ease;
-            user-select: none;
-        }
-
-        .plan-category-header:hover {
-            background: linear-gradient(135deg, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.15));
-        }
-
-        .plan-category-title {
             margin: 0;
+        }
+
+        /* Feature Categories */
+        .feature-category {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .feature-category:last-of-type {
+            border-bottom: none;
+        }
+
+        .category-title {
+            color: white;
             font-size: 1.25rem;
             font-weight: 600;
+            margin: 0;
+        }
+
+        .feature-name {
             color: white;
-        }
-
-        .plan-collapse-icon {
-            font-size: 1.5rem;
-            transition: transform 0.3s ease;
-            color: white;
-        }
-
-        .plan-category-header[aria-expanded="true"] .plan-collapse-icon {
-            transform: rotate(180deg);
-        }
-
-        .plan-feature-table {
-            background: white;
-            border: none;
-            margin-bottom: 0;
-        }
-
-        .plan-feature-table thead th {
-            background: #f8fafc;
-            border: none;
-            padding: 1.5rem 1rem;
-            font-weight: 600;
-            color: #374151;
-            border-bottom: 2px solid #e5e7eb;
-        }
-
-        .plan-feature-header {
-            width: 40%;
-            color: #1a202c !important;
-            font-size: 1.125rem;
-        }
-
-        .plan-plan-header {
-            text-align: center;
-            width: 20%;
-        }
-
-        .plan-plan-header.plan-popular-plan {
-            background: linear-gradient(135deg, #667eea, #8b5cf6);
-            color: white !important;
-        }
-
-        .plan-feature-table tbody tr {
-            border-bottom: 1px solid #f1f5f9;
-            transition: background-color 0.2s ease;
-        }
-
-        .plan-feature-table tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .plan-feature-table tbody td {
-            padding: 1rem;
-            border: none;
-            vertical-align: middle;
-        }
-
-        .plan-feature-name {
             font-weight: 500;
-            color: #374151;
+            font-size: 0.95rem;
         }
 
+        .feature-check {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .plan-category-spacer {
+            height: 100%;
+            width: 100%;
+        }
+
+        /* CTA Buttons */
+        .cta-buttons-row {
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .cta-button-container {
+            width: 100%;
+            padding: 1rem;
+        }
+
+        .cta-spacer {
+            height: 100%;
+        }
+
+        .feature-header-space {
+            height: 200px;
+        }
+
+        /* Responsive Design */
         @media (max-width: 768px) {
+            .plan-headers-row,
+            .feature-category-header,
+            .feature-row,
+            .cta-buttons-row {
+                flex-direction: column;
+            }
+
+            .feature-column,
+            .plan-column {
+                flex: none;
+                border-right: none;
+                border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+
+            .plan-column.popular-column {
+                border-left: none;
+                border-right: none;
+                border-top: 2px solid rgba(255, 255, 255, 0.4);
+                border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+            }
+
+            .plan-header-card.popular-plan {
+                transform: none;
+            }
+
+            .feature-header-space {
+                height: auto;
+            }
+
             .plan-toggle-wrapper {
                 gap: 0.75rem;
             }
@@ -542,35 +569,25 @@
             .plan-toggle-label {
                 font-size: 0.8rem;
             }
-
-            .plan-pricing-card.plan-popular {
-                transform: none;
-            }
         }
     </style>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const toggle = document.getElementById('planBillingToggle');
-            const monthlyPricing = document.getElementById('plan-monthly-pricing');
-            const yearlyPricing = document.getElementById('plan-yearly-pricing');
-            const monthlyFeatures = document.getElementById('plan-monthly-features');
-            const yearlyFeatures = document.getElementById('plan-yearly-features');
+            const monthlyContainer = document.getElementById('plan-monthly-container');
+            const yearlyContainer = document.getElementById('plan-yearly-container');
 
-            if (toggle && monthlyPricing && yearlyPricing) {
+            if (toggle && monthlyContainer && yearlyContainer) {
                 toggle.addEventListener('change', function() {
                     if (this.checked) {
                         // Switch to yearly
-                        monthlyPricing.classList.add('d-none');
-                        yearlyPricing.classList.remove('d-none');
-                        if (monthlyFeatures) monthlyFeatures.classList.add('d-none');
-                        if (yearlyFeatures) yearlyFeatures.classList.remove('d-none');
+                        monthlyContainer.classList.add('d-none');
+                        yearlyContainer.classList.remove('d-none');
                     } else {
                         // Switch to monthly
-                        monthlyPricing.classList.remove('d-none');
-                        yearlyPricing.classList.add('d-none');
-                        if (monthlyFeatures) monthlyFeatures.classList.remove('d-none');
-                        if (yearlyFeatures) yearlyFeatures.classList.add('d-none');
+                        monthlyContainer.classList.remove('d-none');
+                        yearlyContainer.classList.add('d-none');
                     }
                 });
             }
