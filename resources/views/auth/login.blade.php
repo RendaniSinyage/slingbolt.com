@@ -21,22 +21,22 @@
     .card-body {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
-        border-radius: 24px;
-        padding: 3rem;
+        border-radius: 20px;
+        padding: 1.5rem;
         box-shadow: 
             0 25px 50px rgba(0, 0, 0, 0.15),
             0 0 0 1px rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.18);
         width: 100%;
-        max-width: 450px;
-        margin: 2rem auto;
+        max-width: 320px;
+        margin: 1.5rem auto;
     }
 
     h2 {
-        font-size: 2.25rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1a202c;
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
         text-align: center;
     }
 
@@ -143,7 +143,7 @@
 
     .form-group {
         position: relative;
-        margin-bottom: 1.5rem;
+        margin-bottom: 1rem;
     }
 
     .form-label {
@@ -163,27 +163,27 @@
     .form-control {
         background: rgba(248, 249, 250, 0.8);
         border: 2px solid rgba(148, 163, 184, 0.2);
-        border-radius: 16px;
-        padding: 1.25rem 1rem;
-        font-size: 1rem;
-        line-height: 1.5;
+        border-radius: 10px;
+        padding: 0.75rem;
+        font-size: 0.9rem;
+        line-height: 1.3;
         transition: all 0.3s ease;
         width: 100%;
-        min-height: 60px;
+        min-height: 42px;
     }
 
     .form-control:focus {
         background: rgba(255, 255, 255, 1);
-        border-color: #667eea;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        border-color: var(--color-customColor, #667eea);
+        box-shadow: 0 0 0 4px rgba(var(--color-customColor-rgb, 102, 126, 234), 0.1);
         outline: none;
     }
 
     .form-control:focus + .form-label,
     .form-control:not(:placeholder-shown) + .form-label {
         top: 0;
-        font-size: 0.875rem;
-        color: #667eea;
+        font-size: 0.8rem;
+        color: var(--color-customColor, #667eea);
         background: rgba(255, 255, 255, 0.9);
         padding: 0 0.5rem;
         border-radius: 8px;
@@ -193,11 +193,11 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
+        margin-bottom: 1.5rem;
     }
 
     .d-flex.flex-wrap a {
-        color: #667eea;
+        color: var(--color-customColor, #667eea);
         text-decoration: none;
         font-weight: 500;
         transition: all 0.2s ease;
@@ -208,21 +208,31 @@
     }
 
     .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: var(--color-customColor, #667eea);
         border: none;
-        border-radius: 16px;
-        padding: 1rem 2rem;
+        border-radius: 10px;
+        padding: 0.75rem 1.25rem;
         font-weight: 600;
-        font-size: 1.1rem;
+        font-size: 0.95rem;
         color: white;
         width: 100%;
         transition: all 0.3s ease;
-        margin-bottom: 2rem;
+        margin-bottom: 1.25rem;
     }
 
     .btn-primary:hover {
+        background: var(--color-customColor, #667eea) !important;
         transform: translateY(-2px);
-        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 15px 35px rgba(var(--color-customColor-rgb, 102, 126, 234), 0.4);
+        filter: brightness(1.1);
+    }
+
+    .btn-primary:focus,
+    .btn-primary:active,
+    .btn-primary.active {
+        background: var(--color-customColor, #667eea) !important;
+        border-color: var(--color-customColor, #667eea) !important;
+        box-shadow: 0 0 0 0.2rem rgba(var(--color-customColor-rgb, 102, 126, 234), 0.25) !important;
     }
 
     .text-center p {
@@ -233,7 +243,7 @@
     }
 
     .text-primary {
-        color: #667eea !important;
+        color: var(--color-customColor, #667eea) !important;
         text-decoration: none;
         font-weight: 600;
     }
