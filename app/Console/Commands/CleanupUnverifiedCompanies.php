@@ -45,7 +45,8 @@ class CleanupUnverifiedCompanies extends Command
         foreach ($unverifiedCompanies as $company) {
             try {
                 DB::transaction(function () use ($company) {
-                    $this->cascadeDeleteCompanyData($company->id);
+                    // Use service method instead of local method
+                    \App\Services\CompanyCleanupService::cascadeDeleteCompanyData($company->id);
                     $company->delete();
                 });
 
@@ -63,42 +64,24 @@ class CleanupUnverifiedCompanies extends Command
     }
 
     private function countCompanyData($companyId)
-        {
-            $totalCount = 0;
-
-            // Get employee and user IDs
-            $employeeIds = DB::table('employees')->where('created_by', $companyId)->pluck('id')->toArray();
-            $userIds = DB::table('users')->where('created_by', $companyId)->pluck('id')->toArray();
-
-            // Use service method:
-            $allTables = \App\Services\CompanyCleanupService::getDeletionOrder();
-
-            foreach ($allTables as $table => $config) {
-                if (!Schema::hasTable($table)) continue;
-
-                // Use service method:
-                $count = \App\Services\CompanyCleanupService::getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds);
-                $totalCount += $count;
-            }
-
-            return $totalCount;
-        }
-
-    private function cascadeDeleteCompanyData($companyId)
     {
-        \App\Services\CompanyCleanupService::cascadeDeleteCompanyData($companyId);
-    }
+        $totalCount = 0;
 
+        // Get employee and user IDs
+        $employeeIds = DB::table('employees')->where('created_by', $companyId)->pluck('id')->toArray();
+        $userIds = DB::table('users')->where('created_by', $companyId)->pluck('id')->toArray();
 
-private function deleteFromTable($table, $config, $companyId, $employeeIds, $userIds)
-    {
-        return \App\Services\CompanyCleanupService::deleteFromTable($table, $config, $companyId, $employeeIds, $userIds);
-    }
+        // Use service method to get deletion order
+        $allTables = \App\Services\CompanyCleanupService::getDeletionOrder();
 
-    private function getAllCleanupTables()
-        {
-            // Call service method instead of local method:
-            return \App\Services\CompanyCleanupService::getDeletionOrder();
+        foreach ($allTables as $table => $config) {
+            if (!Schema::hasTable($table)) continue;
+
+            // Use service method to count records
+            $count = \App\Services\CompanyCleanupService::getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds);
+            $totalCount += $count;
         }
-
+        
+        return $totalCount;
+    }
 }
