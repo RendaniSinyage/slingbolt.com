@@ -111,20 +111,17 @@
             z-index: -1;
         }
 
-        .auth-header {
-            position: relative;
-            z-index: 10;
-            padding: 1rem 0;
-        }
-
         .auth-container {
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 2rem 1rem;
             position: relative;
             z-index: 1;
+        }
+
+        .bg-gradient-custom {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
         }
 
         .login-card {
@@ -138,6 +135,7 @@
             border: 1px solid rgba(255, 255, 255, 0.18);
             width: 100%;
             max-width: 480px;
+            margin: 2rem;
         }
 
         .auth-logo {
@@ -317,6 +315,12 @@
                 font-size: 1.75rem;
             }
         }
+
+        @media (max-width: 991px) {
+            .auth-container .row {
+                min-height: 100vh;
+            }
+        }
     </style>
 </head>
 
@@ -328,24 +332,10 @@
 
     <div class="auth-gradient"></div>
 
-    <!-- Header same as landing page -->
-    <header class="main-header position-relative z-10 auth-header">
-        <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3">
-            <div class="container d-flex align-items-center justify-content-between">
-                <a class="navbar-brand" href="/">
-                    <img src="{{ $logo . '/' . $company_logo }}" alt="logo" height="40">
-                </a>
-                <div class="d-flex gap-2">
-                    <a href="{{ route('register', ['0', $lang]) }}" class="btn rounded-pill px-4" style="background-color: white; color: #333; border: 1px solid rgba(255,255,255,0.3);">
-                        {{ __('Get Started') }}
-                    </a>
-                </div>
-            </div>
-        </nav>
-    </header>
-
     <div class="auth-container">
-        <div class="login-card">
+        <div class="row w-100 h-100 g-0">
+            <div class="col-lg-6 d-flex align-items-center justify-content-center">
+                <div class="login-card">
             <div class="auth-title">
                 <h1>{{ __('Welcome Back') }}</h1>
                 <p>{{ __('Sign in to your account') }}</p>
@@ -426,6 +416,28 @@
             @endif
 
             {{ Form::close() }}
+                </div>
+            </div>
+            <div class="col-lg-6 d-none d-lg-flex align-items-center justify-content-center bg-gradient-custom">
+                <div class="text-center text-white p-5">
+                    <h2 class="display-4 fw-bold mb-4">Welcome to Our Platform</h2>
+                    <p class="lead mb-4">Join thousands of users who trust our platform for their business needs.</p>
+                    <div class="feature-list text-start">
+                        <div class="feature-item d-flex align-items-center mb-3">
+                            <i class="ti ti-check-circle fs-4 me-3"></i>
+                            <span>Secure and reliable platform</span>
+                        </div>
+                        <div class="feature-item d-flex align-items-center mb-3">
+                            <i class="ti ti-check-circle fs-4 me-3"></i>
+                            <span>24/7 customer support</span>
+                        </div>
+                        <div class="feature-item d-flex align-items-center">
+                            <i class="ti ti-check-circle fs-4 me-3"></i>
+                            <span>Easy to use interface</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
