@@ -69,11 +69,11 @@ class CompanyCleanupService
                 'params' => [$companyId]
             ],
             'notification_template_langs' => [
-                'query' => "DELETE ntl FROM notification_template_langs ntl
-                           JOIN notification_templates nt ON ntl.parent_id = nt.id
-                           WHERE nt.created_by = ?",
+                'query' => "DELETE FROM notification_template_langs
+                            WHERE created_by = ?",
                 'params' => [$companyId]
             ],
+
             // Other relationship tables
             'journal_items' => [
                 'query' => "DELETE ji FROM journal_items ji
@@ -113,22 +113,23 @@ class CompanyCleanupService
             ],
             'task_files' => [
                 'query' => "DELETE tf FROM task_files tf
-                           JOIN tasks t ON tf.task_id = t.id
-                           WHERE t.created_by = ?",
+                            JOIN project_tasks pt ON tf.task_id = pt.id
+                            WHERE pt.created_by = ?",
                 'params' => [$companyId]
             ],
             'task_comments' => [
                 'query' => "DELETE tc FROM task_comments tc
-                           JOIN tasks t ON tc.task_id = t.id
-                           WHERE t.created_by = ?",
+                            JOIN project_tasks pt ON tc.task_id = pt.id
+                            WHERE pt.created_by = ?",
                 'params' => [$companyId]
             ],
             'task_checklists' => [
                 'query' => "DELETE tcl FROM task_checklists tcl
-                           JOIN tasks t ON tcl.task_id = t.id
-                           WHERE t.created_by = ?",
+                            JOIN project_tasks pt ON tcl.task_id = pt.id
+                            WHERE pt.created_by = ?",
                 'params' => [$companyId]
             ],
+
             'lead_calls' => [
                 'query' => "DELETE lc FROM lead_calls lc
                            JOIN leads l ON lc.lead_id = l.id
