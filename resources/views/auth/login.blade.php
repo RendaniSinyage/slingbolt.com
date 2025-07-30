@@ -48,16 +48,6 @@
 
 @section('content')
 <style>
-    body {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        min-height: 100vh;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0;
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    }
-
     .card-body {
         background: rgba(255, 255, 255, 0.95);
         backdrop-filter: blur(20px);
@@ -78,6 +68,46 @@
         color: #1a202c;
         margin-bottom: 2rem;
         text-align: center;
+    }
+
+    /* Dark mode support */
+    .landing-dark .card-body {
+        background: rgba(33, 37, 41, 0.95);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .landing-dark h2 {
+        color: #fff;
+    }
+
+    .landing-dark .form-control {
+        background: rgba(52, 58, 64, 0.8);
+        color: #fff;
+        border-color: rgba(255, 255, 255, 0.15);
+    }
+
+    .landing-dark .form-control:focus {
+        background: rgba(52, 58, 64, 1);
+        border-color: #667eea;
+    }
+
+    .landing-dark .form-label {
+        color: #adb5bd;
+    }
+
+    .landing-dark .form-control:focus + .form-label,
+    .landing-dark .form-control:not(:placeholder-shown) + .form-label {
+        color: #667eea;
+        background: rgba(33, 37, 41, 0.9);
+    }
+
+    .landing-dark .text-center p {
+        color: #adb5bd;
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .landing-dark .d-flex.flex-wrap a {
+        color: #667eea;
     }
 
     .form-group {
