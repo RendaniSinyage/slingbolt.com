@@ -24,6 +24,7 @@ use Spatie\Permission\Models\Role;
 use App\Models\ReferralTransaction;
 use App\Models\ReferralSetting;
 use Illuminate\Validation\Rule;
+use App\Services\CompanyCleanupService;
 
 use Illuminate\Support\Facades\Schema;
 
@@ -315,433 +316,63 @@ class UserController extends Controller
     }
 
     public function destroy($id)
-    {
-        if (!\Auth::user()->can('delete user')) {
-            return redirect()->back();
-        }
-
-        if ($id == 2) {
-            return redirect()->back()->with('error', __('You can not delete By default Company'));
-        }
-
-        $user = User::find($id);
-        if (!$user) {
-            return redirect()->back()->with('error', __('User not found.'));
-        }
-
-        if (\Auth::user()->type == 'super admin') {
-            try {
-                DB::transaction(function () use ($id, $user) {
-                    $this->cascadeDeleteCompanyData($id);
-                    $user->delete();
-                });
-
-                return redirect()->back()->with('success', __('Company and all associated data successfully deleted'));
-
-            } catch (\Exception $e) {
-                \Log::error("Error deleting company {$id}: " . $e->getMessage());
-                return redirect()->back()->with('error', __('Error occurred while deleting company. Please check logs.'));
+        {
+            if (!\Auth::user()->can('delete user')) {
+                return redirect()->back();
             }
-        }
 
-        if (\Auth::user()->type == 'company') {
-            $delete_user = User::where(['id' => $user->id])->first();
-            if ($delete_user) {
-                $employee = Employee::where(['user_id' => $user->id])->delete();
-                $delete_user->delete();
+            if ($id == 2) {
+                return redirect()->back()->with('error', __('You can not delete By default Company'));
+            }
 
-                if ($delete_user || $employee) {
-                    return redirect()->route('users.index')->with('success', __('User successfully deleted .'));
+            $user = User::find($id);
+            if (!$user) {
+                return redirect()->back()->with('error', __('User not found.'));
+            }
+
+            if (\Auth::user()->type == 'super admin') {
+                try {
+                    DB::transaction(function () use ($id, $user) {
+                        // Use the service instead of local method
+                        CompanyCleanupService::cascadeDeleteCompanyData($id);
+                        $user->delete();
+                    });
+
+                    // Then run cleanup to catch anything missed
+                    \Artisan::call('cleanup:orphaned-data', ['--limit' => 10000]);
+
+                    return redirect()->back()->with('success', __('Company and all associated data successfully deleted'));
+
+                } catch (\Exception $e) {
+                    \Log::error("Error deleting company {$id}: " . $e->getMessage());
+                    return redirect()->back()->with('error', __('Error occurred while deleting company. Please check logs.'));
+                }
+            }
+
+            if (\Auth::user()->type == 'company') {
+                $delete_user = User::where(['id' => $user->id])->first();
+                if ($delete_user) {
+                    $employee = Employee::where(['user_id' => $user->id])->delete();
+                    $delete_user->delete();
+
+                    if ($delete_user || $employee) {
+                        return redirect()->route('users.index')->with('success', __('User successfully deleted .'));
+                    } else {
+                        return redirect()->back()->with('error', __('Something is wrong.'));
+                    }
                 } else {
                     return redirect()->back()->with('error', __('Something is wrong.'));
                 }
-            } else {
-                return redirect()->back()->with('error', __('Something is wrong.'));
             }
+
+            return redirect()->route('users.index')->with('success', __('User successfully deleted .'));
         }
 
-        return redirect()->route('users.index')->with('success', __('User successfully deleted .'));
-    }
 
-    /**
-     * Dynamically cascade delete all company data
-     */
-    private function cascadeDeleteCompanyData($companyId)
-        {
-            \Log::info("Starting dynamic cascade deletion for company ID: {$companyId}");
-
-            // Get all tables in the database
-            $allTables = $this->getAllDatabaseTables();
-
-            // Tables to exclude from deletion (system/shared tables ONLY)
-            $excludedTables = [
-                'migrations', 'password_resets', 'failed_jobs', 'personal_access_tokens',
-                'sessions', 'permissions', 'plans', 'coupons', 'admin_payment_settings',
-                'orders', 'order_products', 'plan_requests', 'subscriptions', 'user_plans',
-                'order_coupons', 'user_coupons', 'transaction_orders'
-            ];
-
-            // These are the BIG tables that were being missed - add them to special handling
-            $specialTables = [
-                // Certificate and letter tables - these are HUGE and need cleanup
-                'joining_letters' => [
-                    'query' => "DELETE FROM joining_letters WHERE created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'experience_certificates' => [
-                    'query' => "DELETE FROM experience_certificates WHERE created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'generate_offer_letters' => [
-                    'query' => "DELETE FROM generate_offer_letters WHERE created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'noc_certificates' => [
-                    'query' => "DELETE FROM noc_certificates WHERE created_by = ?",
-                    'params' => [$companyId]
-                ],
-                // Template language tables
-                'email_template_langs' => [
-                    'query' => "DELETE etl FROM email_template_langs etl
-                               JOIN email_templates et ON etl.parent_id = et.id
-                               WHERE et.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'notification_template_langs' => [
-                    'query' => "DELETE ntl FROM notification_template_langs ntl
-                               JOIN notification_templates nt ON ntl.parent_id = nt.id
-                               WHERE nt.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                // Other relationship tables
-                'journal_items' => [
-                    'query' => "DELETE ji FROM journal_items ji
-                               JOIN journal_entries je ON ji.journal = je.id
-                               WHERE je.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'user_leads' => [
-                    'query' => "DELETE ul FROM user_leads ul
-                               JOIN leads l ON ul.lead_id = l.id
-                               WHERE l.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'user_deals' => [
-                    'query' => "DELETE ud FROM user_deals ud
-                               JOIN deals d ON ud.deal_id = d.id
-                               WHERE d.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'project_users' => [
-                    'query' => "DELETE pu FROM project_users pu
-                               JOIN projects p ON pu.project_id = p.id
-                               WHERE p.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'project_files' => [
-                    'query' => "DELETE pf FROM project_files pf
-                               JOIN projects p ON pf.project_id = p.id
-                               WHERE p.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'project_comments' => [
-                    'query' => "DELETE pc FROM project_comments pc
-                               JOIN projects p ON pc.project_id = p.id
-                               WHERE p.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'task_files' => [
-                    'query' => "DELETE tf FROM task_files tf
-                               JOIN tasks t ON tf.task_id = t.id
-                               WHERE t.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'task_comments' => [
-                    'query' => "DELETE tc FROM task_comments tc
-                               JOIN tasks t ON tc.task_id = t.id
-                               WHERE t.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'task_checklists' => [
-                    'query' => "DELETE tcl FROM task_checklists tcl
-                               JOIN tasks t ON tcl.task_id = t.id
-                               WHERE t.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'lead_calls' => [
-                    'query' => "DELETE lc FROM lead_calls lc
-                               JOIN leads l ON lc.lead_id = l.id
-                               WHERE l.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'lead_emails' => [
-                    'query' => "DELETE le FROM lead_emails le
-                               JOIN leads l ON le.lead_id = l.id
-                               WHERE l.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'lead_files' => [
-                    'query' => "DELETE lf FROM lead_files lf
-                               JOIN leads l ON lf.lead_id = l.id
-                               WHERE l.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'lead_discussions' => [
-                    'query' => "DELETE ld FROM lead_discussions ld
-                               JOIN leads l ON ld.lead_id = l.id
-                               WHERE l.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'deal_calls' => [
-                    'query' => "DELETE dc FROM deal_calls dc
-                               JOIN deals d ON dc.deal_id = d.id
-                               WHERE d.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'deal_emails' => [
-                    'query' => "DELETE de FROM deal_emails de
-                               JOIN deals d ON de.deal_id = d.id
-                               WHERE d.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'deal_files' => [
-                    'query' => "DELETE df FROM deal_files df
-                               JOIN deals d ON df.deal_id = d.id
-                               WHERE d.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'deal_tasks' => [
-                    'query' => "DELETE dt FROM deal_tasks dt
-                               JOIN deals d ON dt.deal_id = d.id
-                               WHERE d.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'contract_attachment' => [
-                    'query' => "DELETE ca FROM contract_attachment ca
-                               JOIN contracts c ON ca.contract_id = c.id
-                               WHERE c.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'contract_comment' => [
-                    'query' => "DELETE cc FROM contract_comment cc
-                               JOIN contracts c ON cc.contract_id = c.id
-                               WHERE c.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'contract_notes' => [
-                    'query' => "DELETE cn FROM contract_notes cn
-                               JOIN contracts c ON cn.contract_id = c.id
-                               WHERE c.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'form_fields' => [
-                    'query' => "DELETE ff FROM form_fields ff
-                               JOIN forms f ON ff.form_id = f.id
-                               WHERE f.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'form_field_responses' => [
-                    'query' => "DELETE ffr FROM form_field_responses ffr
-                               JOIN form_responses fr ON ffr.response_id = fr.id
-                               JOIN forms f ON fr.form_id = f.id
-                               WHERE f.created_by = ?",
-                    'params' => [$companyId]
-                ],
-                'form_responses' => [
-                    'query' => "DELETE fr FROM form_responses fr
-                               JOIN forms f ON fr.form_id = f.id
-                               WHERE f.created_by = ?",
-                    'params' => [$companyId]
-                ]
-            ];
-
-            // Alternative company identification columns - no need to check user types since we have the specific companyId
-            $companyIdColumns = [
-                'created_by' => $companyId,
-                'company_id' => $companyId,
-                'user_id' => $companyId
-            ];
-
-            // Delete from special tables first (to handle foreign key constraints)
-            foreach ($specialTables as $table => $config) {
-                try {
-                    if (Schema::hasTable($table)) {
-                        $deleted = DB::delete($config['query'], $config['params']);
-                        if ($deleted > 0) {
-                            \Log::info("Deleted {$deleted} records from special table: {$table}");
-                        }
-                    }
-                } catch (\Exception $e) {
-                    \Log::error("Error deleting from special table {$table}: " . $e->getMessage());
-                }
-            }
-
-            // Dynamically delete from all other tables
-            foreach ($allTables as $table) {
-                // Skip excluded tables
-                if (in_array($table, $excludedTables)) {
-                    continue;
-                }
-
-                // Skip tables already handled in special cases
-                if (array_key_exists($table, $specialTables)) {
-                    continue;
-                }
-
-                try {
-                    if (!Schema::hasTable($table)) {
-                        continue;
-                    }
-
-                    // Get table columns
-                    $columns = Schema::getColumnListing($table);
-
-                    // Find which company identification column exists
-                    $companyColumn = null;
-                    foreach ($companyIdColumns as $column => $value) {
-                        if (in_array($column, $columns)) {
-                            $companyColumn = $column;
-                            break;
-                        }
-                    }
-
-                    // Skip if no company identification column found
-                    if (!$companyColumn) {
-                        continue;
-                    }
-
-                    // Delete records for this company
-                    $deleted = DB::table($table)->where($companyColumn, $companyId)->delete();
-
-                    if ($deleted > 0) {
-                        \Log::info("Deleted {$deleted} records from table: {$table} using column: {$companyColumn}");
-                    }
-
-                } catch (\Exception $e) {
-                    \Log::error("Error deleting from table {$table}: " . $e->getMessage());
-                    // Continue with other tables even if one fails
-                }
-            }
-
-            // Clean up role permissions and user assignments
-            $this->cleanupRolePermissions($companyId);
-
-            \Log::info("Completed dynamic cascade deletion for company ID: {$companyId}");
-        }
-
-    /**
-     * Get all tables in the database
-     */
-    private function getAllDatabaseTables()
-    {
-        try {
-            $tables = DB::select('SHOW TABLES');
-            $databaseName = DB::getDatabaseName();
-            $tableKey = "Tables_in_{$databaseName}";
-
-            return array_map(function($table) use ($tableKey) {
-                return $table->$tableKey;
-            }, $tables);
-
-        } catch (\Exception $e) {
-            \Log::error("Error getting database tables: " . $e->getMessage());
-            return [];
-        }
-    }
-
-    /**
-     * Clean up role permissions and user role assignments
-     */
-    private function cleanupRolePermissions($companyId)
-    {
-        try {
-            // Delete role permissions for this company's roles
-            $deleted = DB::delete("
-                DELETE rp FROM role_has_permissions rp
-                JOIN roles r ON rp.role_id = r.id
-                WHERE r.created_by = ?
-            ", [$companyId]);
-
-            if ($deleted > 0) {
-                \Log::info("Deleted {$deleted} role permissions for company: {$companyId}");
-            }
-
-            // Delete user role assignments for this company's users
-            $deleted = DB::delete("
-                DELETE ur FROM model_has_roles ur
-                JOIN users u ON ur.model_id = u.id
-                WHERE u.created_by = ? AND ur.model_type = 'App\\\\Models\\\\User'
-            ", [$companyId]);
-
-            if ($deleted > 0) {
-                \Log::info("Deleted {$deleted} user role assignments for company: {$companyId}");
-            }
-
-            // Delete user permissions for this company's users
-            $deleted = DB::delete("
-                DELETE up FROM model_has_permissions up
-                JOIN users u ON up.model_id = u.id
-                WHERE u.created_by = ? AND up.model_type = 'App\\\\Models\\\\User'
-            ", [$companyId]);
-
-            if ($deleted > 0) {
-                \Log::info("Deleted {$deleted} user permissions for company: {$companyId}");
-            }
-
-        } catch (\Exception $e) {
-            \Log::error("Error cleaning up role permissions: " . $e->getMessage());
-        }
-    }
-
-    /**
-     * Get preview of what would be deleted (for testing/confirmation)
-     */
-    public function getDeletionPreview($companyId)
-    {
-        $allTables = $this->getAllDatabaseTables();
-        $excludedTables = [
-            'password_resets', 'failed_jobs',
-            'admin_payment_settings',
-             'email_template_langs', 'notification_template_langs',
-            'ch_favorites', 'ch_messages', 'orders',
-            'plan_requests', 'subscriptions', 'order_coupons',
-            'user_coupons', 'transaction_orders'
-        ];
-
-        $companyIdColumns = ['created_by', 'company_id', 'user_id'];
-        $preview = [];
-
-        foreach ($allTables as $table) {
-            if (in_array($table, $excludedTables)) {
-                continue;
-            }
-
-            try {
-                if (!Schema::hasTable($table)) {
-                    continue;
-                }
-
-                $columns = Schema::getColumnListing($table);
-
-                foreach ($companyIdColumns as $column) {
-                    if (in_array($column, $columns)) {
-                        $count = DB::table($table)->where($column, $companyId)->count();
-                        if ($count > 0) {
-                            $preview[$table] = [
-                                'column' => $column,
-                                'count' => $count
-                            ];
-                        }
-                        break;
-                    }
-                }
-            } catch (\Exception $e) {
-                $preview[$table] = ['error' => $e->getMessage()];
-            }
-        }
-
-        return $preview;
-    }
+public function getDeletionPreview($companyId)
+{
+    return CompanyCleanupService::getDeletionPreview($companyId);
+}
 
     public function profile()
     {
