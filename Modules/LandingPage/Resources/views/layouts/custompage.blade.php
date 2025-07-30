@@ -77,6 +77,26 @@
         :root {
             --color-customColor: <?= $color ?>;
         }
+        .module-tab {
+            padding: 0.5rem 1.2rem;
+            border: 1px solid #ccc;
+            border-radius: 30px;
+            background: transparent;
+            color: #333;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+        .module-tab:hover {
+            border-color: #0d6efd;
+            color: #0d6efd;
+        }
+
+        .module-tab.active-tab {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
     </style>
 
     <link rel="stylesheet" href="{{ asset('css/custom-color.css') }}">
@@ -89,79 +109,105 @@
     <body class="{{$themeColor}}">
 @endif
     <!-- [ Header ] start -->
-    <header class="main-header">
+    <header class="main-header position-relative z-10" style="background: var(--color-customColor, #667eea);">
         @if ($settings['topbar_status'] == 'on')
-        <div class="announcement bg-dark text-center p-2">
-            <p class="mb-0">{!! $settings['topbar_notification_msg'] !!}</p>
-        </div>
+            <div class="announcement bg-dark text-center py-2 small">
+                <p class="mb-0 text-white">{!! $settings['topbar_notification_msg'] !!}</p>
+            </div>
         @endif
+
         @if ($settings['menubar_status'] == 'on')
-        <div class="container">
-            <nav class="navbar navbar-expand-md  default top-nav-collapse">
-                <div class="header-left">
-                    <a class="navbar-brand bg-transparent" href="#">
-                        <img src="{{ $logo.'/'. $settings['site_logo'] }}" alt="logo">
+            <nav class="navbar navbar-expand-lg navbar-light bg-transparent py-3">
+                <div class="container d-flex align-items-center justify-content-between">
+                    <!-- Logo -->
+                    <a class="navbar-brand" href="/">
+                        <img src="{{ $logo . '/' . $settings['site_logo'] }}" alt="logo" height="40" style="filter: brightness(0) invert(1);">
                     </a>
-                </div>
-                <div class="collapse navbar-collapse" id="navbarTogglerDemo01">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link active" href="{{url('/#home')}}">{{ $settings['home_title'] }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{url('/#features')}}">{{ $settings['feature_title'] }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{url('/#plan')}}">{{ $settings['plan_title'] }}</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{url('/#faq')}}">{{ $settings['faq_title'] }}</a>
-                        </li>
 
-                        @if (is_array(json_decode($settings['menubar_page'])) ||
-                        is_object(json_decode($settings['menubar_page'])))
-                        @foreach (json_decode($settings['menubar_page']) as $key => $value)
-
-                        @if ($value->header == 'on' && $value->template_name == 'page_content')
-                        <li class="nav-item">
-                            <a class="nav-link"
-                                href="{{ route('custom.page', $value->page_slug) }}">{{ $value->menubar_page_name }}</a>
-                        </li>
-                    @elseif($value->header == 'on')
-                        <li class="nav-item">
-                            <a class="nav-link"
-                                href="{{ $value->page_url }}">{{ $value->menubar_page_name }}</a>
-                        </li>
-                    @endif
-                        @endforeach
-                        @endif
-
-
-                    </ul>
-                    <button class="navbar-toggler bg-primary" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false"
-                        aria-label="Toggle navigation">
+                    <!-- Toggle button for mobile -->
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
                         <span class="navbar-toggler-icon"></span>
                     </button>
-                </div>
-                <div class="ms-auto d-flex justify-content-end gap-2">
-                    <a href="{{ route('login') }}" class="btn btn-outline-dark rounded"><span
-                            class="hide-mob me-2">{{__('Login')}}</span> <i data-feather="log-in"></i></a>
-                    <a href="{{ route('register') }}" class="btn btn-outline-dark rounded"><span
-                            class="hide-mob me-2">{{__('Register')}}</span> <i data-feather="user-check"></i></a>
-                    <button class="navbar-toggler " type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarTogglerDemo01" aria-controls="navbarTogglerDemo01" aria-expanded="false"
-                        aria-label="Toggle navigation">
-                        <span class="navbar-toggler-icon"></span>
-                    </button>
+
+                    <!-- Navbar items -->
+                    <div class="collapse navbar-collapse" id="mainNavbar">
+                        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                            <!-- Features - only show if feature section is enabled -->
+                            @if (isset($settings['feature_status']) && $settings['feature_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#features">Features</a>
+                                </li>
+                            @endif
+
+                            <!-- Pricing - only show if plan section is enabled -->
+                            @if (isset($settings['plan_status']) && $settings['plan_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#plan">Pricing</a>
+                                </li>
+                            @endif
+
+                            <!-- Discover - only show if discover section is enabled -->
+                            @if (isset($settings['discover_status']) && $settings['discover_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#discover">Discover</a>
+                                </li>
+                            @endif
+
+                            <!-- Screenshots - only show if screenshots section is enabled -->
+                            @if (isset($settings['screenshots_status']) && $settings['screenshots_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#screenshots">Screenshots</a>
+                                </li>
+                            @endif
+
+                            <!-- FAQ - only show if FAQ section is enabled -->
+                            @if (isset($settings['faq_status']) && $settings['faq_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#faq">FAQ</a>
+                                </li>
+                            @endif
+
+                            <!-- Testimonials - only show if testimonials section is enabled -->
+                            @if (isset($settings['testimonials_status']) && $settings['testimonials_status'] == 'on')
+                                <li class="nav-item">
+                                    <a class="nav-link text-white" href="/#testimonials">Testimonials</a>
+                                </li>
+                            @endif
+
+                            <!-- Custom menu pages -->
+                            @if (is_array(json_decode($settings['menubar_page'])) || is_object(json_decode($settings['menubar_page'])))
+                                @foreach (json_decode($settings['menubar_page']) as $key => $value)
+                                    @if ($value->header == 'on' && $value->template_name == 'page_content')
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" href="{{ route('custom.page', $value->page_slug) }}">{{ $value->menubar_page_name }}</a>
+                                        </li>
+                                    @elseif($value->header == 'on')
+                                        <li class="nav-item">
+                                            <a class="nav-link text-white" href="{{ $value->page_url }}">{{ $value->menubar_page_name }}</a>
+                                        </li>
+                                    @endif
+                                @endforeach
+                            @endif
+                        </ul>
+
+                        <!-- Auth buttons -->
+                        <div class="d-flex gap-2">
+                            <a href="{{ route('login') }}" class="btn rounded-pill px-4" style="background-color: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                                {{ __('Sign In') }}
+                            </a>
+                            <a href="{{ route('register') }}" class="btn rounded-pill px-4" style="background-color: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.3);">
+                                {{ __('Get Started') }}
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </nav>
-        </div>
         @endif
     </header>
     <!-- [ Header ] End -->
     <!-- [ common banner ] start -->
-    <section class="common-banner bg-primary">
+    <section class="common-banner" style="background: var(--color-customColor, #667eea);">
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-lg-4">
