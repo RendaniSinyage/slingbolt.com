@@ -14,49 +14,60 @@ class CompanyClonerService
     protected $fieldsToReset;
     protected $idMappings = []; // Track old ID -> new ID mappings
 
+    private $defaultLanguage = null;
+
+        private $languageTables = [
+            'email_template_langs',
+            'notification_template_langs',
+            'experience_certificates',
+            'generate_offer_letters',
+            'joining_letters',
+            'noc_certificates',
+        ];
+
     public function __construct($targetCompanyId, $sourceCompanyId = null)
     {
         $this->targetCompanyId = $targetCompanyId;
         $this->sourceCompanyId = $sourceCompanyId ?: $this->getFirstCompanyId();
-        
+
         // Tables to exclude from cloning (based on actual database structure)
         $this->excludedTables = [
             // User & Authentication
-            'users', 'login_details', 'user_todos', 'notifications', 
+            'users', 'login_details', 'user_todos', 'notifications',
             'personal_access_tokens', 'password_resets', 'failed_jobs',
-            
+
             // Transactional Data (Sales)
             'orders', 'order_products', 'invoices', 'invoice_products',
             'payments', 'pos', 'pos_products', 'quotations', 'quotation_products',
             'proposals', 'proposal_products', 'customer_credits',
-            
-            // Transactional Data (Purchases)  
+
+            // Transactional Data (Purchases)
             'bills', 'bill_products', 'purchases', 'purchase_products',
             'purchase_payments', 'vender_credits', 'debit_notes', 'credit_notes',
-            
+
             // Financial Transactions
             'transactions', 'revenues', 'transaction_lines', 'add_transaction_lines',
             'bank_transfers', 'journal_entries', 'journal_items',
-            
+
             // Plans & Subscriptions
             'plans', 'user_plans', 'subscriptions', 'plan_requests', 'coupons',
             'admin_payment_settings', // Global admin payment settings (not company-specific)
-            
-            // Activity & Logs  
+
+            // Activity & Logs
             'activity_logs', 'referral_transactions', 'login_details',
             'user_coupon', 'order_coupons',
-            
+
             // CRM Activities (not master data)
             'lead_calls', 'lead_emails', 'lead_files', 'lead_discussions',
             'deal_calls', 'deal_emails', 'deal_files', 'deal_tasks',
             'leads', 'deals', 'user_leads', 'user_deals',
-            
+
             // Project Activities (not master data)
             'project_files', 'project_comments', 'project_notes', 'project_users',
             'tasks', 'task_comments', 'task_files', 'task_checklists',
             'milestones', 'timesheet', 'trackers', 'time_trackers',
             'projects', 'project_tasks', 'project_expenses', 'project_invoices',
-            
+
             // HR Activities (not master data)
             'employees', 'employee_documents', 'allowances', 'commissions',
             'other_payments', 'overtimes', 'saturation_deductions', 'loans',
@@ -64,26 +75,26 @@ class CompanyClonerService
             'appraisals', 'goal_trackings', 'trainings', 'awards',
             'job_applications', 'job_on_boards', 'interview_schedules',
             'announcements', 'holidays', 'meetings', 'events',
-            'transfers', 'resignations', 'travels', 'promotions', 
+            'transfers', 'resignations', 'travels', 'promotions',
             'complaints', 'warnings', 'terminations', 'zoom_meetings',
-            
+
             // REMOVED: Certificate templates should be cloned as they are template data!
             // 'joining_letters', 'experience_certificates', 'generate_offer_letters', 'noc_certificates',
-            
+
             // Contract Activities (not master data)
             'contracts', 'contract_attachment', 'contract_comment', 'contract_notes',
-            
+
             // Form Builder Data
             'form_fields', 'form_field_responses', 'form_responses',
             'forms', 'form_builders',
-            
+
             // Permission & Role relationships (handle separately)
             'model_has_permissions', 'model_has_roles', 'role_has_permissions',
-            
+
             // System Tables
             'migrations', 'sessions', 'webhook_settings',
             'email_template_langs', 'notification_template_langs',
-            
+
             // Other activity data
             'ducument_uploads', 'ip_restricts', 'custom_field_values',
         ];
@@ -95,24 +106,50 @@ class CompanyClonerService
             'opening_balance' => '0.00',
             'current_balance' => '0.00',
             'credit_balance' => '0.00',
-            
+
             // Inventory
             'quantity' => 0,
             'stock' => 0,
-            
+
             // Counters
             'total_user' => 0,
             'total_customer' => 0,
             'total_vender' => 0,
-            
+
             // Timestamps
             'created_at' => now(),
             'updated_at' => now(),
-            
+
             // Status resets
             'is_active' => 1,
             'status' => 1,
         ];
+    }
+
+/**
+     * Get the default language for cloning (from superadmin settings)
+     */
+    private function getDefaultLanguage()
+    {
+        if ($this->defaultLanguage !== null) {
+            return $this->defaultLanguage;
+        }
+
+        // Get superadmin's default language setting
+        // Assuming superadmin has created_by = 1 or is the first company
+        $superadminId = 1; // Adjust this based on your superadmin setup
+
+        $defaultLang = DB::table('settings')
+            ->where('created_by', $superadminId)
+            ->where('name', 'default_language')
+            ->value('value');
+
+        // Fallback to 'en' if not found
+        $this->defaultLanguage = $defaultLang ?: 'en';
+
+        \Log::info("Using default language for cloning: {$this->defaultLanguage}");
+
+        return $this->defaultLanguage;
     }
 
     /**
@@ -142,17 +179,17 @@ class CompanyClonerService
     {
         // Hardcoded template company ID for now
         $templateCompanyId = 2;
-        
+
         // Verify this company exists
         $templateCompany = User::where('type', 'company')
             ->where('id', $templateCompanyId)
             ->first();
-        
+
         if (!$templateCompany) {
             \Log::error("Template company ID {$templateCompanyId} not found");
             return null;
         }
-        
+
         \Log::info("Using hardcoded company ID {$templateCompanyId} as template for cloning");
         return $templateCompanyId;
     }
@@ -176,31 +213,31 @@ class CompanyClonerService
             'pipelines',
             'bug_statuses',
             'sources',
-            
+
             // LEVEL 2: Depend on Level 1
             'chart_of_account_sub_types', // depends on chart_of_account_types
             'stages', // depends on pipelines
             'lead_stages', // depends on pipelines
-            
+
             // LEVEL 3: Chart of accounts (complex dependencies)
             'chart_of_accounts', // depends on types, sub_types
-            
+
             // LEVEL 4: Chart of account parents (self-referencing)
             'chart_of_account_parents', // depends on chart_of_accounts
-            
+
             // LEVEL 5: Products and services
             'product_services', // depends on categories, units, taxes, chart_of_accounts
-            
+
             // LEVEL 6: Dependent on products/services
             'warehouse_products', // depends on warehouses, product_services
-            
+
             // LEVEL 7: Customers and vendors (may reference chart_of_accounts)
             'customers',
             'venders',
-            
+
             // LEVEL 8: Bank accounts (may reference chart_of_accounts)
             'bank_accounts',
-            
+
             // LEVEL 9: HR Configuration
             'leave_types',
             'allowance_options',
@@ -214,19 +251,19 @@ class CompanyClonerService
             'job_stages',
             'termination_types',
             'payslip_types',
-            
+
             // LEVEL 10: Project Configuration
             'task_stages',
-            
+
             // LEVEL 11: Contract Configuration
             'contract_types',
-            
+
             // LEVEL 12: Other Configuration
             'competencies',
             'labels',
             'custom_questions',
             'documents',
-            
+
             // LEVEL 13: Settings and Templates (EXPANDED)
             'settings', // This should include currency, timezone, country, etc.
             'email_templates',
@@ -236,13 +273,15 @@ class CompanyClonerService
             'templates',
             'company_payment_settings', // Payment gateways configuration
             'referral_settings',
-            
-            // LEVEL 14: Certificate Templates (IMPORTANT - these should be cloned!)
-            'joining_letters',
-            'experience_certificates', 
-            'generate_offer_letters',
-            'noc_certificates',
-            
+
+            // LEVEL 14: Language-specific templates (IMPORTANT - language filtered!)
+            'email_template_langs',         // Only clone default language
+            'notification_template_langs',  // Only clone default language
+            'joining_letters',              // Only clone default language
+            'experience_certificates',      // Only clone default language
+            'generate_offer_letters',       // Only clone default language
+            'noc_certificates',            // Only clone default language
+
             // LEVEL 15: Roles (should be cloned last before permissions)
             'roles',
         ];
@@ -258,15 +297,15 @@ class CompanyClonerService
         $allTables = $this->getAllTables();
         foreach ($allTables as $table) {
             $tableName = array_values((array) $table)[0];
-            
+
             if (!in_array($tableName, $tableOrder) && $this->shouldCloneTable($table)) {
                 $this->cloneTableWithMapping($tableName);
             }
         }
-        
+
         // Handle self-referencing relationships after all records are created
         $this->fixSelfReferencingRelationships();
-        
+
         // Special handling for role permissions (LAST)
         $this->cloneRolePermissions();
     }
@@ -288,6 +327,43 @@ class CompanyClonerService
         return $this->shouldCloneSpecificTable($tableName);
     }
 
+/**
+ * Debug method to check language filtering
+ */
+public function debugLanguageCloning($tableName = 'email_template_langs')
+{
+    \Log::info("=== DEBUG: Language cloning for {$tableName} ===");
+
+    $defaultLang = $this->getDefaultLanguage();
+    \Log::info("Default language: {$defaultLang}");
+
+    // Check source data
+    $allRecords = DB::table($tableName)
+        ->where('created_by', $this->sourceCompanyId)
+        ->get();
+
+    $filteredRecords = DB::table($tableName)
+        ->where('created_by', $this->sourceCompanyId)
+        ->where('lang', $defaultLang)
+        ->get();
+
+    \Log::info("Total records in {$tableName}: {$allRecords->count()}");
+    \Log::info("Filtered records for {$defaultLang}: {$filteredRecords->count()}");
+
+    foreach ($allRecords as $record) {
+        $langInfo = isset($record->lang) ? " (lang: {$record->lang})" : " (no lang column)";
+        $willClone = isset($record->lang) && $record->lang === $defaultLang ? "✅ CLONE" : "❌ SKIP";
+        \Log::info("Record ID {$record->id}: {$record->name ?? 'no name'}{$langInfo} - {$willClone}");
+    }
+
+    return [
+        'default_language' => $defaultLang,
+        'total_records' => $allRecords->count(),
+        'filtered_records' => $filteredRecords->count(),
+        'records' => $allRecords
+         ];
+    }
+
     /**
      * Check if specific table should be cloned
      */
@@ -300,7 +376,7 @@ class CompanyClonerService
 
         // Skip system tables
         if (in_array($tableName, [
-            'migrations', 'password_resets', 'failed_jobs', 
+            'migrations', 'password_resets', 'failed_jobs',
             'personal_access_tokens', 'sessions'
         ])) {
             return false;
@@ -322,35 +398,43 @@ class CompanyClonerService
     {
         try {
             \Log::info("Attempting to clone table: {$tableName}");
-            
+
             // Special handling for settings table - only clone specific settings
             if ($tableName === 'settings') {
                 return $this->cloneSettingsSelectively();
             }
-            
-            // Get source data
-            $sourceData = DB::table($tableName)
-                ->where('created_by', $this->sourceCompanyId)
-                ->orderBy('id') // Important for self-referencing tables
-                ->get();
+
+            // Get source data with language filtering if applicable
+            $query = DB::table($tableName)->where('created_by', $this->sourceCompanyId);
+
+            // Apply language filter for language-specific tables
+            if (in_array($tableName, $this->languageTables)) {
+                $defaultLang = $this->getDefaultLanguage();
+                $query->where('lang', $defaultLang);
+                \Log::info("Filtering {$tableName} by language: {$defaultLang}");
+            }
+
+            $sourceData = $query->orderBy('id')->get();
 
             if ($sourceData->isEmpty()) {
-                \Log::info("No data found in table {$tableName} for company {$this->sourceCompanyId}");
+                \Log::info("No data found in table {$tableName} for company {$this->sourceCompanyId}" .
+                          (in_array($tableName, $this->languageTables) ? " with language {$this->getDefaultLanguage()}" : ""));
                 return;
             }
 
-            \Log::info("Found {$sourceData->count()} records in table {$tableName}");
-            
+            \Log::info("Found {$sourceData->count()} records in table {$tableName}" .
+                      (in_array($tableName, $this->languageTables) ? " (language filtered)" : ""));
+
             $columns = Schema::getColumnListing($tableName);
-            
+
             foreach ($sourceData as $record) {
                 $recordArray = (array) $record;
                 $oldId = $recordArray['id'];
-                
+
                 $newRecord = $this->prepareRecordForCloning($recordArray, $columns, $tableName);
-                
+
                 $newId = DB::table($tableName)->insertGetId($newRecord);
-                
+
                 // Store the mapping for future reference
                 $this->idMappings[$tableName][$oldId] = $newId;
             }
@@ -369,35 +453,35 @@ class CompanyClonerService
     private function cloneSettingsSelectively()
     {
         \Log::info("Cloning settings selectively for company template");
-        
+
         // Settings that should be cloned (template settings)
         $settingsToClone = [
             // Currency Settings
             'site_currency',
-            'site_currency_symbol', 
+            'site_currency_symbol',
             'site_currency_symbol_position',
             'site_currency_symbol_space',
             'site_currency_symbol_name',
             'decimal_number_format',
             'site_decimal_separator',
             'site_thousands_separator',
-            
-            // Regional Settings  
+
+            // Regional Settings
             'site_date_format',
             'site_time_format',
             'timezone', // Company timezone
             'country', // Company country
-            
+
             // Brand Settings (some)
             'company_name_header',
             'title_text',
             'footer_text',
             'default_language',
-            
+
             // Time Tracker Settings
             'tracking_interval',
             'application_url',
-            
+
             // Theme Settings
             'color',
             'layout_settings',
@@ -408,23 +492,23 @@ class CompanyClonerService
             'cust_theme_bg',
             'cust_logo_img',
             'cust_favicon_img',
-            
+
             // Other template settings you want to preserve
             'storage_setting',
             'mail_driver',
             'chatgpt_key', // If you want to share API keys
         ];
-        
+
         $sourceSettings = DB::table('settings')
             ->where('created_by', $this->sourceCompanyId)
             ->whereIn('name', $settingsToClone)
             ->get();
-            
+
         if ($sourceSettings->isEmpty()) {
             \Log::info("No template settings found to clone");
             return;
         }
-        
+
         $clonedCount = 0;
         foreach ($sourceSettings as $setting) {
             $settingArray = (array) $setting;
@@ -432,7 +516,7 @@ class CompanyClonerService
             $settingArray['created_by'] = $this->targetCompanyId;
             $settingArray['created_at'] = now();
             $settingArray['updated_at'] = now();
-            
+
             try {
                 DB::table('settings')->insert($settingArray);
                 $clonedCount++;
@@ -441,7 +525,7 @@ class CompanyClonerService
                 \Log::error("Error cloning setting {$setting->name}: " . $e->getMessage());
             }
         }
-        
+
         \Log::info("Successfully cloned {$clonedCount} settings");
     }
 
@@ -494,7 +578,7 @@ class CompanyClonerService
                     'sub_type' => 'chart_of_account_sub_types',
                     'account' => 'chart_of_accounts'
                 ],
-                
+
                 // Product and Service relationships
                 'product_services' => [
                     'category_id' => 'product_service_categories',
@@ -507,7 +591,7 @@ class CompanyClonerService
                     'warehouse_id' => 'warehouses',
                     'product_id' => 'product_services'
                 ],
-                
+
                 // CRM relationships
                 'stages' => [
                     'pipeline_id' => 'pipelines'
@@ -515,7 +599,7 @@ class CompanyClonerService
                 'lead_stages' => [
                     'pipeline_id' => 'pipelines'
                 ],
-                
+
                 // HR RELATIONSHIPS (MISSING BEFORE!)
                 'departments' => [
                     'branch_id' => 'branches'  // This was missing!
@@ -529,7 +613,7 @@ class CompanyClonerService
                     'department_id' => 'departments',
                     'designation_id' => 'designations'
                 ],
-                
+
                 // Customer/Vendor relationships
                 'customers' => [
                     'billing_address' => 'chart_of_accounts',
@@ -538,12 +622,12 @@ class CompanyClonerService
                 'venders' => [
                     'billing_address' => 'chart_of_accounts',
                 ],
-                
+
                 // Bank Account relationships
                 'bank_accounts' => [
                     'chart_account_id' => 'chart_of_accounts'
                 ],
-                
+
                 // Job/Recruitment relationships
                 'job_stages' => [
                     'pipeline_id' => 'pipelines'
@@ -553,12 +637,12 @@ class CompanyClonerService
                     'department_id' => 'departments',
                     'category_id' => 'job_categories'
                 ],
-                
+
                 // Leave/HR Policy relationships
                 'leave_types' => [
                     'department_id' => 'departments'  // If leave types are department-specific
                 ],
-                
+
                 // Goal and Performance relationships
                 'goals' => [
                     'department_id' => 'departments',
@@ -569,14 +653,14 @@ class CompanyClonerService
                     'department_id' => 'departments',
                     'designation_id' => 'designations'
                 ],
-                
+
                 // Training relationships
                 'trainings' => [
                     'branch_id' => 'branches',
                     'department_id' => 'departments',
                     'training_type_id' => 'training_types'
                 ],
-                
+
                 // Project relationships
                 'projects' => [
                     'branch_id' => 'branches',
@@ -585,18 +669,18 @@ class CompanyClonerService
                 'tasks' => [
                     'project_id' => 'projects'
                 ],
-                
+
                 // Award relationships
                 'awards' => [
                     'employee_id' => 'employees',
                     'award_type_id' => 'award_types'
                 ],
-                
+
                 // Contract relationships
                 'contracts' => [
                     'contract_type_id' => 'contract_types'
                 ],
-                
+
                 // Email template relationships
                 'user_email_templates' => [
                     'template_id' => 'email_templates',
@@ -608,7 +692,7 @@ class CompanyClonerService
             foreach ($foreignKeyMappings[$tableName] as $foreignKeyField => $referencedTable) {
                 if (isset($record[$foreignKeyField]) && $record[$foreignKeyField] > 0) {
                     $oldForeignId = $record[$foreignKeyField];
-                    
+
                     // Check if we have a mapping for this ID
                     if (isset($this->idMappings[$referencedTable][$oldForeignId])) {
                         $record[$foreignKeyField] = $this->idMappings[$referencedTable][$oldForeignId];
@@ -639,17 +723,17 @@ class CompanyClonerService
     private function fixSelfReferencingRelationships()
     {
         \Log::info("Fixing self-referencing relationships...");
-        
+
         // Handle chart_of_accounts parent relationships
         if (isset($this->idMappings['chart_of_accounts'])) {
             $this->fixChartOfAccountsParents();
         }
-        
+
         // Handle chart_of_account_parents
         if (isset($this->idMappings['chart_of_account_parents'])) {
             $this->fixChartOfAccountParentReferences();
         }
-        
+
         // Add other self-referencing tables as needed
     }
 
@@ -664,20 +748,20 @@ class CompanyClonerService
             ->whereNotNull('parent')
             ->where('parent', '>', 0)
             ->get(['id', 'parent']);
-            
+
         foreach ($originalAccounts as $account) {
             $oldId = $account->id;
             $oldParentId = $account->parent;
-            
+
             // Find the new IDs
             $newId = $this->idMappings['chart_of_accounts'][$oldId] ?? null;
             $newParentId = $this->idMappings['chart_of_accounts'][$oldParentId] ?? null;
-            
+
             if ($newId && $newParentId) {
                 DB::table('chart_of_accounts')
                     ->where('id', $newId)
                     ->update(['parent' => $newParentId]);
-                    
+
                 \Log::info("Fixed chart_of_accounts parent: ID {$newId} -> Parent {$newParentId}");
             }
         }
@@ -699,19 +783,19 @@ class CompanyClonerService
     {
         try {
             \Log::info("Cloning role permissions");
-            
+
             // Use the ID mappings for roles
             if (!isset($this->idMappings['roles'])) {
                 \Log::warning("No role mappings found, skipping role permissions");
                 return;
             }
-            
+
             foreach ($this->idMappings['roles'] as $oldRoleId => $newRoleId) {
                 // Get permissions for this role from source
                 $rolePermissions = DB::table('role_has_permissions')
                     ->where('role_id', $oldRoleId)
                     ->get();
-                
+
                 // Copy permissions to target role
                 foreach ($rolePermissions as $permission) {
                     // Check if this permission assignment already exists
@@ -719,7 +803,7 @@ class CompanyClonerService
                         ->where('role_id', $newRoleId)
                         ->where('permission_id', $permission->permission_id)
                         ->exists();
-                        
+
                     if (!$exists) {
                         DB::table('role_has_permissions')->insert([
                             'permission_id' => $permission->permission_id,
@@ -727,10 +811,10 @@ class CompanyClonerService
                         ]);
                     }
                 }
-                
+
                 \Log::info("Cloned {$rolePermissions->count()} permissions for role ID: {$newRoleId}");
             }
-            
+
         } catch (\Exception $e) {
             \Log::error("Error cloning role permissions: " . $e->getMessage());
         }
@@ -742,37 +826,37 @@ class CompanyClonerService
     public function analyzeTableRelationships($tableName = null)
     {
         \Log::info("=== ANALYZING TABLE RELATIONSHIPS ===");
-        
+
         $tablesToAnalyze = $tableName ? [$tableName] : [
-            'branches', 'departments', 'designations', 'product_service_categories', 
+            'branches', 'departments', 'designations', 'product_service_categories',
             'product_services', 'customers', 'venders', 'jobs'
         ];
-        
+
         foreach ($tablesToAnalyze as $table) {
             if (!Schema::hasTable($table)) {
                 \Log::warning("Table {$table} does not exist");
                 continue;
             }
-            
+
             $columns = Schema::getColumnListing($table);
             \Log::info("=== TABLE: {$table} ===");
             \Log::info("Columns: " . implode(', ', $columns));
-            
+
             // Look for potential foreign key columns
             $foreignKeyColumns = array_filter($columns, function($column) {
-                return preg_match('/_id$/', $column) || 
+                return preg_match('/_id$/', $column) ||
                        in_array($column, ['parent', 'type', 'sub_type', 'category', 'department', 'branch']);
             });
-            
+
             if (!empty($foreignKeyColumns)) {
                 \Log::info("Potential FK columns in {$table}: " . implode(', ', $foreignKeyColumns));
-                
+
                 // Check actual data for this company
                 $sampleData = DB::table($table)
                     ->where('created_by', $this->targetCompanyId)
                     ->limit(3)
                     ->get();
-                    
+
                 foreach ($sampleData as $record) {
                     $recordArray = (array) $record;
                     $fkData = [];
@@ -789,7 +873,7 @@ class CompanyClonerService
                 \Log::info("No foreign key columns found in {$table}");
             }
         }
-        
+
         return true;
     }
 
@@ -799,60 +883,60 @@ class CompanyClonerService
     public function debugClonedData($tableName = 'chart_of_accounts')
     {
         \Log::info("=== DEBUG: Checking cloned data for {$tableName} ===");
-        
+
         $clonedData = DB::table($tableName)
             ->where('created_by', $this->targetCompanyId)
             ->get();
-            
+
         \Log::info("Found {$clonedData->count()} records in {$tableName} for company {$this->targetCompanyId}");
-        
+
         if ($tableName === 'departments') {
             // Check branch relationships
             $branches = DB::table('branches')
                 ->where('created_by', $this->targetCompanyId)
                 ->pluck('id', 'name')
                 ->toArray();
-                
+
             \Log::info("Available branches for company {$this->targetCompanyId}: " . json_encode($branches));
-            
+
             foreach ($clonedData as $dept) {
-                $branchInfo = isset($dept->branch_id) ? 
-                    " (branch_id: {$dept->branch_id})" : 
+                $branchInfo = isset($dept->branch_id) ?
+                    " (branch_id: {$dept->branch_id})" :
                     " (no branch_id column or value)";
                 \Log::info("Department: {$dept->name}{$branchInfo}");
             }
         }
-        
+
         if ($tableName === 'designations') {
             // Check department relationships
             $departments = DB::table('departments')
                 ->where('created_by', $this->targetCompanyId)
                 ->pluck('id', 'name')
                 ->toArray();
-                
+
             \Log::info("Available departments for company {$this->targetCompanyId}: " . json_encode($departments));
-            
+
             foreach ($clonedData as $designation) {
-                $deptInfo = isset($designation->department_id) ? 
-                    " (department_id: {$designation->department_id})" : 
+                $deptInfo = isset($designation->department_id) ?
+                    " (department_id: {$designation->department_id})" :
                     " (no department_id column or value)";
                 \Log::info("Designation: {$designation->name}{$deptInfo}");
             }
         }
-        
+
         if ($tableName === 'chart_of_accounts') {
             // Check the type relationships
             $types = DB::table('chart_of_account_types')
                 ->where('created_by', $this->targetCompanyId)
                 ->pluck('id', 'name')
                 ->toArray();
-                
+
             \Log::info("Available type IDs for company {$this->targetCompanyId}: " . json_encode($types));
-            
+
             // Check parent relationships
             $parentAccounts = $clonedData->where('parent', '>', 0);
             \Log::info("Accounts with parents: {$parentAccounts->count()}");
-            
+
             foreach ($parentAccounts as $account) {
                 $parentExists = $clonedData->where('id', $account->parent)->first();
                 if (!$parentExists) {
@@ -862,7 +946,7 @@ class CompanyClonerService
                 }
             }
         }
-        
+
         return $clonedData;
     }
 
@@ -899,7 +983,7 @@ class CompanyClonerService
 
         foreach ($tables as $tableObj) {
             $tableName = array_values((array) $tableObj)[0];
-            
+
             if ($this->shouldCloneTable($tableObj)) {
                 if ($tableName === 'settings') {
                     // Special handling for settings preview
@@ -916,7 +1000,7 @@ class CompanyClonerService
                         ->where('created_by', $this->sourceCompanyId)
                         ->count();
                 }
-                
+
                 if ($count > 0) {
                     $summary[$tableName] = $count;
                 }
@@ -943,7 +1027,7 @@ class CompanyClonerService
         }
 
         $this->excludedTables = array_merge($this->excludedTables, $additionalExclusions);
-        
+
         return $this->cloneAllCompanyData();
     }
 }

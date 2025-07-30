@@ -22,17 +22,34 @@ class CompanyRefreshService
 
     // ALL master data tables that users can add to OR modify
     private $masterDataTables = [
+
+        // Email & Communication
+        'email_templates',
+        'notification_templates',
+        'user_email_templates',
+
+        // Certificate Templates
+        'joining_letters',
+        'experience_certificates',
+        'generate_offer_letters',
+        'noc_certificates',
+
+        // Settings & Configuration
+        'landing_page_settings',
+        'referral_settings',
+
         // Chart of accounts system
+        'chart_of_account_parents',
         'chart_of_account_types',
         'chart_of_account_sub_types',
         'chart_of_accounts',
 
         // Product & inventory system
-        'product_service_categories',
-        'product_service_units',
-        'product_services',
+       // 'product_service_categories',
+       // 'product_service_units',
+        //'product_services',
         'taxes',
-        'warehouses',
+       // 'warehouses',
 
         // CRM system
         'labels',
@@ -203,9 +220,43 @@ class CompanyRefreshService
 
     // Fields to compare for conflicts in master data
     private $conflictFields = [
-        'chart_of_accounts' => ['name', 'description', 'is_enabled', 'parent'],
-        'product_services' => ['name', 'description', 'sale_price', 'purchase_price', 'is_enabled'],
-        'product_service_categories' => ['name', 'color'],
+
+        // HR system - User customizations should win
+            'job_categories' => ['name'],
+            'job_stages' => ['name', 'order'],
+            'leave_types' => ['name', 'days'],
+            'allowance_options' => ['name'],
+            'deduction_options' => ['name'],
+            'loan_options' => ['name'],
+            'award_types' => ['name'],
+            'training_types' => ['name'],
+            'goal_types' => ['name'],
+            'performance_types' => ['name'],
+            'termination_types' => ['name'],
+            'payslip_types' => ['name'],
+
+            // Project system - User customizations should win
+            'task_stages' => ['name', 'order'],
+
+            // Contract system - User customizations should win
+            'contract_types' => ['name'],
+
+            // Other systems - User customizations should win
+            'competencies' => ['name', 'type'],
+            'custom_questions' => ['question', 'type'],
+            'documents' => ['name', 'type'],
+
+            // CRM - User customizations should win
+            'lead_stages' => ['name', 'order'],
+
+            // Chart framework - Add missing ones
+            'chart_of_account_types' => ['name'],
+            'chart_of_account_sub_types' => ['name'],
+            'chart_of_account_parents' => ['name', 'account'],
+            'chart_of_accounts' => ['name', 'description', 'is_enabled', 'parent'],
+        //'product_services' => ['name', 'description', 'sale_price', 'purchase_price', 'is_enabled'],
+        //'product_service_categories' => ['name', 'color'],
+
         'warehouses' => ['name', 'address', 'city', 'state'],
         'branches' => ['name', 'address', 'city', 'state'],
         'departments' => ['name', 'branch_id'],
@@ -215,10 +266,26 @@ class CompanyRefreshService
         'pipelines' => ['name'],
         'stages' => ['name', 'pipeline_id', 'order'],
         'taxes' => ['name', 'rate'],
+        'chart_of_account_parents' => ['name', 'account'],
         'bank_accounts' => ['account_number', 'holder_name', 'bank_name', 'contact_number'],
         'roles' => ['name'], // Users can customize role names
         'settings' => ['value'], // ALL settings including integrations
         'company_payment_settings' => ['value'], // Payment gateway configurations
+
+        // Email & Communication Templates
+        'email_templates' => ['subject', 'content', 'is_enabled', 'lang'],
+        'notification_templates' => ['subject', 'content', 'is_enabled', 'lang'],
+        'user_email_templates' => ['template_id', 'is_enabled'], // User-template assignments
+
+        // Certificate Templates (CRITICAL for revenue)
+        'joining_letters' => ['content', 'is_enabled'],
+        'experience_certificates' => ['content', 'is_enabled'],
+        'generate_offer_letters' => ['content', 'is_enabled'],
+        'noc_certificates' => ['content', 'is_enabled'],
+
+       // Settings & Configuration
+        'landing_page_settings' => ['value'], // Usually stored as key-value pairs
+        'referral_settings' => ['value'], // Usually stored as key-value pairs
     ];
 
     public function __construct()
@@ -650,22 +717,158 @@ class CompanyRefreshService
     {
         // Business rules for different types of master data
         $rules = [
-            'chart_of_accounts' => function($field, $old, $template) {
-                // User customizations for names/descriptions take precedence
-                if (in_array($field, ['name', 'description'])) {
-                    return $this->useMostRecent($old, $template);
-                }
-                // Template structure changes take precedence
-                return 'use_template';
-            },
 
-            'product_services' => function($field, $old, $template) {
+
+        // Email templates - user customizations take precedence for content
+                'email_templates' => function($field, $old, $template) {
+                    if (in_array($field, ['subject', 'content'])) {
+                        return 'use_user'; // Always preserve user's custom email content
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                'notification_templates' => function($field, $old, $template) {
+                    if (in_array($field, ['subject', 'content'])) {
+                        return 'use_user'; // Always preserve user's custom notification content
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                // Certificate templates - ALWAYS preserve user customizations (revenue critical)
+                'joining_letters' => function($field, $old, $template) {
+                    if ($field === 'content') {
+                        return 'use_user'; // NEVER lose custom certificate templates
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                'experience_certificates' => function($field, $old, $template) {
+                    if ($field === 'content') {
+                        return 'use_user'; // NEVER lose custom certificate templates
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                'generate_offer_letters' => function($field, $old, $template) {
+                    if ($field === 'content') {
+                        return 'use_user'; // NEVER lose custom offer letter templates
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                'noc_certificates' => function($field, $old, $template) {
+                    if ($field === 'content') {
+                        return 'use_user'; // NEVER lose custom NOC templates
+                    }
+                    return $this->useMostRecent($old, $template);
+                },
+
+                // Landing page and referral settings - preserve user customizations
+                'landing_page_settings' => function($field, $old, $template) {
+                    return 'use_user'; // User branding/customizations take precedence
+                },
+
+                'referral_settings' => function($field, $old, $template) {
+                    return 'use_user'; // User referral configurations take precedence
+                },
+
+                // HR system - ALL user customizations win
+                        'job_categories' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific job categories
+                        },
+                        'job_stages' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific recruitment process
+                        },
+                        'leave_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific leave policies
+                        },
+                        'allowance_options' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific allowances
+                        },
+                        'deduction_options' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific deductions
+                        },
+                        'loan_options' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific loan policies
+                        },
+                        'award_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific recognition programs
+                        },
+                        'training_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific training programs
+                        },
+                        'goal_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific goal frameworks
+                        },
+                        'performance_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific performance metrics
+                        },
+                        'termination_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific termination policies
+                        },
+                        'payslip_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific payslip formats
+                        },
+
+                        // Project system - User customizations win
+                        'task_stages' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific project workflows
+                        },
+
+                        // Contract system - User customizations win
+                        'contract_types' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific contract types
+                        },
+
+                        // Other systems - User customizations win
+                        'competencies' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific competency framework
+                        },
+                        'custom_questions' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific questions
+                        },
+                        'documents' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific document types
+                        },
+
+                        // CRM - User customizations win
+                        'lead_stages' => function($field, $old, $template) {
+                            return 'use_user'; // Company-specific lead processes
+                        },
+
+                        // Chart framework - Template structure should win (for consistency)
+                        'chart_of_account_types' => function($field, $old, $template) {
+                            return 'use_template'; // Accounting framework should be consistent
+                        },
+                        'chart_of_account_sub_types' => function($field, $old, $template) {
+                            return 'use_template'; // Accounting framework should be consistent
+                        },
+                        'chart_of_account_parents' => function($field, $old, $template) {
+                            return 'use_template'; // Accounting framework should be consistent
+                        },
+
+                        'chart_of_accounts' => function($field, $old, $template) {
+                            // Template controls structure and admin decisions
+                            if (in_array($field, ['is_enabled', 'parent', 'type', 'sub_type', 'code'])) {
+                                return 'use_template'; // Admin/structure decisions from template
+                            }
+
+                            // User controls customizations
+                            if (in_array($field, ['name', 'description'])) {
+                                return $this->useMostRecent($old, $template); // User can customize names
+                            }
+
+                            // Default to template for any other fields
+                            return 'use_template';
+                        },
+
+            //'product_services' => function($field, $old, $template) {
                 // User pricing takes precedence
-                if (in_array($field, ['sale_price', 'purchase_price'])) {
-                    return 'use_user';
-                }
-                return $this->useMostRecent($old, $template);
-            },
+               // if (in_array($field, ['sale_price', 'purchase_price'])) {
+               //     return 'use_user';
+               // }
+               // return $this->useMostRecent($old, $template);
+            //},
 
             'settings' => function($field, $old, $template) {
                 // Integration settings - always keep user's
@@ -1152,89 +1355,111 @@ class CompanyRefreshService
 
         // Tables that should be transferred (not deleted) because they represent financial records
         $paymentTables = [
-            'orders' => ['user_id'], // Orders placed by the company
-            'order_products' => [], // Products in orders (no direct company reference, linked via orders)
-            'subscriptions' => ['user_id'], // Active subscriptions
-            'user_plans' => ['user_id'], // Current plan assignments
+            // Primary payment/subscription tables
+            'orders' => ['user_id'], // This is effectively their subscription/plan record
             'plan_requests' => ['user_id'], // Plan change requests
+
+            // Transaction tables (check both user_id and created_by to be safe)
+            'transactions' => ['user_id', 'created_by'], // Financial transactions
+
+            // Coupon/discount tables
             'user_coupons' => ['user_id'], // Coupons assigned to company
-            'order_coupons' => [], // Coupons used in orders (linked via orders)
-            'transactions' => ['user_id'], // Financial transactions
-            'transaction_orders' => [], // Links between transactions and orders
+
+            // Transaction linking tables
+            'transaction_orders' => ['req_user_id'], // Links between transactions and orders
         ];
 
         foreach ($paymentTables as $tableName => $companyFields) {
             if (!Schema::hasTable($tableName)) {
+                Log::info("Table {$tableName} does not exist, skipping");
                 continue;
             }
 
-            // If table has direct company reference fields, update them
-            if (!empty($companyFields)) {
-                foreach ($companyFields as $field) {
-                    if (Schema::hasColumn($tableName, $field)) {
-                        $updated = DB::table($tableName)
-                            ->where($field, $this->oldCompanyId)
-                            ->update([$field => $this->newCompanyId]);
+            $totalUpdated = 0;
 
-                        if ($updated > 0) {
-                            Log::info("Transferred {$updated} {$tableName} records to new company");
-                        }
+            // Update each field that might reference the old company
+            foreach ($companyFields as $field) {
+                if (Schema::hasColumn($tableName, $field)) {
+                    $updated = DB::table($tableName)
+                        ->where($field, $this->oldCompanyId)
+                        ->update([
+                            $field => $this->newCompanyId,
+                            'updated_at' => now()
+                        ]);
+
+                    $totalUpdated += $updated;
+
+                    if ($updated > 0) {
+                        Log::info("Updated {$updated} records in {$tableName}.{$field}");
                     }
                 }
             }
 
-            // Special handling for tables linked through orders
-            if (in_array($tableName, ['order_products', 'order_coupons', 'transaction_orders'])) {
-                // These will be automatically linked to new company through the updated orders
-                $count = DB::table($tableName)
-                    ->join('orders', 'orders.id', '=', $tableName . '.order_id')
-                    ->where('orders.user_id', $this->newCompanyId)
-                    ->count();
-
-                if ($count > 0) {
-                    Log::info("Verified {$count} {$tableName} records are now linked to new company via orders");
-                }
+            if ($totalUpdated > 0) {
+                Log::info("Total transferred: {$totalUpdated} {$tableName} records to new company");
             }
         }
 
-        // Special case: Update any user references in payment tables to point to new company user
-        $this->updateUserReferencesInPaymentTables();
+        // Verify the transfer worked for critical tables
+        $this->verifyPaymentTransfer();
     }
 
     /**
-     * Update user references in payment-related tables
+     * Verify that payment records were transferred correctly
      */
-    private function updateUserReferencesInPaymentTables()
+    private function verifyPaymentTransfer()
     {
-        Log::info("Updating user references in payment tables");
+        Log::info("Verifying payment record transfer...");
 
-        // Find the main company user in the new company (should be the new company ID itself)
-        $newCompanyUser = User::find($this->newCompanyId);
-
-        if (!$newCompanyUser) {
-            Log::warning("Could not find new company user {$this->newCompanyId}");
-            return;
+        // Check orders (most critical - this is their subscription)
+        if (Schema::hasTable('orders')) {
+            $orderCount = DB::table('orders')->where('user_id', $this->newCompanyId)->count();
+            if ($orderCount > 0) {
+                Log::info("✓ Verified: {$orderCount} orders now belong to new company");
+            }
         }
 
-        // Tables that might reference the company user directly
-        $userReferenceTables = [
-            'orders' => 'user_id',
-            'subscriptions' => 'user_id',
-            'user_plans' => 'user_id',
-            'plan_requests' => 'user_id',
-            'user_coupons' => 'user_id',
-            'transactions' => 'user_id',
-        ];
+        // Check plan requests
+        if (Schema::hasTable('plan_requests')) {
+            $planRequestCount = DB::table('plan_requests')->where('user_id', $this->newCompanyId)->count();
+            if ($planRequestCount > 0) {
+                Log::info("✓ Verified: {$planRequestCount} plan requests now belong to new company");
+            }
+        }
 
-        foreach ($userReferenceTables as $tableName => $userField) {
-            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, $userField)) {
-                $updated = DB::table($tableName)
-                    ->where($userField, $this->oldCompanyId)
-                    ->update([$userField => $this->newCompanyId]);
+        // Check for any orphaned records that still reference old company
+        $orphanedTables = ['orders', 'plan_requests', 'transactions', 'user_coupons', 'transaction_orders'];
 
-                if ($updated > 0) {
-                    Log::info("Updated {$updated} user references in {$tableName}");
+        foreach ($orphanedTables as $tableName) {
+            if (!Schema::hasTable($tableName)) continue;
+
+            $orphanedCount = 0;
+            $checkFields = [];
+
+            // Determine which fields to check based on table
+            switch ($tableName) {
+                case 'orders':
+                case 'plan_requests':
+                case 'user_coupons':
+                    $checkFields = ['user_id'];
+                    break;
+                case 'transactions':
+                    $checkFields = ['user_id', 'created_by'];
+                    break;
+                case 'transaction_orders':
+                    $checkFields = ['req_user_id'];
+                    break;
+            }
+
+            foreach ($checkFields as $field) {
+                if (Schema::hasColumn($tableName, $field)) {
+                    $count = DB::table($tableName)->where($field, $this->oldCompanyId)->count();
+                    $orphanedCount += $count;
                 }
+            }
+
+            if ($orphanedCount > 0) {
+                Log::warning("⚠️ Found {$orphanedCount} orphaned records in {$tableName} still referencing old company {$this->oldCompanyId}");
             }
         }
     }
