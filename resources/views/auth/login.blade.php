@@ -62,46 +62,37 @@
     }
 
     .auth-left {
-        flex: 1;
+        width: 50%;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
         padding: 2rem;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: white;
     }
 
     .auth-right {
-        flex: 1;
+        width: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #f8fafc;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         position: relative;
         overflow: hidden;
     }
 
     .auth-right::before {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200%;
-        height: 200%;
-        background: linear-gradient(45deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-        border-radius: 50%;
+        display: none;
     }
 
     .login-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 24px;
+        background: white;
+        border-radius: 0;
         padding: 3rem;
-        box-shadow: 
-            0 25px 50px rgba(0, 0, 0, 0.15),
-            0 0 0 1px rgba(255, 255, 255, 0.2);
-        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: none;
+        border: none;
         width: 100%;
         max-width: 420px;
+        margin-left: 2rem;
     }
 
     .welcome-content {
