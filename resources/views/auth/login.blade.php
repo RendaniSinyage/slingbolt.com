@@ -48,83 +48,44 @@
 
 @section('content')
 <style>
-    * {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-        overflow-x: hidden;
-    }
-
-    .auth-container {
-        display: flex;
-        height: 100vh;
-        width: 100vw;
-    }
-
-    .auth-left {
-        width: 50vw;
-        background: white;
-        display: flex;
-        align-items: center;
-        padding-left: 5rem;
-    }
-
-    .auth-right {
-        width: 50vw;
+    body {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
+        margin: 0;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     }
 
-    .login-form-container {
-        max-width: 400px;
+    .card-body {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 3rem;
+        box-shadow: 
+            0 25px 50px rgba(0, 0, 0, 0.15),
+            0 0 0 1px rgba(255, 255, 255, 0.2);
+        border: 1px solid rgba(255, 255, 255, 0.18);
         width: 100%;
+        max-width: 450px;
+        margin: 2rem auto;
     }
 
-    .auth-title h1 {
-        font-size: 2.5rem;
+    h2 {
+        font-size: 2.25rem;
         font-weight: 700;
         color: #1a202c;
-        margin-bottom: 0.5rem;
-    }
-
-    .auth-title p {
-        color: #64748b;
-        font-size: 1.1rem;
         margin-bottom: 2rem;
+        text-align: center;
     }
 
-    .form-floating {
+    .form-group {
         position: relative;
         margin-bottom: 1.5rem;
     }
 
-    .form-control-modern {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        padding: 1.25rem 1rem;
-        font-size: 1rem;
-        width: 100%;
-        min-height: 60px;
-        transition: all 0.3s ease;
-    }
-
-    .form-control-modern:focus {
-        background: white;
-        border-color: #667eea;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
-        outline: none;
-    }
-
-    .form-floating label {
+    .form-label {
         position: absolute;
         top: 50%;
         left: 1rem;
@@ -135,98 +96,89 @@
         pointer-events: none;
         background: transparent;
         padding: 0 0.25rem;
+        z-index: 2;
     }
 
-    .form-floating .form-control-modern:focus ~ label,
-    .form-floating .form-control-modern:not(:placeholder-shown) ~ label {
+    .form-control {
+        background: rgba(248, 249, 250, 0.8);
+        border: 2px solid rgba(148, 163, 184, 0.2);
+        border-radius: 16px;
+        padding: 1.25rem 1rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        transition: all 0.3s ease;
+        width: 100%;
+        min-height: 60px;
+    }
+
+    .form-control:focus {
+        background: rgba(255, 255, 255, 1);
+        border-color: #667eea;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        outline: none;
+    }
+
+    .form-control:focus + .form-label,
+    .form-control:not(:placeholder-shown) + .form-label {
         top: 0;
         font-size: 0.875rem;
         color: #667eea;
-        background: white;
+        background: rgba(255, 255, 255, 0.9);
         padding: 0 0.5rem;
         border-radius: 8px;
     }
 
-    .form-options {
+    .d-flex.flex-wrap {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 2rem;
     }
 
-    .forgot-link {
+    .d-flex.flex-wrap a {
         color: #667eea;
         text-decoration: none;
         font-weight: 500;
+        transition: all 0.2s ease;
     }
 
-    .login-btn {
+    .d-flex.flex-wrap a:hover {
+        color: #5a6fd8;
+    }
+
+    .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         border: none;
-        border-radius: 12px;
-        padding: 1rem;
+        border-radius: 16px;
+        padding: 1rem 2rem;
         font-weight: 600;
         font-size: 1.1rem;
         color: white;
         width: 100%;
+        transition: all 0.3s ease;
         margin-bottom: 2rem;
-        cursor: pointer;
-        transition: transform 0.2s ease;
     }
 
-    .login-btn:hover {
+    .btn-primary:hover {
         transform: translateY(-2px);
+        box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
     }
 
-    .auth-footer {
-        text-align: center;
+    .text-center p {
+        margin-top: 1.5rem;
         padding-top: 1.5rem;
-        border-top: 1px solid #e9ecef;
+        border-top: 1px solid rgba(148, 163, 184, 0.2);
+        color: #64748b;
     }
 
-    .register-link {
-        color: #667eea;
+    .text-primary {
+        color: #667eea !important;
         text-decoration: none;
         font-weight: 600;
     }
 
-    .welcome-content {
-        text-align: center;
-        color: white;
-        max-width: 400px;
-    }
-
-    .welcome-content h2 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-    }
-
-    .welcome-content p {
-        font-size: 1.2rem;
-        opacity: 0.9;
-        margin-bottom: 2rem;
-    }
-
-    .feature-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
-        text-align: left;
-    }
-
-    .feature-item i {
-        margin-right: 1rem;
-    }
-
-    .alert-modern {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 8px;
-        padding: 1rem;
-        margin-bottom: 1.5rem;
-        color: #721c24;
+    .text-primary:hover {
+        color: #5a6fd8 !important;
     }
 
     .invalid-feedback {
@@ -234,135 +186,113 @@
         color: #dc3545;
         font-size: 0.875rem;
         margin-top: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: rgba(248, 215, 218, 0.1);
+        border-radius: 8px;
+        border-left: 4px solid #dc3545;
     }
 
-    @media (max-width: 768px) {
-        .auth-container {
-            flex-direction: column;
+    .text-danger {
+        background: rgba(248, 215, 218, 0.9);
+        border: 1px solid rgba(245, 198, 203, 0.5);
+        border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        color: #721c24;
+    }
+
+    /* reCAPTCHA styling */
+    .form-group .g-recaptcha {
+        display: flex;
+        justify-content: center;
+        margin: 1rem 0;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 576px) {
+        .card-body {
+            padding: 2rem 1.5rem;
+            border-radius: 20px;
+            margin: 1rem;
         }
         
-        .auth-left, .auth-right {
-            width: 100vw;
-            height: 50vh;
-        }
-        
-        .auth-left {
-            padding: 2rem;
-            justify-content: center;
-        }
-        
-        .welcome-content h2 {
-            font-size: 2rem;
+        h2 {
+            font-size: 1.75rem;
         }
     }
 </style>
 
-<div class="auth-container">
-    <div class="auth-left">
-        <div class="login-form-container">
-            <div class="auth-title">
-                <h1>{{ __('Welcome Back') }}</h1>
-                <p>{{ __('Sign in to your account') }}</p>
-            </div>
-
-            {{ Form::open(['route' => 'login', 'method' => 'post', 'id' => 'loginForm', 'class' => 'needs-validation', 'novalidate']) }}
-            
-            @if (session('status'))
-                <div class="alert-modern">
-                    {{ session('status') }}
-                </div>
-            @endif
-
-            <div class="form-floating">
-                {{ Form::email('email', null, [
-                    'class' => 'form-control form-control-modern', 
-                    'id' => 'email',
-                    'placeholder' => 'Email', 
-                    'required' => 'required'
-                ]) }}
-                <label for="email">{{ __('Email Address') }}</label>
-                @error('email')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="form-floating">
-                {{ Form::password('password', [
-                    'class' => 'form-control form-control-modern', 
-                    'id' => 'password',
-                    'placeholder' => 'Password', 
-                    'required' => 'required'
-                ]) }}
-                <label for="password">{{ __('Password') }}</label>
-                @error('password')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-            </div>
-
-            <div class="form-options">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
-                    <label class="form-check-label" for="remember">
-                        {{ __('Remember me') }}
-                    </label>
-                </div>
+<div class="card-body">
+    <div>
+        <h2 class="mb-3 f-w-600">{{ __('Login') }}</h2>
+    </div>
+    {{ Form::open(['route' => 'login', 'method' => 'post', 'id' => 'loginForm', 'class' => 'login-form', 'class'=>'needs-validation', 'novalidate']) }}
+    @if (session('status'))
+        <div class="mb-4 font-medium text-lg text-green-600 text-danger">
+            {{ session('status') }}
+        </div>
+    @endif
+    <div class="custom-login-form">
+        <div class="form-group mb-3">
+            {{ Form::text('email', null, ['class' => 'form-control', 'placeholder' => ' ', 'required' => 'required', 'id' => 'email']) }}
+            <label class="form-label" for="email">{{ __('Email') }}</label>
+            @error('email')
+                <span class="error invalid-email text-danger" role="alert">
+                    <strong>{{ $message }}</strong>
+                </span>
+            @enderror
+        </div>
+        <div class="form-group mb-3">
+            {{ Form::password('password', ['class' => 'form-control', 'placeholder' => ' ', 'id' => 'input-password', 'required' => 'required']) }}
+            <label class="form-label" for="input-password">{{ __('Password') }}</label>
+            @error('password')
+                <span class="error invalid-password text-danger" role="alert">
+                    <strong>{{ $message }}</strong>
+                </span>
+            @enderror
+        </div>
+        <div class="form-group mb-4">
+            <div class="d-flex flex-wrap align-items-center justify-content-between">
                 @if (Route::has('password.request'))
-                    <a href="{{ route('password.request', $lang) }}" class="forgot-link">
-                        {{ __('Forgot Password?') }}
-                    </a>
+                    <span><a href="{{ route('password.request', $lang) }}" tabindex="0">{{ __('Forgot your password?') }}</a></span>
                 @endif
             </div>
+        </div>
 
-            @if ($settings['recaptcha_module'] == 'on')
-                @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
-                    <div class="mb-3 d-flex justify-content-center">
-                        {!! NoCaptcha::display() !!}
-                        @error('g-recaptcha-response')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                @else
-                    <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response">
+        @if ($settings['recaptcha_module'] == 'on')
+            @if (isset($settings['google_recaptcha_version']) && $settings['google_recaptcha_version'] == 'v2-checkbox')
+                <div class="form-group col-lg-12 col-md-12 mt-3">
+                    {!! NoCaptcha::display() !!}
                     @error('g-recaptcha-response')
-                        <div class="invalid-feedback">{{ $message }}</div>
+                        <span class="small text-danger" role="alert">
+                            <strong>{{ $message }}</strong>
+                        </span>
                     @enderror
-                @endif
-            @endif
-
-            {{ Form::submit(__('Sign In'), ['class' => 'login-btn', 'id' => 'saveBtn']) }}
-
-            @if ($settings['enable_signup'] == 'on')
-                <div class="auth-footer">
-                    <p class="mb-0 text-muted">{{ __("Don't have an account?") }} 
-                        <a href="{{ route('register', ['0',$lang]) }}" class="register-link">{{ __('Create Account') }}</a>
-                    </p>
+                </div>
+            @else
+                <div class="form-group col-lg-12 col-md-12 mt-3">
+                    <input type="hidden" id="g-recaptcha-response" name="g-recaptcha-response" class="form-control">
+                    @error('g-recaptcha-response')
+                        <span class="error small text-danger" role="alert">
+                            <strong>{{ $message }}</strong>
+                        </span>
+                    @enderror
                 </div>
             @endif
+        @endif
 
-            {{ Form::close() }}
+        <div class="d-grid">
+            {{ Form::submit(__('Login'), ['class' => 'btn btn-primary mt-2', 'id' => 'saveBtn']) }}
         </div>
+        @if ($settings['enable_signup'] == 'on')
+            <p class="my-4 text-center">{{ __("Don't have an account?") }}
+                <a href="{{ route('register', ['0',$lang]) }}" class="text-primary">{{ __('Register') }}</a>
+            </p>
+        @endif
     </div>
-
-    <div class="auth-right">
-        <div class="welcome-content">
-            <h2>Welcome to Our Platform</h2>
-            <p>Join thousands of users who trust our platform for their business needs.</p>
-            <div class="feature-list">
-                <div class="feature-item">
-                    <i class="ti ti-check-circle"></i>
-                    <span>Secure and reliable platform</span>
-                </div>
-                <div class="feature-item">
-                    <i class="ti ti-check-circle"></i>
-                    <span>24/7 customer support</span>
-                </div>
-                <div class="feature-item">
-                    <i class="ti ti-check-circle"></i>
-                    <span>Easy to use interface</span>
-                </div>
-            </div>
-        </div>
-    </div>
+    {{ Form::close() }}
 </div>
 
 <script src="{{ asset('js/jquery.min.js') }}"></script>
