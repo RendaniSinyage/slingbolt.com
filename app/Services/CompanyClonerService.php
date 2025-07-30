@@ -353,8 +353,10 @@ public function debugLanguageCloning($tableName = 'email_template_langs')
     foreach ($allRecords as $record) {
         $langInfo = isset($record->lang) ? " (lang: {$record->lang})" : " (no lang column)";
         $willClone = isset($record->lang) && $record->lang === $defaultLang ? "✅ CLONE" : "❌ SKIP";
-        \Log::info("Record ID {$record->id}: {$record->name ?? 'no name'}{$langInfo} - {$willClone}");
+        $name = $record->name ?? 'no name';
+        \Log::info("Record ID {$record->id}: {$name}{$langInfo} - {$willClone}");
     }
+
 
     return [
         'default_language' => $defaultLang,

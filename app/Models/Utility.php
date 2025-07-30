@@ -2487,7 +2487,8 @@ class Utility extends Model
                 } else {
                     $is_active = (object) array('is_active' => 1);
                 }
-                if ($is_active->is_active == 1) {
+                if ($is_active && $is_active->is_active == 1) {
+
 
                     $settings = self::settingsById($usr->id);
 
