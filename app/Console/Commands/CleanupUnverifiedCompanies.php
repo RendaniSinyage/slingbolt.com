@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use App\Services\CompanyCleanupService;
 
 class CleanupUnverifiedCompanies extends Command
 {
@@ -46,7 +47,7 @@ class CleanupUnverifiedCompanies extends Command
             try {
                 DB::transaction(function () use ($company) {
                     // Use service method instead of local method
-                    \App\Services\CompanyCleanupService::cascadeDeleteCompanyData($company->id);
+                    CompanyCleanupService::cascadeDeleteCompanyData($company->id);
                     $company->delete();
                 });
 
@@ -72,16 +73,16 @@ class CleanupUnverifiedCompanies extends Command
         $userIds = DB::table('users')->where('created_by', $companyId)->pluck('id')->toArray();
 
         // Use service method to get deletion order
-        $allTables = \App\Services\CompanyCleanupService::getDeletionOrder();
+        $allTables = CompanyCleanupService::getDeletionOrder();
 
         foreach ($allTables as $table => $config) {
             if (!Schema::hasTable($table)) continue;
 
             // Use service method to count records
-            $count = \App\Services\CompanyCleanupService::getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds);
+            $count = CompanyCleanupService::getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds);
             $totalCount += $count;
         }
-        
+
         return $totalCount;
     }
 }
