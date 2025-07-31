@@ -1284,8 +1284,6 @@ class CompanyRefreshService
         }
     }
 
-
-
     /**
      * Update company references and relationship mappings - Enhanced version
      */
@@ -1404,6 +1402,61 @@ class CompanyRefreshService
 
         return $recordArray;
     }
+
+/**
+ * Debug method to check transaction line tables before refresh
+ * Call this before running dry run to see what data exists
+ */
+public function debugTransactionTables($oldCompanyId)
+{
+    $debug = [
+        'company_id' => $oldCompanyId,
+        'tables' => []
+    ];
+
+    $tables = ['add_transaction_lines', 'transaction_lines'];
+
+    foreach ($tables as $tableName) {
+        $tableDebug = [
+            'exists' => Schema::hasTable($tableName),
+            'has_created_by' => false,
+            'total_records' => 0,
+            'company_records' => 0,
+            'sample_records' => [],
+            'unique_created_by_values' => []
+        ];
+
+        if ($tableDebug['exists']) {
+            $tableDebug['has_created_by'] = Schema::hasColumn($tableName, 'created_by');
+
+            if ($tableDebug['has_created_by']) {
+                $tableDebug['total_records'] = DB::table($tableName)->count();
+                $tableDebug['company_records'] = DB::table($tableName)->where('created_by', $oldCompanyId)->count();
+
+                // Get sample records for this company
+                $tableDebug['sample_records'] = DB::table($tableName)
+                    ->where('created_by', $oldCompanyId)
+                    ->limit(5)
+                    ->get()
+                    ->toArray();
+
+                // Get all unique created_by values to see what companies have data
+                $tableDebug['unique_created_by_values'] = DB::table($tableName)
+                    ->select('created_by')
+                    ->groupBy('created_by')
+                    ->pluck('created_by')
+                    ->toArray();
+            }
+        }
+
+        $debug['tables'][$tableName] = $tableDebug;
+    }
+
+    Log::info("=== TRANSACTION TABLES DEBUG ===");
+    Log::info(json_encode($debug, JSON_PRETTY_PRINT));
+
+    return $debug;
+}
 
     /**
      * Step 6: Copy users to new company with prefixed emails
