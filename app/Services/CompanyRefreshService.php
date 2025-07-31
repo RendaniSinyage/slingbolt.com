@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\TemplateCompanyConfig;
 use App\Services\CompanyCleanupService;
 use App\Services\CompanyClonerService;
+use Spatie\Permission\Models\Role;
 
 class CompanyRefreshService
 {
@@ -522,6 +523,16 @@ class CompanyRefreshService
             'card_exp_month' => $oldCompany->card_exp_month,
             'card_exp_year' => $oldCompany->card_exp_year,
         ]);
+
+        // ⭐ ADD THIS: Assign company role to the new company user
+        $companyRole = Role::where('name', 'company')->first();
+        if ($companyRole) {
+            DB::table('model_has_roles')->insert([
+                'role_id' => $companyRole->id,
+                'model_id' => $newCompanyId,
+                'model_type' => 'App\\Models\\User'
+            ]);
+        }
 
         Log::info("Created new company record with ID: {$newCompanyId}");
 
