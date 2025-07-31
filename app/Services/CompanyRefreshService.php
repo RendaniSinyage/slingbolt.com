@@ -682,7 +682,20 @@ class CompanyRefreshService
         foreach ($parentFields as $parentField) {
             if (isset($recordArray[$parentField]) && $recordArray[$parentField] > 0) {
                 $deferredRelationships[$parentField] = $recordArray[$parentField];
-                $recordArray[$parentField] = null; // Will fix later
+                // DON'T set to null for required fields - skip the record instead
+                if ($parentField === 'pipeline_id' && $tableName === 'labels') {
+                    // For labels, pipeline_id is required - find the mapping immediately
+                    $mappedPipelineId = $this->findMappedId('pipeline_id', $recordArray[$parentField], $tableName);
+                    if ($mappedPipelineId) {
+                        $recordArray[$parentField] = $mappedPipelineId;
+                        unset($deferredRelationships[$parentField]); // No need to defer
+                    } else {
+                        Log::warning("Skipping label '{$recordArray['name']}' - cannot map pipeline_id {$recordArray[$parentField]}");
+                        return; // Skip this record entirely
+                    }
+                } else {
+                    $recordArray[$parentField] = null; // Will fix later
+                }
             }
         }
 
