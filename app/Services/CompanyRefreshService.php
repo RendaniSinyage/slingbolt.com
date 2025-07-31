@@ -679,22 +679,48 @@ class CompanyRefreshService
         $parentFields = ['parent', 'parent_id', 'branch_id', 'department_id', 'pipeline_id'];
         $deferredRelationships = [];
 
+        // Tables where pipeline_id is required and cannot be null
+        $requiredPipelineIdTables = ['labels', 'stages', 'lead_stages'];
+
         foreach ($parentFields as $parentField) {
             if (isset($recordArray[$parentField]) && $recordArray[$parentField] > 0) {
                 $deferredRelationships[$parentField] = $recordArray[$parentField];
-                // DON'T set to null for required fields - skip the record instead
-                if ($parentField === 'pipeline_id' && $tableName === 'labels') {
-                    // For labels, pipeline_id is required - find the mapping immediately
+
+                // Handle required pipeline_id fields immediately
+                if ($parentField === 'pipeline_id' && in_array($tableName, $requiredPipelineIdTables)) {
                     $mappedPipelineId = $this->findMappedId('pipeline_id', $recordArray[$parentField], $tableName);
                     if ($mappedPipelineId) {
                         $recordArray[$parentField] = $mappedPipelineId;
                         unset($deferredRelationships[$parentField]); // No need to defer
                     } else {
-                        Log::warning("Skipping label '{$recordArray['name']}' - cannot map pipeline_id {$recordArray[$parentField]}");
+                        Log::warning("Skipping {$tableName} record '{$recordArray['name']}' - cannot map pipeline_id {$recordArray[$parentField]}");
                         return; // Skip this record entirely
                     }
-                } else {
-                    $recordArray[$parentField] = null; // Will fix later
+                }
+                // Handle other required foreign keys immediately if needed
+                elseif ($parentField === 'department_id' && $tableName === 'designations') {
+                    $mappedDeptId = $this->findMappedId('department_id', $recordArray[$parentField], $tableName);
+                    if ($mappedDeptId) {
+                        $recordArray[$parentField] = $mappedDeptId;
+                        unset($deferredRelationships[$parentField]);
+                    } else {
+                        Log::warning("Skipping designation '{$recordArray['name']}' - cannot map department_id {$recordArray[$parentField]}");
+                        return;
+                    }
+                }
+                // Handle other required foreign keys
+                elseif ($parentField === 'branch_id' && $tableName === 'departments') {
+                    $mappedBranchId = $this->findMappedId('branch_id', $recordArray[$parentField], $tableName);
+                    if ($mappedBranchId) {
+                        $recordArray[$parentField] = $mappedBranchId;
+                        unset($deferredRelationships[$parentField]);
+                    } else {
+                        Log::warning("Skipping department '{$recordArray['name']}' - cannot map branch_id {$recordArray[$parentField]}");
+                        return;
+                    }
+                }
+                else {
+                    $recordArray[$parentField] = null; // Will fix later for non-required fields
                 }
             }
         }
