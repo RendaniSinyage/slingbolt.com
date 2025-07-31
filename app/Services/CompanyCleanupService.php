@@ -15,17 +15,11 @@ class CompanyCleanupService
     {
         Log::info("Starting comprehensive cascade deletion for company ID: {$companyId}");
 
-        // Get related IDs first for relationship handling
-        $relatedIds = self::getRelatedIds($companyId);
-
-        // OPTION 1: Use special relationship handling for problematic tables
-        self::handleSpecialRelationships($companyId, $relatedIds);
-
-        // OPTION 2: Use UserController's dynamic approach (faster, covers most cases)
+        // OPTION 1: Use UserController's dynamic approach (faster, covers most cases)
         self::dynamicCascadeDelete($companyId);
 
-        // OPTION 3: Use CleanupUnverifiedCompanies' detailed approach (thorough, handles complex relationships)
-        self::detailedCascadeDelete($companyId, $relatedIds);
+        // OPTION 2: Use CleanupUnverifiedCompanies' detailed approach (thorough, handles complex relationships)
+        self::detailedCascadeDelete($companyId);
 
         // Final cleanup
         self::cleanupRolePermissions($companyId);
@@ -34,241 +28,7 @@ class CompanyCleanupService
     }
 
     /**
-     * Get all related IDs for the company
-     */
-    private static function getRelatedIds($companyId)
-    {
-        $relatedIds = [
-            'company_id' => $companyId,
-            'employee_ids' => [],
-            'user_ids' => [],
-            'deal_ids' => [],
-            'lead_ids' => [],
-            'invoice_ids' => [],
-            'bill_ids' => [],
-            'contract_ids' => [],
-            'project_ids' => [],
-            'product_ids' => [],
-            'chart_account_ids' => [],
-        ];
-
-        try {
-            // Get employees
-            if (Schema::hasTable('employees')) {
-                $relatedIds['employee_ids'] = DB::table('employees')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get users
-            if (Schema::hasTable('users')) {
-                $relatedIds['user_ids'] = DB::table('users')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get deals
-            if (Schema::hasTable('deals')) {
-                $relatedIds['deal_ids'] = DB::table('deals')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get leads
-            if (Schema::hasTable('leads')) {
-                $relatedIds['lead_ids'] = DB::table('leads')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get invoices
-            if (Schema::hasTable('invoices')) {
-                $relatedIds['invoice_ids'] = DB::table('invoices')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get bills
-            if (Schema::hasTable('bills')) {
-                $relatedIds['bill_ids'] = DB::table('bills')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get contracts
-            if (Schema::hasTable('contracts')) {
-                $relatedIds['contract_ids'] = DB::table('contracts')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get projects
-            if (Schema::hasTable('projects')) {
-                $relatedIds['project_ids'] = DB::table('projects')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get products
-            if (Schema::hasTable('product_services')) {
-                $relatedIds['product_ids'] = DB::table('product_services')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-            // Get chart accounts
-            if (Schema::hasTable('chart_of_accounts')) {
-                $relatedIds['chart_account_ids'] = DB::table('chart_of_accounts')
-                    ->where('created_by', $companyId)
-                    ->pluck('id')->toArray();
-            }
-
-        } catch (\Exception $e) {
-            Log::error("Error getting related IDs for company {$companyId}: " . $e->getMessage());
-        }
-
-        return $relatedIds;
-    }
-
-    /**
-     * Handle tables with special relationships
-     */
-    private static function handleSpecialRelationships($companyId, $relatedIds)
-    {
-        Log::info("Handling special relationships...");
-
-        $specialTables = [
-            // Deal Related - Skip deal_calls as marked with X
-            'deal_emails' => [
-                'condition' => !empty($relatedIds['deal_ids']),
-                'query' => "DELETE FROM deal_emails WHERE deal_id IN (" . str_repeat('?,', count($relatedIds['deal_ids']) - 1) . "?)",
-                'params' => $relatedIds['deal_ids']
-            ],
-            'deal_files' => [
-                'condition' => !empty($relatedIds['deal_ids']),
-                'query' => "DELETE FROM deal_files WHERE deal_id IN (" . str_repeat('?,', count($relatedIds['deal_ids']) - 1) . "?)",
-                'params' => $relatedIds['deal_ids']
-            ],
-            'deal_tasks' => [
-                'condition' => !empty($relatedIds['deal_ids']),
-                'query' => "DELETE FROM deal_tasks WHERE deal_id IN (" . str_repeat('?,', count($relatedIds['deal_ids']) - 1) . "?)",
-                'params' => $relatedIds['deal_ids']
-            ],
-
-            // Lead Related
-            'lead_calls' => [
-                'condition' => !empty($relatedIds['user_ids']),
-                'query' => "DELETE FROM lead_calls WHERE user_id IN (" . str_repeat('?,', count($relatedIds['user_ids']) - 1) . "?)",
-                'params' => $relatedIds['user_ids']
-            ],
-            'lead_emails' => [
-                'condition' => !empty($relatedIds['lead_ids']),
-                'query' => "DELETE FROM lead_emails WHERE lead_id IN (" . str_repeat('?,', count($relatedIds['lead_ids']) - 1) . "?)",
-                'params' => $relatedIds['lead_ids']
-            ],
-            'lead_files' => [
-                'condition' => !empty($relatedIds['lead_ids']),
-                'query' => "DELETE FROM lead_files WHERE lead_id IN (" . str_repeat('?,', count($relatedIds['lead_ids']) - 1) . "?)",
-                'params' => $relatedIds['lead_ids']
-            ],
-            'lead_activity_logs' => [
-                'condition' => !empty($relatedIds['lead_ids']) || !empty($relatedIds['user_ids']),
-                'query' => "DELETE FROM lead_activity_logs WHERE " .
-                          (!empty($relatedIds['lead_ids']) ? "lead_id IN (" . str_repeat('?,', count($relatedIds['lead_ids']) - 1) . "?)" : "1=0") .
-                          (!empty($relatedIds['user_ids']) ? " OR user_id IN (" . str_repeat('?,', count($relatedIds['user_ids']) - 1) . "?)" : ""),
-                'params' => array_merge($relatedIds['lead_ids'], $relatedIds['user_ids'])
-            ],
-
-            // Financial/Invoice
-            'invoice_products' => [
-                'condition' => !empty($relatedIds['product_ids']),
-                'query' => "DELETE FROM invoice_products WHERE product_id IN (" . str_repeat('?,', count($relatedIds['product_ids']) - 1) . "?)",
-                'params' => $relatedIds['product_ids']
-            ],
-            'invoice_payments' => [
-                'condition' => !empty($relatedIds['invoice_ids']),
-                'query' => "DELETE FROM invoice_payments WHERE invoice_id IN (" . str_repeat('?,', count($relatedIds['invoice_ids']) - 1) . "?)",
-                'params' => $relatedIds['invoice_ids']
-            ],
-            'bill_products' => [
-                'condition' => !empty($relatedIds['product_ids']),
-                'query' => "DELETE FROM bill_products WHERE product_id IN (" . str_repeat('?,', count($relatedIds['product_ids']) - 1) . "?)",
-                'params' => $relatedIds['product_ids']
-            ],
-            'bill_accounts' => [
-                'condition' => !empty($relatedIds['chart_account_ids']),
-                'query' => "DELETE FROM bill_accounts WHERE chart_account_id IN (" . str_repeat('?,', count($relatedIds['chart_account_ids']) - 1) . "?)",
-                'params' => $relatedIds['chart_account_ids']
-            ],
-            'bill_payments' => [
-                'condition' => !empty($relatedIds['bill_ids']),
-                'query' => "DELETE FROM bill_payments WHERE bill_id IN (" . str_repeat('?,', count($relatedIds['bill_ids']) - 1) . "?)",
-                'params' => $relatedIds['bill_ids']
-            ],
-
-            // Contract Related
-            'contract_attachment' => [
-                'condition' => !empty($relatedIds['contract_ids']),
-                'query' => "DELETE FROM contract_attachment WHERE contract_id IN (" . str_repeat('?,', count($relatedIds['contract_ids']) - 1) . "?)",
-                'params' => $relatedIds['contract_ids']
-            ],
-            'contract_comment' => [
-                'condition' => !empty($relatedIds['contract_ids']),
-                'query' => "DELETE FROM contract_comment WHERE contract_id IN (" . str_repeat('?,', count($relatedIds['contract_ids']) - 1) . "?)",
-                'params' => $relatedIds['contract_ids']
-            ],
-            'contract_notes' => [
-                'condition' => !empty($relatedIds['contract_ids']),
-                'query' => "DELETE FROM contract_notes WHERE contract_id IN (" . str_repeat('?,', count($relatedIds['contract_ids']) - 1) . "?)",
-                'params' => $relatedIds['contract_ids']
-            ],
-
-            // System tables with user_id
-            'activity_logs' => [
-                'condition' => !empty($relatedIds['user_ids']),
-                'query' => "DELETE FROM activity_logs WHERE user_id IN (" . str_repeat('?,', count($relatedIds['user_ids']) - 1) . "?)",
-                'params' => $relatedIds['user_ids']
-            ],
-
-            // Journal items (through journal relationship)
-            'journal_items' => [
-                'condition' => true,
-                'query' => "DELETE ji FROM journal_items ji
-                           JOIN journal_entries je ON ji.journal = je.id
-                           WHERE je.created_by = ?",
-                'params' => [$companyId]
-            ],
-
-            // Email template langs (through parent_id)
-            'email_template_langs' => [
-                'condition' => true,
-                'query' => "DELETE etl FROM email_template_langs etl
-                           JOIN email_templates et ON etl.parent_id = et.id
-                           WHERE et.created_by = ?",
-                'params' => [$companyId]
-            ],
-        ];
-
-        foreach ($specialTables as $table => $config) {
-            if (!Schema::hasTable($table)) {
-                continue;
-            }
-
-            try {
-                if ($config['condition'] && !empty($config['params'])) {
-                    $deleted = DB::delete($config['query'], $config['params']);
-                    if ($deleted > 0) {
-                        Log::info("Special relationship: Deleted {$deleted} records from {$table}");
-                    }
-                }
-            } catch (\Exception $e) {
-                Log::error("Error in special relationship deletion from {$table}: " . $e->getMessage());
-            }
-        }
-    }
-
-    /**
-     * UserController's approach - dynamic table discovery (UNCHANGED)
+     * UserController's approach - dynamic table discovery
      */
     private static function dynamicCascadeDelete($companyId)
     {
@@ -280,22 +40,11 @@ class CompanyCleanupService
             'migrations', 'password_resets', 'failed_jobs', 'personal_access_tokens',
             'sessions', 'permissions', 'plans', 'coupons', 'admin_payment_settings',
             'orders', 'order_products', 'plan_requests', 'subscriptions', 'user_plans',
-            'order_coupons', 'user_coupons', 'transaction_orders', 'join_us' // Added join_us as you marked "don't delete"
+            'order_coupons', 'user_coupons', 'transaction_orders'
         ];
 
-        // Skip tables we handle in special relationships
-        $speciallyHandledTables = [
-            'deal_emails', 'deal_files', 'deal_tasks', 'lead_calls', 'lead_emails',
-            'lead_files', 'lead_activity_logs', 'invoice_products', 'invoice_payments',
-            'bill_products', 'bill_accounts', 'bill_payments', 'contract_attachment',
-            'contract_comment', 'contract_notes', 'activity_logs', 'journal_items',
-            'email_template_langs'
-        ];
-
-        $excludedTables = array_merge($excludedTables, $speciallyHandledTables);
-
-        // Certificate and letter tables - these are HUGE and need cleanup
         $specialTables = [
+            // Certificate and letter tables - these are HUGE and need cleanup
             'joining_letters' => [
                 'query' => "DELETE FROM joining_letters WHERE created_by = ?",
                 'params' => [$companyId]
@@ -312,9 +61,165 @@ class CompanyCleanupService
                 'query' => "DELETE FROM noc_certificates WHERE created_by = ?",
                 'params' => [$companyId]
             ],
+            // Template language tables
+            'email_template_langs' => [
+                'query' => "DELETE etl FROM email_template_langs etl
+                           JOIN email_templates et ON etl.parent_id = et.id
+                           WHERE et.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'notification_template_langs' => [
+                'query' => "DELETE FROM notification_template_langs
+                            WHERE created_by = ?",
+                'params' => [$companyId]
+            ],
+
+            // Other relationship tables
+            'journal_items' => [
+                'query' => "DELETE ji FROM journal_items ji
+                           JOIN journal_entries je ON ji.journal = je.id
+                           WHERE je.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'user_leads' => [
+                'query' => "DELETE ul FROM user_leads ul
+                           JOIN leads l ON ul.lead_id = l.id
+                           WHERE l.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'user_deals' => [
+                'query' => "DELETE ud FROM user_deals ud
+                           JOIN deals d ON ud.deal_id = d.id
+                           WHERE d.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'project_users' => [
+                'query' => "DELETE pu FROM project_users pu
+                           JOIN projects p ON pu.project_id = p.id
+                           WHERE p.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'project_files' => [
+                'query' => "DELETE pf FROM project_files pf
+                           JOIN projects p ON pf.project_id = p.id
+                           WHERE p.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'project_comments' => [
+                'query' => "DELETE pc FROM project_comments pc
+                           JOIN projects p ON pc.project_id = p.id
+                           WHERE p.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'task_files' => [
+                'query' => "DELETE tf FROM task_files tf
+                            JOIN project_tasks pt ON tf.task_id = pt.id
+                            WHERE pt.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'task_comments' => [
+                'query' => "DELETE tc FROM task_comments tc
+                            JOIN project_tasks pt ON tc.task_id = pt.id
+                            WHERE pt.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'task_checklists' => [
+                'query' => "DELETE tcl FROM task_checklists tcl
+                            JOIN project_tasks pt ON tcl.task_id = pt.id
+                            WHERE pt.created_by = ?",
+                'params' => [$companyId]
+            ],
+
+            'lead_calls' => [
+                'query' => "DELETE lc FROM lead_calls lc
+                           JOIN leads l ON lc.lead_id = l.id
+                           WHERE l.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'lead_emails' => [
+                'query' => "DELETE le FROM lead_emails le
+                           JOIN leads l ON le.lead_id = l.id
+                           WHERE l.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'lead_files' => [
+                'query' => "DELETE lf FROM lead_files lf
+                           JOIN leads l ON lf.lead_id = l.id
+                           WHERE l.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'lead_discussions' => [
+                'query' => "DELETE ld FROM lead_discussions ld
+                           JOIN leads l ON ld.lead_id = l.id
+                           WHERE l.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'deal_calls' => [
+                'query' => "DELETE dc FROM deal_calls dc
+                           JOIN deals d ON dc.deal_id = d.id
+                           WHERE d.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'deal_emails' => [
+                'query' => "DELETE de FROM deal_emails de
+                           JOIN deals d ON de.deal_id = d.id
+                           WHERE d.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'deal_files' => [
+                'query' => "DELETE df FROM deal_files df
+                           JOIN deals d ON df.deal_id = d.id
+                           WHERE d.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'deal_tasks' => [
+                'query' => "DELETE dt FROM deal_tasks dt
+                           JOIN deals d ON dt.deal_id = d.id
+                           WHERE d.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'contract_attachment' => [
+                'query' => "DELETE ca FROM contract_attachment ca
+                           JOIN contracts c ON ca.contract_id = c.id
+                           WHERE c.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'contract_comment' => [
+                'query' => "DELETE cc FROM contract_comment cc
+                           JOIN contracts c ON cc.contract_id = c.id
+                           WHERE c.created_by = ?",
+                'params' => [$companyId]
+            ],
+            'contract_notes' => [
+                'query' => "DELETE cn FROM contract_notes cn
+                           JOIN contracts c ON cn.contract_id = c.id
+                           WHERE c.created_by = ?",
+                'params' => [$companyId]
+            ],
+           [
+               'form_field_responses' => [
+                   'query' => "DELETE ffr FROM form_field_responses ffr
+                              JOIN form_fields ff ON ffr.form_id = ff.id
+                              WHERE ff.created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_field_responses for company_id = $companyId"
+               ],
+               'form_responses' => [
+                   'query' => "DELETE fr FROM form_responses fr
+                              JOIN form_fields ff ON fr.form_id = ff.id
+                              WHERE ff.created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_responses for company_id = $companyId"
+               ],
+               'form_fields' => [
+                   'query' => "DELETE FROM form_fields WHERE created_by = ?",
+                   'params' => [$companyId],
+                   'log' => "Deleted %d rows from form_fields for company_id = $companyId"
+               ],
+           ]
         ];
 
-        // Alternative company identification columns
+        // Alternative company identification columns - no need to check user types since we have the specific companyId
         $companyIdColumns = [
             'created_by' => $companyId,
             'company_id' => $companyId,
@@ -336,6 +241,8 @@ class CompanyCleanupService
         }
 
         // Dynamic deletion for remaining tables
+        $companyIdColumns = ['created_by' => $companyId, 'company_id' => $companyId, 'user_id' => $companyId];
+
         foreach ($allTables as $table) {
             if (in_array($table, $excludedTables) || array_key_exists($table, $specialTables)) {
                 continue;
@@ -368,30 +275,22 @@ class CompanyCleanupService
     }
 
     /**
-     * CleanupUnverifiedCompanies' approach - detailed order with relationships (MODIFIED)
+     * CleanupUnverifiedCompanies' approach - detailed order with relationships
      */
-    private static function detailedCascadeDelete($companyId, $relatedIds)
+    private static function detailedCascadeDelete($companyId)
     {
         Log::info("Running detailed cascade deletion...");
 
-        $employeeIds = $relatedIds['employee_ids'];
-        $userIds = $relatedIds['user_ids'];
+        // Get employee and user IDs for relationship handling
+        $employeeIds = DB::table('employees')->where('created_by', $companyId)->pluck('id')->toArray();
+        $userIds = DB::table('users')->where('created_by', $companyId)->pluck('id')->toArray();
 
         Log::info("Found " . count($employeeIds) . " employees and " . count($userIds) . " users for relationship cleanup");
 
         $deletionOrder = self::getDeletionOrder();
 
-        // Skip tables we've already handled in special relationships
-        $skipTables = [
-            'deal_emails', 'deal_files', 'deal_tasks', 'lead_calls', 'lead_emails',
-            'lead_files', 'lead_activity_logs', 'invoice_products', 'invoice_payments',
-            'bill_products', 'bill_accounts', 'bill_payments', 'contract_attachment',
-            'contract_comment', 'contract_notes', 'activity_logs', 'journal_items',
-            'email_template_langs'
-        ];
-
         foreach ($deletionOrder as $table => $config) {
-            if (!Schema::hasTable($table) || in_array($table, $skipTables)) continue;
+            if (!Schema::hasTable($table)) continue;
 
             try {
                 $deleted = self::deleteFromTable($table, $config, $companyId, $employeeIds, $userIds);
@@ -405,7 +304,7 @@ class CompanyCleanupService
     }
 
     /**
-     * Get all database tables
+     * Get all database tables - NOW PUBLIC
      */
     public static function getAllDatabaseTables()
     {
@@ -425,7 +324,7 @@ class CompanyCleanupService
     }
 
     /**
-     * Get deletion order from CleanupUnverifiedCompanies (UNCHANGED)
+     * Get deletion order from CleanupUnverifiedCompanies
      */
     public static function getDeletionOrder()
     {
@@ -465,6 +364,18 @@ class CompanyCleanupService
             'project_invoices' => ['created_by' => 'direct'],
             'project_users' => ['project_id' => 'projects'],
 
+            // Deal/Lead activities (delete before deals/leads)
+            'deal_calls' => ['created_by' => 'direct'],
+            'deal_discussions' => ['created_by' => 'direct'],
+            'deal_emails' => ['created_by' => 'direct'],
+            'deal_files' => ['created_by' => 'direct'],
+            'deal_tasks' => ['created_by' => 'direct'],
+            'lead_calls' => ['created_by' => 'direct'],
+            'lead_discussions' => ['created_by' => 'direct'],
+            'lead_emails' => ['created_by' => 'direct'],
+            'lead_files' => ['created_by' => 'direct'],
+            'lead_activity_logs' => ['created_by' => 'direct'],
+
             // User relationships (delete before deals/leads)
             'user_deals' => ['user_id' => 'users'],
             'user_leads' => ['user_id' => 'users'],
@@ -475,7 +386,13 @@ class CompanyCleanupService
 
             // Financial records
             'invoices' => ['created_by' => 'direct'],
+            'invoice_products' => ['created_by' => 'direct'],
+            'invoice_payments' => ['created_by' => 'direct'],
+            'invoice_bank_transfers' => ['created_by' => 'direct'],
             'bills' => ['created_by' => 'direct'],
+            'bill_products' => ['created_by' => 'direct'],
+            'bill_accounts' => ['created_by' => 'direct'],
+            'bill_payments' => ['created_by' => 'direct'],
             'revenues' => ['created_by' => 'direct'],
             'expenses' => ['created_by' => 'direct'],
             'payments' => ['created_by' => 'direct'],
@@ -486,6 +403,7 @@ class CompanyCleanupService
             'add_transaction_lines' => ['created_by' => 'direct'],
             'transaction_orders' => ['created_by' => 'direct'],
             'journal_entries' => ['created_by' => 'direct'],
+            'journal_items' => ['created_by' => 'direct'],
             'budgets' => ['created_by' => 'direct'],
             'credit_notes' => ['created_by' => 'direct'],
             'debit_notes' => ['created_by' => 'direct'],
@@ -555,6 +473,9 @@ class CompanyCleanupService
             'venders' => ['created_by' => 'direct'],
             'assets' => ['created_by' => 'direct'],
             'contracts' => ['created_by' => 'direct'],
+            'contract_attachment' => ['created_by' => 'direct'],
+            'contract_comment' => ['created_by' => 'direct'],
+            'contract_notes' => ['created_by' => 'direct'],
 
             // Company settings and configurations
             'announcements' => ['created_by' => 'direct'],
@@ -565,12 +486,14 @@ class CompanyCleanupService
             'complaints' => ['created_by' => 'direct'],
             'ducument_uploads' => ['created_by' => 'direct'],
             'documents' => ['created_by' => 'direct'],
+            'join_us' => ['created_by' => 'direct'],
             'jobs' => ['created_by' => 'direct'],
             'custom_questions' => ['created_by' => 'direct'],
             'custom_fields' => ['created_by' => 'direct'],
             'custom_field_values' => ['created_by' => 'direct'],
 
             // System data
+            'activity_logs' => ['created_by' => 'direct'],
             'log_activities' => ['created_by' => 'direct'],
             'login_details' => ['user_id' => 'users'],
             'users_verify' => ['user_id' => 'users'],
@@ -582,6 +505,7 @@ class CompanyCleanupService
             'project_email_templates' => ['created_by' => 'direct'],
             'notification_templates' => ['created_by' => 'direct'],
             'notification_template_langs' => ['created_by' => 'direct'],
+            'email_template_langs' => ['created_by' => 'direct'],
             'templates' => ['created_by' => 'direct'],
             'settings' => ['created_by' => 'direct'],
             'landing_page_settings' => ['created_by' => 'direct'],
@@ -643,7 +567,7 @@ class CompanyCleanupService
     }
 
     /**
-     * Delete from table with relationship handling
+     * Delete from table with relationship handling - NOW PUBLIC
      */
     public static function deleteFromTable($table, $config, $companyId, $employeeIds, $userIds)
     {
@@ -668,7 +592,7 @@ class CompanyCleanupService
     }
 
     /**
-     * Get table record count
+     * Get table record count - NEWLY ADDED PUBLIC METHOD
      */
     public static function getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds)
     {
@@ -745,7 +669,8 @@ class CompanyCleanupService
         $excludedTables = [
             'password_resets', 'failed_jobs', 'admin_payment_settings',
             'orders', 'plan_requests', 'subscriptions', 'order_coupons',
-            'user_coupons', 'transaction_orders', 'join_us'
+            'user_coupons', 'transaction_orders'
+
         ];
 
         $companyIdColumns = ['created_by', 'company_id', 'user_id'];
@@ -777,75 +702,5 @@ class CompanyCleanupService
         }
 
         return $preview;
-    }
-
-    /**
-     * Check if specific tables exist in database
-     */
-    public static function checkTablesExist($tableNames)
-    {
-        $results = [];
-
-        foreach ($tableNames as $table) {
-            $results[$table] = [
-                'exists' => Schema::hasTable($table),
-                'columns' => []
-            ];
-
-            if ($results[$table]['exists']) {
-                try {
-                    $results[$table]['columns'] = Schema::getColumnListing($table);
-                } catch (\Exception $e) {
-                    $results[$table]['error'] = $e->getMessage();
-                }
-            }
-        }
-
-        return $results;
-    }
-
-    /**
-     * Get company data summary before deletion
-     */
-    public static function getCompanyDataSummary($companyId)
-    {
-        $relatedIds = self::getRelatedIds($companyId);
-        $summary = [
-            'company_id' => $companyId,
-            'related_entities' => [
-                'employees' => count($relatedIds['employee_ids']),
-                'users' => count($relatedIds['user_ids']),
-                'deals' => count($relatedIds['deal_ids']),
-                'leads' => count($relatedIds['lead_ids']),
-                'invoices' => count($relatedIds['invoice_ids']),
-                'bills' => count($relatedIds['bill_ids']),
-                'contracts' => count($relatedIds['contract_ids']),
-                'projects' => count($relatedIds['project_ids']),
-                'products' => count($relatedIds['product_ids']),
-                'chart_accounts' => count($relatedIds['chart_account_ids']),
-            ],
-            'estimated_records_to_delete' => 0
-        ];
-
-        // Get estimated deletion count from all tables
-        $deletionOrder = self::getDeletionOrder();
-        $employeeIds = $relatedIds['employee_ids'];
-        $userIds = $relatedIds['user_ids'];
-
-        foreach ($deletionOrder as $table => $config) {
-            if (Schema::hasTable($table)) {
-                try {
-                    $count = self::getTableRecordCount($table, $config, $companyId, $employeeIds, $userIds);
-                    if ($count > 0) {
-                        $summary['tables_with_data'][$table] = $count;
-                        $summary['estimated_records_to_delete'] += $count;
-                    }
-                } catch (\Exception $e) {
-                    // Silent skip for problematic tables
-                }
-            }
-        }
-
-        return $summary;
     }
 }
