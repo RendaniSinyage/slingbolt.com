@@ -64,8 +64,8 @@ class CompanyClonerService
 
             // Project Activities (not master data)
             'project_files', 'project_comments', 'project_notes', 'project_users',
-            'tasks', 'task_comments', 'task_files', 'task_checklists',
-            'milestones', 'timesheet', 'trackers', 'time_trackers',
+            'task_comments', 'task_files', 'task_checklists',
+            'milestones', 'timesheets', 'time_trackers',
             'projects', 'project_tasks', 'project_expenses', 'project_invoices',
 
             // HR Activities (not master data)
@@ -664,13 +664,29 @@ public function debugLanguageCloning($tableName = 'email_template_langs')
                 ],
 
                 // Project relationships
-                'projects' => [
-                    'branch_id' => 'branches',
-                    'department_id' => 'departments'
-                ],
-                'tasks' => [
-                    'project_id' => 'projects'
-                ],
+                 'projects' => [
+                        'client_id' => 'customers'
+                    ],
+                    'project_tasks' => [  // FIXED: was 'tasks'
+                        'project_id' => 'projects',
+                        'milestone_id' => 'milestones',
+                        'stage_id' => 'task_stages'
+                    ],
+                    'project_users' => [
+                        'project_id' => 'projects'
+                        // user_id handled separately
+                    ],
+                    'milestones' => [
+                        'project_id' => 'projects'
+                    ],
+                    'project_expenses' => [
+                        'project_id' => 'projects',
+                        'task_id' => 'project_tasks'
+                    ],
+                    'project_invoices' => [
+                        'project_id' => 'projects',
+                        'client_id' => 'customers'
+                    ],
 
                 // Award relationships
                 'awards' => [
