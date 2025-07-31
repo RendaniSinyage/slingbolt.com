@@ -18,11 +18,11 @@ class TemplateCompanyConfig
 
         return [
                     2 => 'ZAR',  // South African template (your main/existing one)
-                    3 => 'EUR',  // European template
-                    4 => 'GBP',  // UK template
-                    5 => 'USD',  // US template
-                    6 => 'CAD',  // Canadian template
-                    7 => 'AUD',  // Australian template
+                   // 3 => 'EUR',  // European template
+                  //  4 => 'GBP',  // UK template
+                   // 5 => 'USD',  // US template
+                  //  6 => 'CAD',  // Canadian template
+                   // 7 => 'AUD',  // Australian template
 ];
 
         // Alternative approach - dynamic discovery:
