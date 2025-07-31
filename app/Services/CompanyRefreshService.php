@@ -1334,17 +1334,14 @@ class CompanyRefreshService
     {
         Log::info("Step 7: Deleting old company {$this->oldCompanyId}");
 
-        // FIRST: Transfer ownership of payment/subscription records to new company
+        // FIRST: Transfer ownership BEFORE deletion
         $this->transferPaymentAndSubscriptionRecords();
 
+        // THEN: Delete the company
         $oldCompany = User::find($this->oldCompanyId);
         if ($oldCompany) {
-            // Use existing cascade deletion logic from UserController
             CompanyCleanupService::cascadeDeleteCompanyData($this->oldCompanyId);
-                    $oldCompany->delete();
-
-
-            Log::info("Successfully deleted old company {$this->oldCompanyId}");
+            $oldCompany->delete();
         }
     }
 
