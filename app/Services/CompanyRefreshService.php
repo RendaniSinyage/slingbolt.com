@@ -1120,13 +1120,116 @@ class CompanyRefreshService
     }
 
     /**
-     * Copy data from a specific table - Enhanced with debugging
-     */
-    private function copyTableData($tableName)
-    {
-        // Add debug logging for transaction line tables specifically
-        if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
-            Log::info("=== DEBUG: Processing critical table {$tableName} ===");
+         * Copy data from a specific table - Enhanced with debugging
+         */
+        private function copyTableData($tableName)
+        {
+            // Add debug logging for transaction line tables specifically
+            if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
+                Log::info("=== DEBUG: Processing critical table {$tableName} ===");
+            }
+
+            if (!Schema::hasTable($tableName)) {
+                Log::warning("Table {$tableName} does not exist, skipping");
+                return;
+            }
+
+            if (!Schema::hasColumn($tableName, 'created_by')) {
+                Log::warning("Table {$tableName} missing created_by column, skipping");
+                return;
+            }
+
+            // Add specific debug for transaction tables
+            if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
+                $totalCount = DB::table($tableName)->count();
+                $companyCount = DB::table($tableName)->where('created_by', $this->oldCompanyId)->count();
+                Log::info("DEBUG {$tableName}: Total records: {$totalCount}, Company {$this->oldCompanyId} records: {$companyCount}");
+
+                // Show sample records for debugging
+                $sampleRecords = DB::table($tableName)->where('created_by', $this->oldCompanyId)->limit(3)->get();
+                Log::info("DEBUG {$tableName} sample records: " . json_encode($sampleRecords));
+            }
+
+            $records = DB::table($tableName)
+                ->where('created_by', $this->oldCompanyId)
+                ->get();
+
+            if ($records->isEmpty()) {
+                Log::info("No records found in {$tableName} for company {$this->oldCompanyId}");
+                return;
+            }
+
+            Log::info("Copying {$records->count()} records from {$tableName}");
+
+            $successCount = 0;
+            $errorCount = 0;
+
+            foreach ($records as $record) {
+                $recordArray = (array) $record;
+
+                // SPECIAL HANDLING FOR USERS TABLE
+                if ($tableName === 'users') {
+                    // Skip company type users (they're handled in cloneTemplateToNewCompanyWithPrefix)
+                    if (isset($recordArray['type']) && $recordArray['type'] === 'company') {
+                        Log::info("Skipping company type user in copyTableData");
+                        continue;
+                    }
+
+                    // Skip non-company users - they should be handled by copyUsersToNewCompanyWithPrefix method
+                    Log::info("Skipping user in copyTableData - will be handled by copyUsersToNewCompanyWithPrefix");
+                    continue;
+                }
+
+                $oldId = $recordArray['id'];
+                unset($recordArray['id']);
+                $recordArray['created_by'] = $this->newCompanyId;
+                $recordArray['updated_at'] = now();
+
+                // Handle special fields and relationship mappings
+                $recordArray = $this->updateCompanyReferences($recordArray, $tableName);
+
+                // Special handling for transaction line tables with account_id mapping
+                if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
+                    $recordArray = $this->updateTransactionLineReferences($recordArray, $tableName);
+                }
+
+                try {
+                    $newId = DB::table($tableName)->insertGetId($recordArray);
+
+                    // Store ID mapping for relationship fixing later
+                    $this->idMappings[$tableName][$oldId] = $newId;
+
+                    $successCount++;
+
+                    // Debug logging for critical tables
+                    if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
+                        Log::info("DEBUG {$tableName}: Successfully copied record {$oldId} -> {$newId}");
+                    }
+
+                } catch (\Exception $e) {
+                    $errorCount++;
+                    Log::error("Error copying {$tableName} record ID {$oldId}: " . $e->getMessage());
+
+                    // For critical tables, log more details
+                    if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
+                        Log::error("DEBUG {$tableName} failed record data: " . json_encode($recordArray));
+                        Log::error("DEBUG {$tableName} error trace: " . $e->getTraceAsString());
+                    }
+                }
+            }
+
+            // Log final results
+            Log::info("Table {$tableName} copy completed: {$successCount} success, {$errorCount} errors");
+
+            // Update transfer log
+            if ($successCount > 0) {
+                $this->transferLog[] = [
+                    'table' => $tableName,
+                    'action' => 'copied',
+                    'count' => $successCount,
+                    'errors' => $errorCount
+                ];
+            }
         }
 
         /**
@@ -1167,6 +1270,13 @@ class CompanyRefreshService
 
                         if ($newAccount) {
                             $recordArray['account_id'] = $newAccount->id;
+
+                            // Update our mapping for future use
+                            if (!isset($this->idMappings['chart_of_accounts'])) {
+                                $this->idMappings['chart_of_accounts'] = [];
+                            }
+                            $this->idMappings['chart_of_accounts'][$oldAccountId] = $newAccount->id;
+
                             Log::info("DEBUG {$tableName}: Found account match for {$oldAccountId} -> {$newAccount->id} (code: {$oldAccount->code})");
                         } else {
                             Log::warning("DEBUG {$tableName}: No account mapping found for account_id {$oldAccountId} (code: {$oldAccount->code}, name: {$oldAccount->name})");
@@ -1180,109 +1290,6 @@ class CompanyRefreshService
 
             return $recordArray;
         }
-
-        if (!Schema::hasTable($tableName)) {
-            Log::warning("Table {$tableName} does not exist, skipping");
-            return;
-        }
-
-        if (!Schema::hasColumn($tableName, 'created_by')) {
-            Log::warning("Table {$tableName} missing created_by column, skipping");
-            return;
-        }
-
-        // Add specific debug for transaction tables
-        if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
-            $totalCount = DB::table($tableName)->count();
-            $companyCount = DB::table($tableName)->where('created_by', $this->oldCompanyId)->count();
-            Log::info("DEBUG {$tableName}: Total records: {$totalCount}, Company {$this->oldCompanyId} records: {$companyCount}");
-
-            // Show sample records for debugging
-            $sampleRecords = DB::table($tableName)->where('created_by', $this->oldCompanyId)->limit(3)->get();
-            Log::info("DEBUG {$tableName} sample records: " . json_encode($sampleRecords));
-        }
-
-        $records = DB::table($tableName)
-            ->where('created_by', $this->oldCompanyId)
-            ->get();
-
-        if ($records->isEmpty()) {
-            Log::info("No records found in {$tableName} for company {$this->oldCompanyId}");
-            return;
-        }
-
-        Log::info("Copying {$records->count()} records from {$tableName}");
-
-        $successCount = 0;
-        $errorCount = 0;
-
-        foreach ($records as $record) {
-            $recordArray = (array) $record;
-
-            // SPECIAL HANDLING FOR USERS TABLE
-            if ($tableName === 'users') {
-                // Skip company type users (they're handled in cloneTemplateToNewCompanyWithPrefix)
-                if (isset($recordArray['type']) && $recordArray['type'] === 'company') {
-                    Log::info("Skipping company type user in copyTableData");
-                    continue;
-                }
-
-                // Skip non-company users - they should be handled by copyUsersToNewCompanyWithPrefix method
-                Log::info("Skipping user in copyTableData - will be handled by copyUsersToNewCompanyWithPrefix");
-                continue;
-            }
-
-            $oldId = $recordArray['id'];
-            unset($recordArray['id']);
-            $recordArray['created_by'] = $this->newCompanyId;
-            $recordArray['updated_at'] = now();
-
-            // Handle special fields and relationship mappings
-            $recordArray = $this->updateCompanyReferences($recordArray, $tableName);
-
-            // Special handling for transaction line tables with account_id mapping
-            if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
-                $recordArray = $this->updateTransactionLineReferences($recordArray, $tableName);
-            }
-
-            try {
-                $newId = DB::table($tableName)->insertGetId($recordArray);
-
-                // Store ID mapping for relationship fixing later
-                $this->idMappings[$tableName][$oldId] = $newId;
-
-                $successCount++;
-
-                // Debug logging for critical tables
-                if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
-                    Log::info("DEBUG {$tableName}: Successfully copied record {$oldId} -> {$newId}");
-                }
-
-            } catch (\Exception $e) {
-                $errorCount++;
-                Log::error("Error copying {$tableName} record ID {$oldId}: " . $e->getMessage());
-
-                // For critical tables, log more details
-                if (in_array($tableName, ['add_transaction_lines', 'transaction_lines'])) {
-                    Log::error("DEBUG {$tableName} failed record data: " . json_encode($recordArray));
-                    Log::error("DEBUG {$tableName} error trace: " . $e->getTraceAsString());
-                }
-            }
-        }
-
-        // Log final results
-        Log::info("Table {$tableName} copy completed: {$successCount} success, {$errorCount} errors");
-
-        // Update transfer log
-        if ($successCount > 0) {
-            $this->transferLog[] = [
-                'table' => $tableName,
-                'action' => 'copied',
-                'count' => $successCount,
-                'errors' => $errorCount
-            ];
-        }
-    }
 
     /**
      * Update company references and relationship mappings - Enhanced version
