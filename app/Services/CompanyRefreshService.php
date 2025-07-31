@@ -8,19 +8,18 @@ use Illuminate\Support\Facades\Log;
 use App\Models\User;
 use App\Services\CompanyClonerService;
 use App\Services\TemplateCompanyConfig;
-use App\Services\CompanyCleanupService;
 
 class CompanyRefreshService
 {
-    private $oldCompanyId;
-    private $newCompanyId;
+    private $companyId;
     private $templateCompanyId;
-    private $originalCompanyData;
+    private $originalBackup = [];
     private $transferLog = [];
+    private $isDryRun = false;
 
     /**
-     * Master data tables that should be preserved/merged with template
-     * These contain user customizations that should not be lost
+     * Master data tables that should be merged with template
+     * These contain user customizations that should be preserved vs template defaults
      */
     private $masterDataTables = [
         // Financial Master Data
@@ -29,18 +28,17 @@ class CompanyRefreshService
         'units' => ['name'],
         'warehouses' => ['name'],
         'pipelines' => ['name'],
-        'stages' => ['name', 'pipeline_id', 'order'],
+        'stages' => ['name', 'pipeline_id'],
         'taxes' => ['name', 'rate'],
         'chart_of_account_parents' => ['name', 'account'],
-        'bank_accounts' => ['account_number', 'holder_name', 'bank_name', 'contact_number'],
+        'bank_accounts' => ['account_number', 'holder_name', 'bank_name'],
         'roles' => ['name'], // Users can customize role names
-        'settings' => ['value'], // ALL settings including integrations
-        'company_payment_settings' => ['value'], // Payment gateway configurations
 
         // Email & Communication Templates
-        'email_templates' => ['subject', 'content', 'is_enabled', 'lang'],
-        'notification_templates' => ['subject', 'content', 'is_enabled', 'lang'],
-        'user_email_templates' => ['template_id', 'is_enabled'], // User-template assignments
+        'email_templates' => ['subject', 'content', 'lang'],
+        'notification_templates' => ['subject', 'content', 'lang'],
+        'email_template_langs' => ['template_id', 'lang', 'subject'],
+        'notification_template_langs' => ['template_id', 'lang', 'subject'],
 
         // Certificate Templates (CRITICAL for revenue)
         'joining_letters' => ['content', 'is_enabled'],
@@ -48,120 +46,116 @@ class CompanyRefreshService
         'generate_offer_letters' => ['content', 'is_enabled'],
         'noc_certificates' => ['content', 'is_enabled'],
 
-        // Settings & Configuration
-        'landing_page_settings' => ['value'], // Usually stored as key-value pairs
-        'referral_settings' => ['value'], // Usually stored as key-value pairs
+        // Configuration that should be merged
+        'company_payment_settings' => ['value'], // Payment gateway configurations
+        'landing_page_settings' => ['value'], // Brand settings
+        'referral_settings' => ['value'], // Referral configurations
     ];
 
     /**
-     * User data tables that should be completely preserved
-     * These contain all the actual business data
+     * Settings that should be preserved from user (never overwritten by template)
      */
-    private $userDataTables = [
-        // Core Business Data
-        'customers', 'venders', 'product_services',
-        'warehouse_products', 'proposals', 'invoices', 'bills',
-        'revenues', 'payments', 'bill_payments', 'credit_notes',
-        'debit_notes', 'pos', 'purchase_orders',
+    private $preservedSettings = [
+        // Company Identity
+        'company_name', 'company_email', 'company_address',
+        'company_city', 'company_state', 'company_zipcode',
+        'company_country', 'company_telephone',
+        'registration_number', 'vat_number',
+        'company_logo', 'company_favicon',
 
-        // HR Data
-        'employees', 'departments', 'designations', 'branches',
-        'employee_documents', 'leaves', 'attendances',
-        'payslips', 'allowances', 'commissions', 'loans',
-        'saturdays', 'holidays', 'meeting',
-        'goals', 'trainings', 'awards', 'transfers',
-        'resignations', 'travels', 'promotions',
-        'complaints', 'warnings', 'terminations',
-        'job_on_boards', 'job_applications', 'job_interviews',
-        'performance_types',
+        // Payment Gateway Settings
+        'stripe_key', 'stripe_secret', 'paypal_mode',
+        'paypal_client_id', 'paypal_client_secret',
+        'razorpay_public_key', 'razorpay_secret_key',
+        'paystack_public_key', 'paystack_secret_key',
+        'flutterwave_public_key', 'flutterwave_secret_key',
+        'payfast_merchant_id', 'payfast_merchant_key',
+        'mercado_app_id', 'mercado_secret_key',
 
-        // Project & Task Data
-        'projects', 'project_tasks', 'project_files',
-        'timesheet', 'contracts', 'contract_attachment',
-        'contract_comment', 'contract_notes',
+        // API Keys
+        'chat_gpt_key', 'chat_gpt_model',
 
-        // Form Data
-        'forms', 'form_builders', 'form_fields',
-        'form_responses', 'form_field_responses',
+        // User Preferences
+        'timezone', 'default_language',
+    ];
 
-        // Document Management
-        'ducument_uploads', 'document_types',
+    /**
+     * Settings that should come from template (always overwritten)
+     */
+    private $templateSettings = [
+        // System Configuration
+        'site_currency', 'site_currency_symbol', 'site_currency_symbol_position',
+        'site_currency_symbol_space', 'site_currency_symbol_name',
+        'decimal_number_format', 'site_decimal_separator', 'site_thousands_separator',
+        'site_date_format', 'site_time_format',
 
-        // Communication & Activities
-        'activity_logs', 'notifications',
+        // Default Templates
+        'invoice_template', 'proposal_template', 'bill_template',
+        'invoice_qr_display', 'qr_display',
+        'invoice_color', 'proposal_color', 'bill_color',
 
-        // User Management
-        'users' => ['skip_company_users'], // Will handle separately
-        'model_has_permissions', 'model_has_roles', 'role_has_permissions',
+        // System Features
+        'tracking_interval', 'application_url',
+        'storage_setting', 'mail_driver',
+
+        // Theme (can be overridden but template provides good defaults)
+        'color', 'color_flag', 'layout_settings',
+        'cust_theme_bg', 'cust_darklayout', 'SITE_RTL',
     ];
 
     public function __construct()
     {
-        // No hardcoded template - will be determined by currency matching
+        // Constructor intentionally minimal
     }
 
-    /**
-     * MAIN ENTRY POINT - Uses unified approach
-     */
-    public function refreshCompany($oldCompanyId, $options = [])
-    {
-        $this->oldCompanyId = $oldCompanyId;
-        $isDryRun = $options['dry_run'] ?? false;
-
-        // Store original company data for later restoration (actual refresh needs this)
-        $this->originalCompanyData = DB::table('users')->where('id', $oldCompanyId)->first();
-        if (!$this->originalCompanyData) {
-            throw new \Exception("Company {$oldCompanyId} not found");
-        }
-
-        if ($isDryRun) {
-            Log::info("Starting DRY RUN for company {$oldCompanyId}");
-            return $this->performDryRun();
-        } else {
-            Log::info("Starting ACTUAL REFRESH for company {$oldCompanyId}");
-            return $this->performActualRefresh();
-        }
-    }
+    // =============================================================================
+    // MAIN ENTRY POINTS
+    // =============================================================================
 
     /**
-     * Perform dry run - creates prefixed company, preserves original
+     * Main entry point - refreshes company in place
      */
-    private function performDryRun()
+    public function refreshCompany($companyId, $options = [])
     {
+        $this->companyId = $companyId;
+        $this->isDryRun = $options['dry_run'] ?? false;
+
+        // Validate company exists
+        $company = User::where('type', 'company')->where('id', $companyId)->first();
+        if (!$company) {
+            throw new \Exception("Company {$companyId} not found");
+        }
+
+        Log::info($this->isDryRun ? "Starting DRY RUN for company {$companyId}" : "Starting ACTUAL REFRESH for company {$companyId}");
+
         try {
             return DB::transaction(function () {
-                Log::info("DRY RUN: Creating new company with prefixed data...");
-
-                // Step 1: Determine template company based on currency
+                // Step 1: Determine template company
                 $this->templateCompanyId = $this->determineTemplateCompany();
 
-                // Step 2: Clone template to new company with PREFIXED data
-                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix(true); // true = dry run
+                // Step 2: Backup current data (for dry run comparison and rollback)
+                $this->backupCurrentData();
 
-                // Step 3: Process all master data
-                $this->processMasterData();
+                // Step 3: Merge template master data with existing
+                $this->mergeTemplateMasterData();
 
-                // Step 4: Handle special settings
-                $this->processSettings();
+                // Step 4: Update settings strategically
+                $this->mergeTemplateSettings();
 
-                // Step 5: Copy all user-generated data
-                $this->copyUserGeneratedData();
+                // Step 5: Add missing template configurations
+                $this->addMissingTemplateConfigurations();
 
-                // Step 6: Copy users to new company with PREFIXED emails
-                $this->copyUsersToNewCompanyWithPrefix(true); // true = dry run
+                Log::info($this->isDryRun ? "DRY RUN completed successfully" : "ACTUAL REFRESH completed successfully");
 
-                Log::info("DRY RUN: Old company {$this->oldCompanyId} preserved, new company has prefixed data");
-
-                return $this->generateSuccessResponse(true); // true = dry run
+                return $this->generateSuccessResponse();
             });
 
         } catch (\Exception $e) {
-            Log::error("Dry run failed: " . $e->getMessage());
+            Log::error("Company refresh failed: " . $e->getMessage());
             Log::error("Stack trace: " . $e->getTraceAsString());
 
-            // Cleanup new company if something went wrong
-            if ($this->newCompanyId) {
-                $this->cleanupFailedRefresh();
+            if (!$this->isDryRun) {
+                $this->rollbackChanges();
             }
 
             throw $e;
@@ -169,93 +163,720 @@ class CompanyRefreshService
     }
 
     /**
-     * Perform actual refresh - uses dry run logic + finalization
+     * Dry run entry point
      */
-    private function performActualRefresh()
+    public function dryRun($companyId)
     {
-        try {
-            return DB::transaction(function () {
-                Log::info("ACTUAL REFRESH: Step 1 - Performing dry run to create new company safely...");
-
-                // Step 1: Determine template company based on currency
-                $this->templateCompanyId = $this->determineTemplateCompany();
-
-                // Step 2: Clone template to new company with PREFIXED data
-                $this->newCompanyId = $this->cloneTemplateToNewCompanyWithPrefix(false); // false = actual refresh
-
-                // Step 3: Process all master data
-                $this->processMasterData();
-
-                // Step 4: Handle special settings
-                $this->processSettings();
-
-                // Step 5: Copy all user-generated data
-                $this->copyUserGeneratedData();
-
-                // Step 6: Copy users to new company with PREFIXED emails
-                $this->copyUsersToNewCompanyWithPrefix(false); // false = actual refresh
-
-                Log::info("ACTUAL REFRESH: Step 2 - Data migration successful, now finalizing...");
-
-                // Step 7: Delete old company (point of no return)
-                $this->deleteOldCompany();
-
-                // Step 8: Remove prefixes and restore original identity
-                $this->removePrefixesAndFinalize();
-
-                Log::info("ACTUAL REFRESH: Successfully completed");
-
-                return $this->generateSuccessResponse(false); // false = actual refresh
-            });
-
-        } catch (\Exception $e) {
-            Log::error("Actual refresh failed: " . $e->getMessage());
-            Log::error("Stack trace: " . $e->getTraceAsString());
-
-            // Cleanup new company if something went wrong
-            if ($this->newCompanyId) {
-                $this->cleanupFailedRefresh();
-            }
-
-            throw $e;
-        }
+        return $this->refreshCompany($companyId, ['dry_run' => true]);
     }
 
+    // =============================================================================
+    // CORE PROCESSING STEPS
+    // =============================================================================
+
     /**
-     * Step 1: Determine template company based on old company's currency
+     * Step 1: Determine template company based on currency
      */
     private function determineTemplateCompany()
     {
         Log::info("Step 1: Determining template company based on currency");
 
-        $oldCompanyCurrency = $this->getCompanyCurrency($this->oldCompanyId);
+        $companyCurrency = $this->getCompanyCurrency($this->companyId);
 
-        if (!$oldCompanyCurrency) {
-            throw new \Exception("Cannot determine currency for company {$this->oldCompanyId}");
+        if (!$companyCurrency) {
+            throw new \Exception("Cannot determine currency for company {$this->companyId}");
         }
 
-        Log::info("Old company currency: {$oldCompanyCurrency}");
+        Log::info("Company currency: {$companyCurrency}");
 
-        $templateCompanyId = $this->findTemplateCompanyByCurrency($oldCompanyCurrency);
+        $templateCompanyId = TemplateCompanyConfig::findTemplateByCurrency($companyCurrency);
 
         if (!$templateCompanyId) {
-            $available = TemplateCompanyConfig::getAvailableCurrencies();
-            $availableList = implode(', ', array_keys($available));
+            $available = array_keys(TemplateCompanyConfig::getAvailableCurrencies());
+            $availableList = implode(', ', $available);
 
             throw new \Exception(
-                "No template company found for currency: {$oldCompanyCurrency}. " .
+                "No template company found for currency: {$companyCurrency}. " .
                 "Available currencies: {$availableList}. " .
-                "Please create a template company for {$oldCompanyCurrency} first."
+                "Please create a template company for {$companyCurrency} first."
             );
         }
 
-        Log::info("Selected template company {$templateCompanyId} for currency {$oldCompanyCurrency}");
+        Log::info("Selected template company {$templateCompanyId} for currency {$companyCurrency}");
 
         return $templateCompanyId;
     }
 
     /**
-     * Get company's currency from settings
+     * Step 2: Backup current data for comparison/rollback
+     */
+    private function backupCurrentData()
+    {
+        Log::info("Step 2: Backing up current data");
+
+        foreach ($this->masterDataTables as $tableName => $matchFields) {
+            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
+                continue;
+            }
+
+            $userCount = DB::table($tableName)->where('created_by', $companyId)->count();
+            $templateCount = DB::table($tableName)->where('created_by', $templateId)->count();
+
+            if ($userCount > 0 || $templateCount > 0) {
+                $comparison[$tableName] = [
+                    'user_records' => $userCount,
+                    'template_records' => $templateCount,
+                    'difference' => $templateCount - $userCount,
+                    'status' => $userCount === 0 ? 'missing_all' :
+                               ($templateCount > $userCount ? 'missing_some' : 'complete')
+                ];
+            }
+        }
+
+        return [
+            'company_id' => $companyId,
+            'template_id' => $templateId,
+            'currency' => $currency,
+            'table_comparison' => $comparison,
+            'total_template_records' => array_sum(array_column($comparison, 'template_records')),
+            'total_user_records' => array_sum(array_column($comparison, 'user_records'))
+        ];
+    }
+
+    /**
+     * Get detailed breakdown of what will be processed
+     */
+    public function getProcessingBreakdown($companyId)
+    {
+        $currency = $this->getCompanyCurrency($companyId);
+        $templateId = TemplateCompanyConfig::findTemplateByCurrency($currency);
+
+        if (!$templateId) {
+            return ['error' => 'No template found for currency: ' . $currency];
+        }
+
+        $breakdown = [
+            'master_data_merging' => [],
+            'settings_strategy' => [],
+            'missing_configurations' => []
+        ];
+
+        // Master data analysis
+        foreach ($this->masterDataTables as $table => $fields) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'created_by')) {
+                $userCount = DB::table($table)->where('created_by', $companyId)->count();
+                $templateCount = DB::table($table)->where('created_by', $templateId)->count();
+
+                if ($userCount > 0 || $templateCount > 0) {
+                    $breakdown['master_data_merging'][$table] = [
+                        'user_records' => $userCount,
+                        'template_records' => $templateCount,
+                        'match_fields' => $fields,
+                        'strategy' => $userCount > 0 ? 'merge_and_resolve_conflicts' : 'copy_all_from_template'
+                    ];
+                }
+            }
+        }
+
+        // Settings analysis
+        $userSettings = DB::table('settings')->where('created_by', $companyId)->pluck('name')->toArray();
+        $templateSettings = DB::table('settings')->where('created_by', $templateId)->pluck('name')->toArray();
+
+        $breakdown['settings_strategy'] = [
+            'preserved_settings' => array_intersect($userSettings, $this->preservedSettings),
+            'template_overrides' => array_intersect($templateSettings, $this->templateSettings),
+            'new_from_template' => array_diff($templateSettings, $userSettings)
+        ];
+
+        // Missing configurations analysis
+        $configTables = ['templates', 'languages', 'custom_questions', 'competencies', 'labels'];
+        foreach ($configTables as $table) {
+            if (Schema::hasTable($table) && Schema::hasColumn($table, 'created_by')) {
+                $userCount = DB::table($table)->where('created_by', $companyId)->count();
+                $templateCount = DB::table($table)->where('created_by', $templateId)->count();
+
+                if ($userCount === 0 && $templateCount > 0) {
+                    $breakdown['missing_configurations'][$table] = [
+                        'template_records' => $templateCount,
+                        'action' => 'copy_all_from_template'
+                    ];
+                }
+            }
+        }
+
+        return $breakdown;
+    }
+
+    /**
+     * Get refresh history for a company (requires implementing history tracking)
+     */
+    public function getRefreshHistory($companyId)
+    {
+        // This would require a refresh_history table to track previous refreshes
+        // For now, return basic info based on current state
+        $currency = $this->getCompanyCurrency($companyId);
+        $templateId = TemplateCompanyConfig::findTemplateByCurrency($currency);
+
+        return [
+            'company_id' => $companyId,
+            'current_currency' => $currency,
+            'available_template' => $templateId,
+            'can_refresh' => $templateId !== null,
+            'last_refresh' => null, // Would come from refresh_history table
+            'refresh_count' => 0,   // Would come from refresh_history table
+            'note' => 'Refresh history tracking not yet implemented'
+        ];
+    }
+
+    /**
+     * Analyze currency compatibility
+     */
+    public function analyzeCurrencyCompatibility($companyId)
+    {
+        $companyCurrency = $this->getCompanyCurrency($companyId);
+        $availableTemplates = TemplateCompanyConfig::getAvailableCurrencies();
+        $compatibleTemplate = TemplateCompanyConfig::findTemplateByCurrency($companyCurrency);
+
+        return [
+            'company_id' => $companyId,
+            'company_currency' => $companyCurrency,
+            'available_templates' => $availableTemplates,
+            'compatible_template_id' => $compatibleTemplate,
+            'is_compatible' => $compatibleTemplate !== null,
+            'recommendations' => $this->getCurrencyRecommendations($companyCurrency, $availableTemplates)
+        ];
+    }
+
+    /**
+     * Get currency recommendations
+     */
+    private function getCurrencyRecommendations($currentCurrency, $availableTemplates)
+    {
+        if (isset($availableTemplates[$currentCurrency])) {
+            return "✅ Perfect match! Template available for {$currentCurrency}";
+        }
+
+        $recommendations = [];
+
+        // Suggest similar currencies
+        $similarCurrencies = [
+            'USD' => ['CAD', 'AUD'],
+            'EUR' => ['GBP', 'CHF'],
+            'GBP' => ['EUR'],
+            'ZAR' => ['USD', 'GBP'], // South African Rand
+        ];
+
+        if (isset($similarCurrencies[$currentCurrency])) {
+            foreach ($similarCurrencies[$currentCurrency] as $similarCurrency) {
+                if (isset($availableTemplates[$similarCurrency])) {
+                    $recommendations[] = "Consider creating a {$currentCurrency} template based on the {$similarCurrency} template";
+                    break;
+                }
+            }
+        }
+
+        if (empty($recommendations)) {
+            $available = implode(', ', array_keys($availableTemplates));
+            $recommendations[] = "No template available for {$currentCurrency}. Available templates: {$available}";
+            $recommendations[] = "You need to create a template company with {$currentCurrency} currency first";
+        }
+
+        return implode('. ', $recommendations);
+    }
+
+    // =============================================================================
+    // DEBUGGING & TESTING METHODS
+    // =============================================================================
+
+    /**
+     * Test dry run vs actual refresh (for development)
+     */
+    public function testRefreshModes($companyId)
+    {
+        try {
+            // Run dry run first
+            Log::info("=== TESTING DRY RUN ===");
+            $dryRunResult = $this->dryRun($companyId);
+
+            // Get state after dry run
+            $stateAfterDryRun = $this->getCompanyDataSnapshot($companyId);
+
+            Log::info("=== DRY RUN COMPLETED ===");
+
+            return [
+                'dry_run_result' => $dryRunResult,
+                'state_after_dry_run' => $stateAfterDryRun,
+                'note' => 'Dry run completed. Original data unchanged. Use this to verify expected changes.'
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'error' => $e->getMessage(),
+                'note' => 'Test failed during dry run phase'
+            ];
+        }
+    }
+
+    /**
+     * Get snapshot of company data (for testing)
+     */
+    private function getCompanyDataSnapshot($companyId)
+    {
+        $snapshot = [];
+
+        foreach ($this->masterDataTables as $tableName => $fields) {
+            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'created_by')) {
+                $snapshot[$tableName] = DB::table($tableName)
+                    ->where('created_by', $companyId)
+                    ->count();
+            }
+        }
+
+        $snapshot['settings_count'] = DB::table('settings')
+            ->where('created_by', $companyId)
+            ->count();
+
+        return $snapshot;
+    }
+
+    /**
+     * Reset company to clean slate (DANGEROUS - for development only)
+     */
+    public function resetToCleanSlate($companyId, $confirmationCode)
+    {
+        // Safety check
+        if ($confirmationCode !== 'RESET_' . $companyId . '_CONFIRMED') {
+            throw new \Exception('Invalid confirmation code. This operation requires explicit confirmation.');
+        }
+
+        Log::warning("DANGEROUS: Resetting company {$companyId} to clean slate");
+
+        try {
+            return DB::transaction(function () use ($companyId) {
+                // Delete all company data except the company record itself and users
+                $tablesToClean = array_merge(
+                    array_keys($this->masterDataTables),
+                    ['settings', 'company_payment_settings', 'landing_page_settings', 'referral_settings']
+                );
+
+                $deletedCounts = [];
+                foreach ($tablesToClean as $table) {
+                    if (Schema::hasTable($table) && Schema::hasColumn($table, 'created_by')) {
+                        $count = DB::table($table)->where('created_by', $companyId)->count();
+                        DB::table($table)->where('created_by', $companyId)->delete();
+                        $deletedCounts[$table] = $count;
+                    }
+                }
+
+                Log::warning("Reset completed - deleted data from " . count($deletedCounts) . " tables");
+
+                return [
+                    'success' => true,
+                    'message' => 'Company reset to clean slate - all configuration data deleted',
+                    'deleted_counts' => $deletedCounts,
+                    'note' => 'Users and business data preserved. Run refresh to restore template configuration.'
+                ];
+            });
+
+        } catch (\Exception $e) {
+            Log::error("Reset failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Emergency restore from backup (if available)
+     */
+    public function restoreFromBackup($companyId, $backupData)
+    {
+        Log::info("Restoring company {$companyId} from backup data");
+
+        try {
+            return DB::transaction(function () use ($companyId, $backupData) {
+                $restoredTables = [];
+
+                foreach ($backupData as $tableName => $records) {
+                    if (!Schema::hasTable($tableName)) {
+                        continue;
+                    }
+
+                    // Clear current data
+                    DB::table($tableName)->where('created_by', $companyId)->delete();
+
+                    // Restore backup data
+                    foreach ($records as $record) {
+                        DB::table($tableName)->insert((array) $record);
+                    }
+
+                    $restoredTables[] = $tableName;
+                    Log::info("Restored {$tableName} with " . count($records) . " records");
+                }
+
+                return [
+                    'success' => true,
+                    'message' => 'Company data restored from backup',
+                    'restored_tables' => $restoredTables,
+                    'restored_at' => now()
+                ];
+            });
+
+        } catch (\Exception $e) {
+            Log::error("Restore failed: " . $e->getMessage());
+            throw $e;
+        }
+    }
+}
+
+            $records = DB::table($tableName)
+                ->where('created_by', $this->companyId)
+                ->get();
+
+            if (!$records->isEmpty()) {
+                $this->originalBackup[$tableName] = $records->toArray();
+                Log::info("Backed up {$records->count()} records from {$tableName}");
+            }
+        }
+
+        // Backup settings
+        $settings = DB::table('settings')
+            ->where('created_by', $this->companyId)
+            ->get();
+
+        $this->originalBackup['settings'] = $settings->toArray();
+        Log::info("Backed up {$settings->count()} settings");
+    }
+
+    /**
+     * Step 3: Merge template master data with existing
+     */
+    private function mergeTemplateMasterData()
+    {
+        Log::info("Step 3: Merging template master data with existing data");
+
+        foreach ($this->masterDataTables as $tableName => $matchFields) {
+            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
+                continue;
+            }
+
+            Log::info("Processing table: {$tableName}");
+            $this->mergeTable($tableName, $matchFields);
+        }
+    }
+
+    /**
+     * Merge a single table with template data
+     */
+    private function mergeTable($tableName, $matchFields)
+    {
+        // Get template records
+        $templateRecords = DB::table($tableName)
+            ->where('created_by', $this->templateCompanyId)
+            ->get();
+
+        if ($templateRecords->isEmpty()) {
+            Log::info("No template data found in {$tableName}");
+            return;
+        }
+
+        // Get existing user records
+        $existingRecords = DB::table($tableName)
+            ->where('created_by', $this->companyId)
+            ->get()
+            ->keyBy(function($record) use ($matchFields) {
+                return $this->getRecordMatchingKey($record, $matchFields);
+            });
+
+        $added = 0;
+        $updated = 0;
+        $skipped = 0;
+
+        foreach ($templateRecords as $templateRecord) {
+            $matchingKey = $this->getRecordMatchingKey($templateRecord, $matchFields);
+
+            if ($existingRecords->has($matchingKey)) {
+                // Conflict: User has this record, template also has it
+                $existingRecord = $existingRecords->get($matchingKey);
+
+                if ($this->shouldUpdateWithTemplate($existingRecord, $templateRecord, $tableName)) {
+                    if (!$this->isDryRun) {
+                        $this->updateRecordWithTemplate($tableName, $existingRecord->id, $templateRecord);
+                    }
+                    $updated++;
+
+                    $this->transferLog[] = [
+                        'action' => 'updated_with_template',
+                        'table' => $tableName,
+                        'details' => "Updated existing record with template data: {$matchingKey}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                } else {
+                    $skipped++;
+                    $this->transferLog[] = [
+                        'action' => 'kept_user_version',
+                        'table' => $tableName,
+                        'details' => "Kept user customization over template: {$matchingKey}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                }
+            } else {
+                // No conflict: Template has something user doesn't have
+                if (!$this->isDryRun) {
+                    $this->addTemplateRecord($tableName, $templateRecord);
+                }
+                $added++;
+
+                $this->transferLog[] = [
+                    'action' => 'added_from_template',
+                    'table' => $tableName,
+                    'details' => "Added new template record: {$matchingKey}",
+                    'dry_run' => $this->isDryRun
+                ];
+            }
+        }
+
+        Log::info("Table {$tableName}: {$added} added, {$updated} updated, {$skipped} kept user version");
+    }
+
+    /**
+     * Step 4: Merge template settings strategically
+     */
+    private function mergeTemplateSettings()
+    {
+        Log::info("Step 4: Merging template settings strategically");
+
+        // Get template settings
+        $templateSettings = DB::table('settings')
+            ->where('created_by', $this->templateCompanyId)
+            ->get()
+            ->keyBy('name');
+
+        // Get existing settings
+        $existingSettings = DB::table('settings')
+            ->where('created_by', $this->companyId)
+            ->get()
+            ->keyBy('name');
+
+        $preserved = 0;
+        $updated = 0;
+        $added = 0;
+
+        foreach ($templateSettings as $settingName => $templateSetting) {
+            if (in_array($settingName, $this->preservedSettings)) {
+                // Always preserve user's version of these settings
+                if ($existingSettings->has($settingName)) {
+                    $preserved++;
+                    $this->transferLog[] = [
+                        'action' => 'setting_preserved',
+                        'table' => 'settings',
+                        'details' => "Preserved user setting: {$settingName}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                }
+                continue;
+            }
+
+            if (in_array($settingName, $this->templateSettings)) {
+                // Always use template version of these settings
+                if (!$this->isDryRun) {
+                    DB::table('settings')->updateOrInsert(
+                        [
+                            'created_by' => $this->companyId,
+                            'name' => $settingName
+                        ],
+                        [
+                            'value' => $templateSetting->value,
+                            'created_at' => $templateSetting->created_at,
+                            'updated_at' => now()
+                        ]
+                    );
+                }
+
+                if ($existingSettings->has($settingName)) {
+                    $updated++;
+                    $this->transferLog[] = [
+                        'action' => 'setting_updated_from_template',
+                        'table' => 'settings',
+                        'details' => "Updated setting from template: {$settingName}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                } else {
+                    $added++;
+                    $this->transferLog[] = [
+                        'action' => 'setting_added_from_template',
+                        'table' => 'settings',
+                        'details' => "Added new setting from template: {$settingName}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                }
+            } else {
+                // For other settings, only add if user doesn't have them
+                if (!$existingSettings->has($settingName)) {
+                    if (!$this->isDryRun) {
+                        DB::table('settings')->insert([
+                            'created_by' => $this->companyId,
+                            'name' => $settingName,
+                            'value' => $templateSetting->value,
+                            'created_at' => $templateSetting->created_at,
+                            'updated_at' => now()
+                        ]);
+                    }
+                    $added++;
+                    $this->transferLog[] = [
+                        'action' => 'setting_added_if_missing',
+                        'table' => 'settings',
+                        'details' => "Added missing setting from template: {$settingName}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                }
+            }
+        }
+
+        Log::info("Settings processing: {$preserved} preserved, {$updated} updated, {$added} added");
+    }
+
+    /**
+     * Step 5: Add missing template configurations that user doesn't have
+     */
+    private function addMissingTemplateConfigurations()
+    {
+        Log::info("Step 5: Adding missing template configurations");
+
+        // Tables that should be copied entirely if user has none
+        $configurationTables = [
+            'templates', // Document templates
+            'languages', // Available languages
+            'custom_questions', // HR questions
+            'competencies', // HR competencies
+            'labels', // Project labels
+        ];
+
+        foreach ($configurationTables as $tableName) {
+            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
+                continue;
+            }
+
+            $userCount = DB::table($tableName)->where('created_by', $this->companyId)->count();
+
+            if ($userCount === 0) {
+                // User has no data in this table, copy from template
+                $templateRecords = DB::table($tableName)
+                    ->where('created_by', $this->templateCompanyId)
+                    ->get();
+
+                if (!$templateRecords->isEmpty()) {
+                    if (!$this->isDryRun) {
+                        foreach ($templateRecords as $record) {
+                            $newData = (array) $record;
+                            unset($newData['id']);
+                            $newData['created_by'] = $this->companyId;
+                            $newData['created_at'] = now();
+                            $newData['updated_at'] = now();
+
+                            DB::table($tableName)->insert($newData);
+                        }
+                    }
+
+                    $this->transferLog[] = [
+                        'action' => 'copied_missing_config',
+                        'table' => $tableName,
+                        'count' => $templateRecords->count(),
+                        'details' => "Copied {$templateRecords->count()} template records to empty table",
+                        'dry_run' => $this->isDryRun
+                    ];
+
+                    Log::info("Copied {$templateRecords->count()} template records to {$tableName}");
+                }
+            }
+        }
+    }
+
+    // =============================================================================
+    // HELPER METHODS
+    // =============================================================================
+
+    /**
+     * Get matching key for record comparison
+     */
+    private function getRecordMatchingKey($record, $matchFields)
+    {
+        $keyParts = [];
+
+        foreach ($matchFields as $field) {
+            $value = is_object($record) ? $record->{$field} : $record[$field];
+            $keyParts[] = strtolower(trim($value ?? ''));
+        }
+
+        return implode('|', $keyParts);
+    }
+
+    /**
+     * Decide if existing record should be updated with template version
+     */
+    private function shouldUpdateWithTemplate($existingRecord, $templateRecord, $tableName)
+    {
+        switch ($tableName) {
+            case 'chart_of_accounts':
+                // Template chart of accounts usually has better structure
+                return false; // Keep user's chart of accounts
+
+            case 'taxes':
+                // User's tax rates are probably more accurate for their region
+                return false; // Keep user's taxes
+
+            case 'roles':
+                // User's role names should be preserved
+                return false; // Keep user's role names
+
+            case 'email_templates':
+            case 'notification_templates':
+            case 'email_template_langs':
+            case 'notification_template_langs':
+                // Template might have newer/better email templates
+                return true; // Update with template
+
+            case 'joining_letters':
+            case 'experience_certificates':
+            case 'generate_offer_letters':
+            case 'noc_certificates':
+                // Template might have improved certificate formats
+                return true; // Update with template
+
+            default:
+                // Default: prefer template updates
+                return true;
+        }
+    }
+
+    /**
+     * Update existing record with template data
+     */
+    private function updateRecordWithTemplate($tableName, $recordId, $templateRecord)
+    {
+        $updateData = (array) $templateRecord;
+        unset($updateData['id']);
+        $updateData['created_by'] = $this->companyId;
+        $updateData['updated_at'] = now();
+
+        DB::table($tableName)->where('id', $recordId)->update($updateData);
+    }
+
+    /**
+     * Add new record from template
+     */
+    private function addTemplateRecord($tableName, $templateRecord)
+    {
+        $newData = (array) $templateRecord;
+        unset($newData['id']);
+        $newData['created_by'] = $this->companyId;
+        $newData['created_at'] = now();
+        $newData['updated_at'] = now();
+
+        DB::table($tableName)->insert($newData);
+    }
+
+    /**
+     * Get company's currency
      */
     private function getCompanyCurrency($companyId)
     {
@@ -268,521 +889,59 @@ class CompanyRefreshService
     }
 
     /**
-     * Find template company by currency
+     * Rollback changes (for actual refresh if something goes wrong)
      */
-    private function findTemplateCompanyByCurrency($currency)
+    private function rollbackChanges()
     {
-        return TemplateCompanyConfig::findTemplateByCurrency($currency);
-    }
-
-    /**
-     * Step 2: Clone template to new company with prefixed data
-     */
-    private function cloneTemplateToNewCompanyWithPrefix($isDryRun)
-    {
-        Log::info("Step 2: Cloning template company {$this->templateCompanyId} to new company with prefixed data");
-
-        $oldCompany = User::find($this->oldCompanyId);
-        $prefix = $isDryRun ? 'dryrun_' : 'refresh_';
-
-        // Create new company record with prefixed email
-        $newCompanyId = DB::table('users')->insertGetId([
-            'name' => $oldCompany->name . ($isDryRun ? ' (DRY RUN)' : ' (REFRESH)'),
-            'email' => $prefix . time() . '_' . $oldCompany->email,
-            'email_verified_at' => $oldCompany->email_verified_at,
-            'password' => $oldCompany->password,
-            'type' => 'company',
-            'lang' => $oldCompany->lang ?? 'en',
-            'mode' => $oldCompany->mode ?? 'light',
-            'avatar' => $oldCompany->avatar ?? '',
-            'theme_color' => $oldCompany->theme_color ?? '#2180f3',
-            'messenger_color' => $oldCompany->messenger_color ?? '#2180f3',
-            'is_enable_login' => $oldCompany->is_enable_login ?? 1,
-            'plan' => $oldCompany->plan ?? 1,
-            'plan_expire_date' => $oldCompany->plan_expire_date,
-            'requested_plan' => $oldCompany->requested_plan ?? 0,
-            'is_trial_done' => $oldCompany->is_trial_done ?? 0,
-            'trial_expire_date' => $oldCompany->trial_expire_date,
-            'is_register_trial' => $oldCompany->is_register_trial ?? 1,
-            'is_plan_purchased' => $oldCompany->is_plan_purchased ?? 1,
-            'interested_plan_id' => $oldCompany->interested_plan_id ?? 1,
-            'seeder_run' => $oldCompany->seeder_run ?? 1,
-            'referral_code' => $oldCompany->referral_code ?? 0,
-            'used_referral_code' => $oldCompany->used_referral_code ?? 0,
-            'commission_amount' => $oldCompany->commission_amount ?? 0,
-            'last_login_at' => $oldCompany->last_login_at,
-            'registration_ip' => $oldCompany->registration_ip,
-            'last_login_ip' => $oldCompany->last_login_ip,
-            'user_agent' => $oldCompany->user_agent,
-            'created_by' => $oldCompany->created_by,
-            'remember_token' => null,
-            'created_at' => $oldCompany->created_at,
-            'updated_at' => now(),
-            'is_email_verified' => $oldCompany->is_email_verified ?? 0,
-            'payfast_subscription_token' => $oldCompany->payfast_subscription_token,
-            'payfast_token_created_at' => $oldCompany->payfast_token_created_at,
-            'card_last_four' => $oldCompany->card_last_four,
-            'card_type' => $oldCompany->card_type,
-            'card_exp_month' => $oldCompany->card_exp_month,
-            'card_exp_year' => $oldCompany->card_exp_year,
-        ]);
-
-        Log::info("Created new company record with ID: {$newCompanyId}");
-
-        // Use CompanyClonerService to clone template data to new company
-        $cloner = new CompanyClonerService($newCompanyId, $this->templateCompanyId);
-        $cloner->cloneAllCompanyData();
-
-        Log::info("Successfully cloned template data to new company {$newCompanyId}");
-
-        return $newCompanyId;
-    }
-
-    /**
-     * Step 3: Process all master data with unified conflict resolution
-     */
-    private function processMasterData()
-    {
-        Log::info("Step 3: Processing all master data with unified conflict resolution");
-
-        foreach ($this->masterDataTables as $tableName => $matchFields) {
-            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
-                continue;
-            }
-
-            Log::info("Processing master data table: {$tableName}");
-            $this->processMasterDataTable($tableName, $matchFields);
-        }
-
-        // Fix relationships after all master data is processed
-        $this->fixMasterDataRelationships();
-    }
-
-    /**
-     * Process a single master data table (handles both additions and modifications)
-     */
-    private function processMasterDataTable($tableName, $matchFields)
-    {
-        // Get user's records from old company
-        $oldRecords = DB::table($tableName)
-            ->where('created_by', $this->oldCompanyId)
-            ->get();
-
-        if ($oldRecords->isEmpty()) {
-            Log::info("No user data found in {$tableName}");
+        if (empty($this->originalBackup)) {
+            Log::warning("No backup data available for rollback");
             return;
         }
 
-        // Get existing template records in new company
-        $templateRecords = DB::table($tableName)
-            ->where('created_by', $this->newCompanyId)
-            ->get()
-            ->keyBy($this->getMatchingKey($tableName, $matchFields));
+        Log::info("Rolling back changes...");
 
-        Log::info("Found {$oldRecords->count()} user records and {$templateRecords->count()} template records in {$tableName}");
-
-        $added = 0;
-        $updated = 0;
-        $skipped = 0;
-
-        foreach ($oldRecords as $oldRecord) {
-            $matchingKey = $this->getRecordMatchingKey($oldRecord, $tableName, $matchFields);
-
-            if ($templateRecords->has($matchingKey)) {
-                // Conflict: User has customized something that exists in template
-                $templateRecord = $templateRecords->get($matchingKey);
-
-                if ($this->shouldUpdateTemplateRecord($oldRecord, $templateRecord, $tableName)) {
-                    // Update template record with user's customization
-                    $this->updateRecord($tableName, $templateRecord->id, $oldRecord);
-                    $updated++;
-
-                    $this->transferLog[] = [
-                        'action' => 'conflict_resolved',
-                        'table' => $tableName,
-                        'details' => "Updated template record with user customization: {$matchingKey}",
-                        'old_record_id' => $oldRecord->id,
-                        'new_record_id' => $templateRecord->id
-                    ];
+        try {
+            foreach ($this->originalBackup as $tableName => $records) {
+                if ($tableName === 'settings') {
+                    // Restore settings
+                    DB::table('settings')->where('created_by', $this->companyId)->delete();
+                    foreach ($records as $record) {
+                        DB::table('settings')->insert((array) $record);
+                    }
                 } else {
-                    $skipped++;
-                    $this->transferLog[] = [
-                        'action' => 'skipped',
-                        'table' => $tableName,
-                        'details' => "Template record preferred over user record: {$matchingKey}",
-                        'reason' => 'template_priority'
-                    ];
-                }
-            } else {
-                // No conflict: User has something new that doesn't exist in template
-                $this->addNewRecord($tableName, $oldRecord);
-                $added++;
-
-                $this->transferLog[] = [
-                    'action' => 'added',
-                    'table' => $tableName,
-                    'details' => "Added new user record: {$matchingKey}",
-                    'old_record_id' => $oldRecord->id
-                ];
-            }
-        }
-
-        Log::info("Master data processing for {$tableName}: {$added} added, {$updated} updated, {$skipped} skipped");
-    }
-
-    /**
-     * Get matching key for a table
-     */
-    private function getMatchingKey($tableName, $matchFields)
-    {
-        return function($record) use ($matchFields) {
-            return $this->getRecordMatchingKey($record, $tableName, $matchFields);
-        };
-    }
-
-    /**
-     * Get matching key for a specific record
-     */
-    private function getRecordMatchingKey($record, $tableName, $matchFields)
-    {
-        $keyParts = [];
-
-        foreach ($matchFields as $field) {
-            $value = is_object($record) ? $record->{$field} : $record[$field];
-            $keyParts[] = strtolower(trim($value));
-        }
-
-        return implode('|', $keyParts);
-    }
-
-    /**
-     * Determine if template record should be updated with user's version
-     */
-    private function shouldUpdateTemplateRecord($oldRecord, $templateRecord, $tableName)
-    {
-        // Special rules for different types of data
-        switch ($tableName) {
-            case 'settings':
-                // Always prefer user settings over template
-                return true;
-
-            case 'email_templates':
-            case 'notification_templates':
-                // If user has customized content, prefer user's version
-                $userContent = is_object($oldRecord) ? $oldRecord->content : $oldRecord['content'];
-                $templateContent = is_object($templateRecord) ? $templateRecord->content : $templateRecord['content'];
-                return $userContent !== $templateContent;
-
-            case 'roles':
-                // Prefer user's role names if they've customized them
-                return true;
-
-            case 'taxes':
-                // Prefer user's tax rates
-                return true;
-
-            case 'chart_of_accounts':
-                // This is tricky - might want to prefer template structure
-                // but allow user customizations for names
-                return false; // Prefer template for chart of accounts
-
-            default:
-                // Default: prefer user customizations
-                return true;
-        }
-    }
-
-    /**
-     * Update a record with user's data
-     */
-    private function updateRecord($tableName, $recordId, $oldRecord)
-    {
-        $updateData = (array) $oldRecord;
-        unset($updateData['id']);
-        $updateData['created_by'] = $this->newCompanyId;
-        $updateData['updated_at'] = now();
-
-        DB::table($tableName)->where('id', $recordId)->update($updateData);
-    }
-
-    /**
-     * Add a new record from user's data
-     */
-    private function addNewRecord($tableName, $oldRecord)
-    {
-        $newData = (array) $oldRecord;
-        unset($newData['id']);
-        $newData['created_by'] = $this->newCompanyId;
-        $newData['created_at'] = now();
-        $newData['updated_at'] = now();
-
-        DB::table($tableName)->insert($newData);
-    }
-
-    /**
-     * Step 4: Handle special settings that need unique processing
-     */
-    private function processSettings()
-    {
-        Log::info("Step 4: Processing special settings");
-
-        // Ensure critical settings are preserved from old company
-        $criticalSettings = [
-            'company_name', 'company_email', 'company_address',
-            'company_city', 'company_state', 'company_zipcode',
-            'company_country', 'company_telephone',
-            'registration_number', 'vat_number',
-            'company_logo', 'company_favicon',
-            // Payment gateway settings
-            'stripe_key', 'stripe_secret', 'paypal_mode',
-            'paypal_client_id', 'paypal_client_secret',
-            'razorpay_public_key', 'razorpay_secret_key',
-            'paystack_public_key', 'paystack_secret_key',
-            'flutterwave_public_key', 'flutterwave_secret_key',
-            'payfast_merchant_id', 'payfast_merchant_key',
-            'mercado_app_id', 'mercado_secret_key',
-        ];
-
-        foreach ($criticalSettings as $setting) {
-            $userValue = DB::table('settings')
-                ->where('created_by', $this->oldCompanyId)
-                ->where('name', $setting)
-                ->value('value');
-
-            if ($userValue !== null) {
-                DB::table('settings')->updateOrInsert(
-                    [
-                        'created_by' => $this->newCompanyId,
-                        'name' => $setting
-                    ],
-                    [
-                        'value' => $userValue,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]
-                );
-
-                $this->transferLog[] = [
-                    'action' => 'setting_preserved',
-                    'table' => 'settings',
-                    'details' => "Preserved critical setting: {$setting}"
-                ];
-            }
-        }
-    }
-
-    /**
-     * Step 5: Copy all user-generated data
-     */
-    private function copyUserGeneratedData()
-    {
-        Log::info("Step 5: Copying all user-generated data");
-
-        foreach ($this->userDataTables as $tableName => $options) {
-            if (is_array($options) && isset($options['skip_company_users'])) {
-                continue; // Handle users separately
-            }
-
-            $actualTableName = is_string($tableName) ? $tableName : $options;
-
-            if (!Schema::hasTable($actualTableName) || !Schema::hasColumn($actualTableName, 'created_by')) {
-                continue;
-            }
-
-            $this->copyUserDataTable($actualTableName);
-        }
-    }
-
-    /**
-     * Copy a single user data table
-     */
-    private function copyUserDataTable($tableName)
-    {
-        $records = DB::table($tableName)
-            ->where('created_by', $this->oldCompanyId)
-            ->get();
-
-        if ($records->isEmpty()) {
-            return;
-        }
-
-        Log::info("Copying {$records->count()} records from {$tableName}");
-
-        $copiedCount = 0;
-        foreach ($records as $record) {
-            $newData = (array) $record;
-            unset($newData['id']);
-            $newData['created_by'] = $this->newCompanyId;
-            $newData['created_at'] = now();
-            $newData['updated_at'] = now();
-
-            // Reset financial balances and counters
-            foreach (['balance', 'opening_balance', 'current_balance', 'credit_balance'] as $field) {
-                if (isset($newData[$field])) {
-                    $newData[$field] = '0.00';
+                    // Restore other tables
+                    DB::table($tableName)->where('created_by', $this->companyId)->delete();
+                    foreach ($records as $record) {
+                        DB::table($tableName)->insert((array) $record);
+                    }
                 }
             }
 
-            foreach (['quantity', 'stock', 'total_user', 'total_customer', 'total_vender'] as $field) {
-                if (isset($newData[$field])) {
-                    $newData[$field] = 0;
-                }
-            }
-
-            DB::table($tableName)->insert($newData);
-            $copiedCount++;
+            Log::info("Rollback completed successfully");
+        } catch (\Exception $e) {
+            Log::error("Rollback failed: " . $e->getMessage());
         }
-
-        $this->transferLog[] = [
-            'action' => 'copied',
-            'table' => $tableName,
-            'count' => $copiedCount
-        ];
-    }
-
-    /**
-     * Step 6: Copy users to new company with prefixed emails
-     */
-    private function copyUsersToNewCompanyWithPrefix($isDryRun)
-    {
-        Log::info("Step 6: Copying users to new company with prefixed emails");
-
-        $users = DB::table('users')
-            ->where('created_by', $this->oldCompanyId)
-            ->where('type', '!=', 'company')
-            ->get();
-
-        if ($users->isEmpty()) {
-            Log::info("No users found to copy");
-            return;
-        }
-
-        $prefix = $isDryRun ? 'dryrun_' : 'refresh_';
-        $copiedCount = 0;
-
-        foreach ($users as $user) {
-            $userData = (array) $user;
-            unset($userData['id']);
-
-            // Add prefix to email
-            $userData['email'] = $prefix . time() . '_' . $user->email;
-            $userData['created_by'] = $this->newCompanyId;
-            $userData['created_at'] = now();
-            $userData['updated_at'] = now();
-
-            DB::table('users')->insert($userData);
-            $copiedCount++;
-        }
-
-        Log::info("Copied {$copiedCount} users with prefixed emails");
-
-        $this->transferLog[] = [
-            'action' => 'copied_with_prefix',
-            'table' => 'users',
-            'count' => $copiedCount,
-            'prefix_used' => $prefix
-        ];
-    }
-
-    /**
-     * Step 7: Delete old company (ACTUAL REFRESH ONLY)
-     */
-    private function deleteOldCompany()
-    {
-        Log::info("Step 7: Deleting old company {$this->oldCompanyId}");
-
-        // Use existing cleanup service to properly delete all data
-        CompanyCleanupService::cascadeDeleteCompanyData($this->oldCompanyId);
-        User::where('id', $this->oldCompanyId)->delete();
-
-        Log::info("Old company {$this->oldCompanyId} deleted successfully");
-
-        $this->transferLog[] = [
-            'action' => 'deleted',
-            'table' => 'users',
-            'details' => "Deleted old company {$this->oldCompanyId} and all associated data"
-        ];
-    }
-
-    /**
-     * Step 8: Remove prefixes and restore original identity (ACTUAL REFRESH ONLY)
-     */
-    private function removePrefixesAndFinalize()
-    {
-        Log::info("Step 8: Removing prefixes and restoring original identity");
-
-        // Update company record to restore original email and clean up name
-        DB::table('users')->where('id', $this->newCompanyId)->update([
-            'name' => $this->originalCompanyData->name,
-            'email' => $this->originalCompanyData->email,
-            'updated_at' => now()
-        ]);
-
-        // Remove prefixes from all user emails
-        $prefixedUsers = DB::table('users')
-            ->where('created_by', $this->newCompanyId)
-            ->where('email', 'LIKE', 'refresh_%')
-            ->get();
-
-        foreach ($prefixedUsers as $user) {
-            // Remove the prefix (refresh_timestamp_)
-            $originalEmail = preg_replace('/^refresh_\d+_/', '', $user->email);
-
-            DB::table('users')->where('id', $user->id)->update([
-                'email' => $originalEmail,
-                'updated_at' => now()
-            ]);
-        }
-
-        Log::info("Removed prefixes from company and {$prefixedUsers->count()} user emails");
-
-        $this->transferLog[] = [
-            'action' => 'prefixes_removed',
-            'table' => 'users',
-            'count' => $prefixedUsers->count() + 1, // +1 for company
-            'details' => 'Restored original emails for company and all users'
-        ];
-    }
-
-    /**
-     * Fix relationships between master data tables
-     */
-    private function fixMasterDataRelationships()
-    {
-        Log::info("Fixing master data relationships");
-
-        // This would need to be customized based on your specific relationships
-        // Example: Update stage pipeline_id references, etc.
-
-        // For now, we'll log that this step was reached
-        $this->transferLog[] = [
-            'action' => 'relationships_fixed',
-            'table' => 'multiple',
-            'details' => 'Fixed foreign key relationships between master data tables'
-        ];
     }
 
     /**
      * Generate success response
      */
-    private function generateSuccessResponse($isDryRun)
+    private function generateSuccessResponse()
     {
-        $message = $isDryRun ?
-            'Company refresh dry run completed successfully - data created with prefixes for testing' :
-            'Company refreshed successfully - old company deleted and prefixes removed';
+        $message = $this->isDryRun ?
+            'Company refresh dry run completed - analyzed changes without making permanent modifications' :
+            'Company refreshed successfully - merged template data with existing company';
 
         return [
             'success' => true,
             'message' => $message,
-            'is_dry_run' => $isDryRun,
+            'is_dry_run' => $this->isDryRun,
+            'company_id' => $this->companyId,
             'template_company_id' => $this->templateCompanyId,
-            'old_company_id' => $this->oldCompanyId,
-            'new_company_id' => $this->newCompanyId,
-            'currency_matched' => $this->getCompanyCurrency($this->oldCompanyId),
+            'currency' => $this->getCompanyCurrency($this->companyId),
             'transfer_log' => $this->transferLog,
             'summary' => $this->generateTransferSummary(),
-            'completed_at' => now(),
-            'prefixes_removed' => !$isDryRun
+            'completed_at' => now()
         ];
     }
 
@@ -793,49 +952,43 @@ class CompanyRefreshService
     {
         $summary = [
             'tables_processed' => 0,
-            'records_copied' => 0,
-            'conflicts_resolved' => 0,
-            'users_copied' => 0,
-            'settings_preserved' => 0
+            'records_added' => 0,
+            'records_updated' => 0,
+            'records_preserved' => 0,
+            'settings_preserved' => 0,
+            'settings_updated' => 0,
+            'settings_added' => 0
         ];
 
         foreach ($this->transferLog as $log) {
-            if (in_array($log['action'], ['copied', 'copied_with_prefix', 'added'])) {
-                $summary['tables_processed']++;
-                if (isset($log['count'])) {
-                    $summary['records_copied'] += $log['count'];
-                }
+            if (strpos($log['action'], 'added') !== false) {
+                $summary['records_added'] += $log['count'] ?? 1;
+            } elseif (strpos($log['action'], 'updated') !== false) {
+                $summary['records_updated'] += $log['count'] ?? 1;
+            } elseif (strpos($log['action'], 'kept') !== false || strpos($log['action'], 'preserved') !== false) {
+                $summary['records_preserved'] += $log['count'] ?? 1;
+            }
 
-                if ($log['table'] === 'users') {
-                    $summary['users_copied'] = $log['count'];
+            if ($log['table'] === 'settings') {
+                if (strpos($log['action'], 'preserved') !== false) {
+                    $summary['settings_preserved']++;
+                } elseif (strpos($log['action'], 'updated') !== false) {
+                    $summary['settings_updated']++;
+                } elseif (strpos($log['action'], 'added') !== false) {
+                    $summary['settings_added']++;
                 }
-            } elseif ($log['action'] === 'conflict_resolved') {
-                $summary['conflicts_resolved']++;
-            } elseif ($log['action'] === 'setting_preserved') {
-                $summary['settings_preserved']++;
+            }
+
+            if (!isset($summary['tables_list'])) {
+                $summary['tables_list'] = [];
+            }
+            if (!in_array($log['table'], $summary['tables_list'])) {
+                $summary['tables_list'][] = $log['table'];
+                $summary['tables_processed']++;
             }
         }
 
         return $summary;
-    }
-
-    /**
-     * Cleanup if refresh fails
-     */
-    private function cleanupFailedRefresh()
-    {
-        if ($this->newCompanyId) {
-            Log::info("Cleaning up failed refresh - deleting new company {$this->newCompanyId}");
-
-            try {
-                CompanyCleanupService::cascadeDeleteCompanyData($this->newCompanyId);
-                User::where('id', $this->newCompanyId)->delete();
-
-                Log::info("Cleanup completed");
-            } catch (\Exception $e) {
-                Log::error("Error during cleanup: " . $e->getMessage());
-            }
-        }
     }
 
     // =============================================================================
@@ -843,148 +996,81 @@ class CompanyRefreshService
     // =============================================================================
 
     /**
-     * Preview what will happen during refresh (without making changes)
+     * Preview what will happen during refresh
      */
-    public function previewRefresh($oldCompanyId)
+    public function previewRefresh($companyId)
     {
-        $oldCompanyCurrency = $this->getCompanyCurrency($oldCompanyId);
-        $templateCompanyId = $this->findTemplateCompanyByCurrency($oldCompanyCurrency);
+        $companyCurrency = $this->getCompanyCurrency($companyId);
+        $templateCompanyId = TemplateCompanyConfig::findTemplateByCurrency($companyCurrency);
 
         if (!$templateCompanyId) {
             return [
                 'success' => false,
-                'error' => "No template company found for currency: {$oldCompanyCurrency}",
+                'error' => "No template company found for currency: {$companyCurrency}",
                 'available_currencies' => array_keys(TemplateCompanyConfig::getAvailableCurrencies())
             ];
         }
 
-        // Count master data that will be processed
-        $masterDataCounts = [];
-        $totalMasterData = 0;
+        $analysis = [];
 
+        // Analyze each master data table
         foreach ($this->masterDataTables as $tableName => $matchFields) {
-            if (Schema::hasTable($tableName) && Schema::hasColumn($tableName, 'created_by')) {
-                $count = DB::table($tableName)->where('created_by', $oldCompanyId)->count();
-                if ($count > 0) {
-                    $masterDataCounts[$tableName] = $count;
-                    $totalMasterData += $count;
-                }
+            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
+                continue;
+            }
+
+            $userCount = DB::table($tableName)->where('created_by', $companyId)->count();
+            $templateCount = DB::table($tableName)->where('created_by', $templateCompanyId)->count();
+
+            if ($userCount > 0 || $templateCount > 0) {
+                $analysis[$tableName] = [
+                    'user_records' => $userCount,
+                    'template_records' => $templateCount,
+                    'strategy' => 'merge_with_conflict_resolution'
+                ];
             }
         }
 
-        // Count user data that will be copied
-        $userDataCounts = [];
-        $totalUserData = 0;
+        // Analyze settings
+        $userSettings = DB::table('settings')->where('created_by', $companyId)->pluck('name')->toArray();
+        $templateSettings = DB::table('settings')->where('created_by', $templateCompanyId)->pluck('name')->toArray();
 
-        foreach ($this->userDataTables as $tableName => $options) {
-            $actualTableName = is_string($tableName) ? $tableName : $options;
+        $settingsAnalysis = [
+            'will_be_preserved' => array_intersect($userSettings, $this->preservedSettings),
+            'will_be_updated' => array_intersect($userSettings, $this->templateSettings),
+            'will_be_added' => array_diff($templateSettings, $userSettings)
+        ];
 
-            if (Schema::hasTable($actualTableName) && Schema::hasColumn($actualTableName, 'created_by')) {
-                $count = DB::table($actualTableName)->where('created_by', $oldCompanyId)->count();
-                if ($count > 0) {
-                    $userDataCounts[$actualTableName] = $count;
-                    $totalUserData += $count;
-                }
-            }
-        }
-
-        // Count users
-        $userCount = DB::table('users')
-            ->where('created_by', $oldCompanyId)
-            ->where('type', '!=', 'company')
-            ->count();
-
-        $preview = [
+        return [
             'success' => true,
-            'old_company_id' => $oldCompanyId,
-            'old_company_currency' => $oldCompanyCurrency,
+            'company_id' => $companyId,
+            'company_currency' => $companyCurrency,
             'template_company_id' => $templateCompanyId,
             'template_company_name' => User::find($templateCompanyId)->name ?? 'Unknown',
-            'master_data_counts' => $masterDataCounts,
-            'user_data_counts' => $userDataCounts,
-            'user_count' => $userCount,
-            'totals' => [
-                'master_data_records' => $totalMasterData,
-                'user_data_records' => $totalUserData,
-                'users' => $userCount
-            ]
+            'master_data_analysis' => $analysis,
+            'settings_analysis' => $settingsAnalysis,
+            'recommendation' => $this->generateRecommendation($analysis, $settingsAnalysis)
         ];
+    }
 
-        // Add recommendation
-        if ($totalUserData > 10000) {
-            $preview['recommendation'] = "Large dataset ({$totalUserData} records). Consider running during off-peak hours.";
-        } elseif ($totalMasterData > 50) {
-            $preview['recommendation'] = "Large amount of master data ({$totalMasterData} records). Review carefully before proceeding.";
+    /**
+     * Generate recommendation based on analysis
+     */
+    private function generateRecommendation($analysis, $settingsAnalysis)
+    {
+        $totalRecords = array_sum(array_column($analysis, 'user_records'));
+        $totalTemplateChanges = array_sum(array_column($analysis, 'template_records'));
+        $settingsChanges = count($settingsAnalysis['will_be_updated']) + count($settingsAnalysis['will_be_added']);
+
+        if ($totalRecords > 1000) {
+            return "Large dataset ({$totalRecords} user records). This is an in-place refresh so it's safer, but test with dry run first.";
+        } elseif ($settingsChanges > 20) {
+            return "Many settings will be updated ({$settingsChanges} changes). Review settings analysis carefully.";
+        } elseif ($totalTemplateChanges > 100) {
+            return "Template has many new features ({$totalTemplateChanges} records). Good opportunity to get latest improvements.";
         } else {
-            $preview['recommendation'] = "Safe to proceed - {$totalMasterData} master data records and {$totalUserData} user records to preserve.";
+            return "Safe to proceed - moderate changes expected. In-place refresh minimizes risk.";
         }
-
-        return $preview;
-    }
-
-    /**
-     * Perform actual dry run (creates everything but doesn't delete old company)
-     */
-    public function dryRun($oldCompanyId)
-    {
-        return $this->refreshCompany($oldCompanyId, ['dry_run' => true]);
-    }
-
-    /**
-     * Clean up dry run data
-     */
-    public function cleanupDryRun($dryRunResponse)
-    {
-        if (isset($dryRunResponse['new_company_id'])) {
-            $newCompanyId = $dryRunResponse['new_company_id'];
-
-            Log::info("Cleaning up dry run company {$newCompanyId}");
-
-            try {
-                CompanyCleanupService::cascadeDeleteCompanyData($newCompanyId);
-                User::where('id', $newCompanyId)->delete();
-
-                Log::info("Dry run cleanup completed");
-                return ['success' => true, 'message' => 'Dry run data cleaned up successfully'];
-            } catch (\Exception $e) {
-                Log::error("Error cleaning up dry run: " . $e->getMessage());
-                return ['success' => false, 'error' => $e->getMessage()];
-            }
-        }
-
-        return ['success' => false, 'error' => 'No dry run company ID provided'];
-    }
-
-    /**
-     * Get detailed currency analysis
-     */
-    public function analyzeCurrencyCompatibility($oldCompanyId)
-    {
-        $oldCurrency = $this->getCompanyCurrency($oldCompanyId);
-        $availableTemplates = TemplateCompanyConfig::getAvailableCurrencies();
-
-        return [
-            'old_company_id' => $oldCompanyId,
-            'old_company_currency' => $oldCurrency,
-            'available_templates' => $availableTemplates,
-            'compatible_template' => $this->findTemplateCompanyByCurrency($oldCurrency),
-            'is_compatible' => $this->findTemplateCompanyByCurrency($oldCurrency) !== null
-        ];
-    }
-
-    /**
-     * Get refresh status/history for a company
-     */
-    public function getRefreshHistory($companyId)
-    {
-        // This would require a refresh_history table to track previous refreshes
-        // For now, return basic info
-        return [
-            'company_id' => $companyId,
-            'last_refresh' => null, // Would come from refresh_history table
-            'refresh_count' => 0,   // Would come from refresh_history table
-            'can_refresh' => $this->findTemplateCompanyByCurrency($this->getCompanyCurrency($companyId)) !== null
-        ];
     }
 
     /**
@@ -1002,7 +1088,7 @@ class CompanyRefreshService
 
         // Check if template is available for company's currency
         $currency = $this->getCompanyCurrency($companyId);
-        $templateId = $this->findTemplateCompanyByCurrency($currency);
+        $templateId = TemplateCompanyConfig::findTemplateByCurrency($currency);
         if (!$templateId) {
             $available = array_keys(TemplateCompanyConfig::getAvailableCurrencies());
             $issues[] = "No template company available for currency '{$currency}'. Available: " . implode(', ', $available);
@@ -1011,15 +1097,6 @@ class CompanyRefreshService
         // Check if template company actually exists
         if ($templateId && !User::where('type', 'company')->where('id', $templateId)->exists()) {
             $issues[] = "Template company {$templateId} is configured but does not exist in database";
-        }
-
-        // Check for active dry runs
-        $existingDryRun = User::where('type', 'company')
-            ->where('email', 'LIKE', 'dryrun_%' . $company->email ?? '')
-            ->exists();
-
-        if ($existingDryRun) {
-            $issues[] = "There is already an active dry run for this company. Clean it up first.";
         }
 
         return [
@@ -1031,118 +1108,20 @@ class CompanyRefreshService
     }
 
     /**
-     * Emergency rollback (if something goes wrong during actual refresh)
-     * Note: This only works if the old company hasn't been deleted yet
+     * Compare current state vs template (useful for analysis)
      */
-    public function emergencyRollback($refreshResponse)
+    public function compareWithTemplate($companyId)
     {
-        if (!isset($refreshResponse['new_company_id']) || $refreshResponse['is_dry_run']) {
-            return ['success' => false, 'error' => 'Invalid refresh response or dry run cannot be rolled back'];
+        $currency = $this->getCompanyCurrency($companyId);
+        $templateId = TemplateCompanyConfig::findTemplateByCurrency($currency);
+
+        if (!$templateId) {
+            return ['error' => 'No template found for currency: ' . $currency];
         }
-
-        $newCompanyId = $refreshResponse['new_company_id'];
-        $oldCompanyId = $refreshResponse['old_company_id'];
-
-        try {
-            // Check if old company still exists
-            $oldCompany = User::where('id', $oldCompanyId)->first();
-            if ($oldCompany) {
-                return ['success' => false, 'error' => 'Old company still exists - no rollback needed'];
-            }
-
-            Log::warning("Emergency rollback not possible - old company {$oldCompanyId} has been deleted");
-            return [
-                'success' => false,
-                'error' => 'Cannot rollback - old company data has been permanently deleted',
-                'recommendation' => 'You may need to restore from backup'
-            ];
-
-        } catch (\Exception $e) {
-            Log::error("Error during emergency rollback: " . $e->getMessage());
-            return ['success' => false, 'error' => $e->getMessage()];
-        }
-    }
-
-    // =============================================================================
-    // HELPER METHODS FOR TESTING & DEBUGGING
-    // =============================================================================
-
-    /**
-     * Compare two companies (useful for validating refresh results)
-     */
-    public function compareCompanies($companyId1, $companyId2, $tables = null)
-    {
-        $tables = $tables ?: array_merge(
-            array_keys($this->masterDataTables),
-            array_keys($this->userDataTables)
-        );
 
         $comparison = [];
 
-        foreach ($tables as $table) {
-            if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'created_by')) {
+        foreach ($this->masterDataTables as $tableName => $matchFields) {
+            if (!Schema::hasTable($tableName) || !Schema::hasColumn($tableName, 'created_by')) {
                 continue;
-            }
-
-            $count1 = DB::table($table)->where('created_by', $companyId1)->count();
-            $count2 = DB::table($table)->where('created_by', $companyId2)->count();
-
-            $comparison[$table] = [
-                'company_1_count' => $count1,
-                'company_2_count' => $count2,
-                'difference' => $count2 - $count1
-            ];
-        }
-
-        return $comparison;
-    }
-
-    /**
-     * Get detailed breakdown of what will be processed
-     */
-    public function getProcessingBreakdown($companyId)
-    {
-        $breakdown = [
-            'master_data' => [],
-            'user_data' => [],
-            'users' => 0
-        ];
-
-        // Master data breakdown
-        foreach ($this->masterDataTables as $table => $fields) {
-            if (Schema::hasTable($table) && Schema::hasColumn($table, 'created_by')) {
-                $count = DB::table($table)->where('created_by', $companyId)->count();
-                if ($count > 0) {
-                    $breakdown['master_data'][$table] = [
-                        'count' => $count,
-                        'match_fields' => $fields,
-                        'strategy' => 'merge_with_conflict_resolution'
-                    ];
-                }
-            }
-        }
-
-        // User data breakdown
-        foreach ($this->userDataTables as $table => $options) {
-            $actualTable = is_string($table) ? $table : $options;
-
-            if (Schema::hasTable($actualTable) && Schema::hasColumn($actualTable, 'created_by')) {
-                $count = DB::table($actualTable)->where('created_by', $companyId)->count();
-                if ($count > 0) {
-                    $breakdown['user_data'][$actualTable] = [
-                        'count' => $count,
-                        'strategy' => 'copy_all'
-                    ];
-                }
-            }
-        }
-
-        // Users
-        $breakdown['users'] = DB::table('users')
-            ->where('created_by', $companyId)
-            ->where('type', '!=', 'company')
-            ->count();
-
-        return $breakdown;
-    }
-}
+            } 
