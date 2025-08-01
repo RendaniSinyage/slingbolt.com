@@ -16,16 +16,15 @@ class RefreshCompanyCommand extends Command
     protected $signature = 'company:refresh
                           {company_id? : The ID of the company to refresh (optional for some operations)}
                           {--template= : Force specific template company ID (optional)}
-                          {--dry-run : Perform dry run without deleting old company}
+                          {--dry-run : Perform dry run without making permanent changes}
                           {--preview : Show preview only without any changes}
-                          {--cleanup= : Cleanup dry run company by ID}
                           {--validate : Validate template setup}
                           {--list-templates : List available template companies}';
 
     /**
      * The console command description.
      */
-    protected $description = 'Refresh a company with latest template data while preserving user customizations';
+    protected $description = 'Refresh a company with latest template data while preserving user customizations (IN-PLACE)';
 
     /**
      * Execute the console command.
@@ -40,10 +39,6 @@ class RefreshCompanyCommand extends Command
 
             if ($this->option('list-templates')) {
                 return $this->listTemplateCompanies();
-            }
-
-            if ($this->option('cleanup')) {
-                return $this->cleanupDryRun();
             }
 
             // For other operations, company_id is required
@@ -89,8 +84,8 @@ class RefreshCompanyCommand extends Command
     {
         $this->error('Company ID is required for this operation.');
 
-        $this->info("\n📖 COMPANY REFRESH WORKFLOW");
-        $this->line("================================");
+        $this->info("\n📖 COMPANY REFRESH WORKFLOW (IN-PLACE)");
+        $this->line("======================================");
 
         $this->info("1. 🔍 Check template setup:");
         $this->line("   php artisan company:refresh --validate");
@@ -101,47 +96,33 @@ class RefreshCompanyCommand extends Command
         $this->line("   → Shows all template companies and their currencies");
 
         $this->info("\n3. 👀 Preview what would happen:");
-        $this->line("   php artisan company:refresh [OLD_COMPANY_ID] --preview");
+        $this->line("   php artisan company:refresh [COMPANY_ID] --preview");
         $this->line("   → Shows what data would be refreshed, no changes made");
-        $this->line("   → Example: php artisan company:refresh 6 --preview");
+        $this->line("   → Example: php artisan company:refresh 27 --preview");
 
         $this->info("\n4. 🧪 Test with dry run (SAFE):");
-        $this->line("   php artisan company:refresh [OLD_COMPANY_ID] --dry-run");
-        $this->line("   → Creates NEW test company with refreshed data");
-        $this->line("   → Keeps OLD company unchanged for comparison");
-        $this->line("   → Example: php artisan company:refresh 6 --dry-run");
-        $this->line("   → Output: 'Created test company ID 25'");
+        $this->line("   php artisan company:refresh [COMPANY_ID] --dry-run");
+        $this->line("   → Analyzes changes without applying them permanently");
+        $this->line("   → Shows exactly what would be changed");
+        $this->line("   → Example: php artisan company:refresh 27 --dry-run");
 
-        $this->info("\n5. 🔍 Examine both companies:");
-        $this->line("   → Login to your app and compare:");
-        $this->line("   → Company 6 (original) = old data with user customizations");
-        $this->line("   → Company 25 (test) = refreshed data with latest template");
-
-        $this->info("\n6. 🧹 Clean up test company:");
-        $this->line("   php artisan company:refresh --cleanup=[TEST_COMPANY_ID]");
-        $this->line("   → Deletes the test company created during dry run");
-        $this->line("   → Example: php artisan company:refresh --cleanup=25");
-        $this->line("   → This deletes company 25, keeps original company 6");
-
-        $this->info("\n7. 🚀 Perform actual refresh (DESTRUCTIVE):");
-        $this->line("   php artisan company:refresh [OLD_COMPANY_ID]");
-        $this->line("   → Creates NEW company with refreshed data");
-        $this->line("   → DELETES the old company permanently");
-        $this->line("   → Example: php artisan company:refresh 6");
-        $this->line("   → Result: Company 6 is replaced with refreshed version");
+        $this->info("\n5. 🚀 Perform actual refresh (IN-PLACE):");
+        $this->line("   php artisan company:refresh [COMPANY_ID]");
+        $this->line("   → Refreshes the company directly (no new company created)");
+        $this->line("   → Merges template data with existing data");
+        $this->line("   → Example: php artisan company:refresh 27");
 
         $this->warn("\n⚠️  IMPORTANT NOTES:");
-        $this->line("• OLD_COMPANY_ID = Company with user data you want to refresh");
-        $this->line("• Template company is found automatically by currency matching");
-        $this->line("• Always run --dry-run first to test before actual refresh");
-        $this->line("• Actual refresh is destructive - old company is deleted!");
+        $this->line("• This is IN-PLACE refresh - no duplicate companies created");
+        $this->line("• All business data (invoices, employees, etc.) is preserved");
+        $this->line("• Template data is merged with existing configurations");
+        $this->line("• Dry run shows changes without applying them");
 
         $this->info("\n💡 QUICK START:");
         $this->line("  php artisan company:refresh --validate      # Check setup");
-        $this->line("  php artisan company:refresh 6 --preview     # Preview");
-        $this->line("  php artisan company:refresh 6 --dry-run     # Test");
-        $this->line("  php artisan company:refresh 6               # Execute");
-	$this->line("  php artisan company:refresh --cleanup=137   # Cleanup");
+        $this->line("  php artisan company:refresh 27 --preview    # Preview");
+        $this->line("  php artisan company:refresh 27 --dry-run    # Test");
+        $this->line("  php artisan company:refresh 27              # Execute");
     }
 
     /**
@@ -182,8 +163,8 @@ class RefreshCompanyCommand extends Command
 
             if (isset($preview['available_currencies'])) {
                 $this->info("\n📋 Available template currencies:");
-                foreach ($preview['available_currencies'] as $currency => $info) {
-                    $this->line("  • {$currency}: {$info['template_name']} (ID: {$info['template_id']})");
+                foreach ($preview['available_currencies'] as $currency) {
+                    $this->line("  • {$currency}");
                 }
             }
             return 1;
@@ -192,28 +173,26 @@ class RefreshCompanyCommand extends Command
         // Display preview information
         $this->info("\n📊 REFRESH PREVIEW");
         $this->line("==================");
-        $this->info("Old Company ID: {$preview['old_company_id']}");
-        $this->info("Currency: {$preview['old_company_currency']}");
-        $this->info("Template Company: {$preview['template_company_id']}");
-        $this->info("Users to copy: {$preview['users_to_copy']}");
+        $this->info("Company ID: {$preview['company_id']}");
+        $this->info("Currency: {$preview['company_currency']}");
+        $this->info("Template Company: {$preview['template_company_name']} (ID: {$preview['template_company_id']})");
 
         // Master data summary
-        if (!empty($preview['master_data_to_process'])) {
-            $this->info("\n🗂️  Master Data to Process:");
-            foreach ($preview['master_data_to_process'] as $table => $count) {
-                $this->line("  • {$table}: {$count} records");
+        if (!empty($preview['master_data_analysis'])) {
+            $this->info("\n🗂️  Master Data Analysis:");
+            foreach ($preview['master_data_analysis'] as $table => $analysis) {
+                $this->line("  • {$table}: {$analysis['user_records']} user, {$analysis['template_records']} template ({$analysis['strategy']})");
             }
         }
 
-        // User data summary
-        if (!empty($preview['user_data_to_copy'])) {
-            $this->info("\n📋 User Data to Copy:");
-            $totalRecords = 0;
-            foreach ($preview['user_data_to_copy'] as $table => $count) {
-                $this->line("  • {$table}: {$count} records");
-                $totalRecords += $count;
-            }
-            $this->info("Total user records: {$totalRecords}");
+        // Settings analysis
+        if (!empty($preview['settings_analysis'])) {
+            $settings = $preview['settings_analysis'];
+            $this->info("\n⚙️  Settings Analysis:");
+            $this->line("  • Will be preserved: " . count($settings['will_be_preserved']));
+            $this->line("  • Will be updated: " . count($settings['will_be_updated']));
+            $this->line("  • Will be added: " . count($settings['will_be_added']));
+            $this->line("  • Will be skipped (superadmin): " . count($settings['will_be_skipped']));
         }
 
         // Recommendation
@@ -221,10 +200,8 @@ class RefreshCompanyCommand extends Command
         $this->line($preview['recommendation']);
 
         $this->info("\n🚀 Next steps:");
-        $this->line("  php artisan company:refresh {$companyId} --dry-run    # Test the refresh (safe)");
-        $this->line("  php artisan company:refresh {$companyId}              # Actual refresh (destructive)");
-
-        $this->showWorkflowGuide($companyId);
+        $this->line("  php artisan company:refresh {$companyId} --dry-run    # Test the changes (safe)");
+        $this->line("  php artisan company:refresh {$companyId}              # Apply the changes");
 
         return 0;
     }
@@ -235,7 +212,7 @@ class RefreshCompanyCommand extends Command
     private function performDryRun($refreshService, $companyId)
     {
         $this->info("🧪 Starting DRY RUN for company {$companyId}...");
-        $this->info("(Old company will be preserved for testing)");
+        $this->info("(No permanent changes will be made)");
 
         $result = $refreshService->dryRun($companyId);
 
@@ -243,11 +220,8 @@ class RefreshCompanyCommand extends Command
             $this->info("\n✅ DRY RUN COMPLETED SUCCESSFULLY!");
             $this->displayResults($result);
 
-            $this->info("\n🧹 Cleanup options:");
-            $this->line("  php artisan company:refresh --cleanup={$result['new_company_id']}    # Delete test company {$result['new_company_id']}");
-            $this->line("  php artisan company:refresh {$companyId}                            # Perform actual refresh");
-
-            $this->showWorkflowGuide($companyId, $result['new_company_id']);
+            $this->info("\n🚀 Ready for actual refresh:");
+            $this->line("  php artisan company:refresh {$companyId}    # Apply these changes permanently");
         } else {
             $this->error("❌ Dry run failed!");
         }
@@ -261,13 +235,13 @@ class RefreshCompanyCommand extends Command
     private function performRefresh($refreshService, $companyId)
     {
         // Safety confirmation
-        if (!$this->confirm("⚠️  This will REPLACE company {$companyId} with refreshed data. Continue?")) {
+        if (!$this->confirm("⚠️  This will REFRESH company {$companyId} with template data. Continue?")) {
             $this->info("Operation cancelled.");
             return 0;
         }
 
         $this->info("🔄 Starting ACTUAL REFRESH for company {$companyId}...");
-        $this->info("(Old company will be deleted after successful refresh)");
+        $this->info("(Changes will be applied permanently)");
 
         $result = $refreshService->refreshCompany($companyId);
 
@@ -282,7 +256,7 @@ class RefreshCompanyCommand extends Command
     }
 
     /**
-     * Display refresh results
+     * Display refresh results - UPDATED for new response format
      */
     private function displayResults($result)
     {
@@ -290,107 +264,66 @@ class RefreshCompanyCommand extends Command
         $this->line("==================");
         $this->info("Template Used: {$result['template_company_id']}");
         $this->info("Currency: {$result['currency']}");
-        $this->info("New Company ID: {$result['new_company_id']}");
-
-        if (!$result['is_dry_run']) {
-            $this->info("Old Company ID: {$result['old_company_id']} (DELETED)");
-        } else {
-            $this->info("Old Company ID: {$result['old_company_id']} (PRESERVED)");
-        }
+        $this->info("Company ID: {$result['company_id']}"); // Same company, refreshed in-place
+        $this->info("Operation: " . ($result['is_dry_run'] ? 'DRY RUN (no changes applied)' : 'ACTUAL REFRESH (changes applied)'));
 
         // Summary stats
         $summary = $result['summary'];
         $this->info("\n📊 Processing Summary:");
         $this->line("  • Tables processed: {$summary['tables_processed']}");
-        $this->line("  • Records copied: {$summary['records_copied']}");
-        $this->line("  • Users copied: {$summary['users_copied']}");
-        $this->line("  • Conflicts resolved: {$summary['conflicts_resolved']}");
+        $this->line("  • Records added: {$summary['records_added']}");
+        $this->line("  • Records updated: {$summary['records_updated']}");
+        $this->line("  • Records preserved: {$summary['records_preserved']}");
+        
+        if (isset($summary['settings_preserved'])) {
+            $this->line("  • Settings preserved: {$summary['settings_preserved']}");
+            $this->line("  • Settings updated: {$summary['settings_updated']}");
+            $this->line("  • Settings added: {$summary['settings_added']}");
+            $this->line("  • Settings skipped: {$summary['settings_skipped']}");
+        }
 
-        // Show some transfer log details
+        // Show some recent operations
         if (!empty($result['transfer_log'])) {
             $this->info("\n🔍 Recent Operations:");
             $logCount = 0;
             foreach (array_reverse($result['transfer_log']) as $log) {
-                if ($logCount >= 5) break; // Show last 5 operations
+                if ($logCount >= 8) break; // Show last 8 operations
 
-                if ($log['action'] === 'copied') {
-                    $this->line("  • Copied {$log['count']} records from {$log['table']}");
-                } elseif ($log['action'] === 'conflict_resolved') {
-                    $this->line("  • Resolved conflict in {$log['table']}.{$log['field']}: {$log['resolution']}");
-                } elseif ($log['action'] === 'copied_user_added') {
-                    $this->line("  • Added user record to {$log['table']} (ID: {$log['old_id']} → {$log['new_id']})");
+                $details = $log['details'] ?? 'N/A';
+                $dryRunIndicator = ($log['dry_run'] ?? false) ? ' (DRY RUN)' : '';
+                
+                switch ($log['action']) {
+                    case 'added_from_template':
+                        $this->line("  • ✅ Added: {$details}{$dryRunIndicator}");
+                        break;
+                    case 'updated_with_template':
+                        $this->line("  • 🔄 Updated: {$details}{$dryRunIndicator}");
+                        break;
+                    case 'kept_user_version':
+                        $this->line("  • 👤 Kept User: {$details}{$dryRunIndicator}");
+                        break;
+                    case 'setting_preserved':
+                        $this->line("  • 🛡️  Preserved: {$details}{$dryRunIndicator}");
+                        break;
+                    case 'setting_updated_from_template':
+                        $this->line("  • ⚙️  Updated Setting: {$details}{$dryRunIndicator}");
+                        break;
+                    case 'setting_skipped_superadmin':
+                        $this->line("  • ⏭️  Skipped: {$details}{$dryRunIndicator}");
+                        break;
+                    default:
+                        $this->line("  • ℹ️  {$log['action']}: {$details}{$dryRunIndicator}");
                 }
                 $logCount++;
             }
         }
 
         $this->info("\nCompleted at: {$result['completed_at']}");
-    }
-
-    /**
-     * Show workflow guide after operations
-     */
-    private function showWorkflowGuide($companyId, $testCompanyId = null)
-    {
-        $this->info("\n📖 COMPLETE WORKFLOW GUIDE");
-        $this->line("==========================");
-
-        $this->info("1. 🔍 Validate setup:");
-        $this->line("   php artisan company:refresh --validate");
-
-        $this->info("\n2. 👀 Preview refresh:");
-        $this->line("   php artisan company:refresh {$companyId} --preview");
-        $this->line("   → Shows what would be refreshed for company {$companyId}");
-
-        $this->info("\n3. 🧪 Test with dry run:");
-        $this->line("   php artisan company:refresh {$companyId} --dry-run");
-        $this->line("   → Creates test company, keeps company {$companyId} unchanged");
-
-        if ($testCompanyId) {
-            $this->info("\n4. 🔍 Current state:");
-            $this->line("   → Company {$companyId} (original) = unchanged user data");
-            $this->line("   → Company {$testCompanyId} (test) = refreshed with latest template");
-            $this->line("   → Login to your app and compare both companies");
-
-            $this->info("\n5. 🧹 Clean up test:");
-            $this->line("   php artisan company:refresh --cleanup={$testCompanyId}");
-            $this->line("   → Deletes test company {$testCompanyId}, keeps original {$companyId}");
-        } else {
-            $this->info("\n4. 🔍 Examine results:");
-            $this->line("   → Login to your app and check the test company");
-            $this->line("   → Verify all data looks correct");
+        
+        if ($result['is_dry_run']) {
+            $this->warn("\n🧪 This was a DRY RUN - no permanent changes were made!");
+            $this->info("The analysis above shows what WOULD happen during actual refresh.");
         }
-
-        $this->info("\n6. 🚀 Actual refresh:");
-        $this->line("   php artisan company:refresh {$companyId}");
-        $this->line("   → REPLACES company {$companyId} with refreshed version");
-        $this->line("   → Original company {$companyId} will be DELETED permanently");
-    }
-
-    /**
-     * Cleanup dry run company
-     */
-    private function cleanupDryRun()
-    {
-        $cleanupId = $this->option('cleanup');
-
-        if (!$cleanupId) {
-            $this->error("Please provide company ID to cleanup: --cleanup=123");
-            return 1;
-        }
-
-        $this->info("🧹 Cleaning up dry run company {$cleanupId}...");
-
-        $refreshService = new CompanyRefreshService();
-        $result = $refreshService->cleanupDryRun(['new_company_id' => $cleanupId]);
-
-        if ($result['success']) {
-            $this->info("✅ " . $result['message']);
-        } else {
-            $this->error("❌ " . $result['error']);
-        }
-
-        return $result['success'] ? 0 : 1;
     }
 
     /**
