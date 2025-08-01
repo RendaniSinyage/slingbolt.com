@@ -96,10 +96,10 @@
                                         </a>
                                         <a href="#"
                                             class="dropdown-item refresh-company"
-                                            data-url="{{ route('company.refresh', ['id' => $user->id, 'dry' => true]) }}"
+                                            data-url="{{ route('company.refresh', ['id' => $user->id, 'dry' => false]) }}"
                                             data-bs-original-title="{{ __('Refresh Company') }}">
                                             <i class="ti ti-refresh"></i>
-                                            <span>{{ __('Refresh (Dry Run)') }}</span>
+                                            <span>{{ __('Refresh Company') }}</span>
                                         </a>
                                     @endif
 
@@ -262,7 +262,7 @@
 
         // Add the new JavaScript code here
                 $(document).on('click', '.refresh-company', function(e) {
-                    e.preventDefault(); // Prevent the default link behavior
+                    e.preventDefault();
                     var url = $(this).data('url');
 
                     $.ajax({
@@ -271,15 +271,12 @@
                         dataType: 'json',
                         success: function(response) {
                             if (response.success) {
-                                // Display the success message on the UI
                                 show_toastr('Success', response.success, 'success');
                             } else if (response.error) {
-                                // Display an error message
                                 show_toastr('Error', response.error, 'error');
                             }
                         },
                         error: function(xhr, status, error) {
-                            // Display a generic error message
                             show_toastr('Error', 'An error occurred.', 'error');
                         }
                     });
