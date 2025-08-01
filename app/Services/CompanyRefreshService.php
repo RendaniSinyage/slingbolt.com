@@ -23,8 +23,8 @@ class CompanyRefreshService
      */
     private $masterDataTables = [
         // Financial Master Data - TEMPLATE WINS (compliance, match by code)
-        'chart_of_accounts' => ['account', 'account_code'], // Match by code for modifications
-        'chart_of_account_parents' => ['name', 'account'],
+        'chart_of_accounts' => ['account_code', 'name'], // Match by code, fallback to name
+        'chart_of_account_parents' => ['name'],
         'chart_of_account_types' => ['name'],
         'chart_of_account_sub_types' => ['name'],
         'taxes' => ['name', 'rate'], // Template wins for compliance
@@ -312,6 +312,25 @@ class CompanyRefreshService
      */
     private function mergeTable($tableName, $matchFields)
     {
+        // Validate that the table has the expected columns
+        $tableColumns = Schema::getColumnListing($tableName);
+        $missingFields = array_diff($matchFields, $tableColumns);
+
+        if (!empty($missingFields)) {
+            Log::warning("Table {$tableName} is missing expected columns: " . implode(', ', $missingFields));
+            Log::info("Available columns in {$tableName}: " . implode(', ', $tableColumns));
+
+            // Filter out missing fields
+            $matchFields = array_intersect($matchFields, $tableColumns);
+
+            if (empty($matchFields)) {
+                Log::warning("No valid matching fields found for {$tableName}, skipping table");
+                return;
+            }
+
+            Log::info("Using available matching fields for {$tableName}: " . implode(', ', $matchFields));
+        }
+
         // Get template records
         $templateRecords = DB::table($tableName)
             ->where('created_by', $this->templateCompanyId)
@@ -558,8 +577,29 @@ class CompanyRefreshService
         $keyParts = [];
 
         foreach ($matchFields as $field) {
-            $value = is_object($record) ? $record->{$field} : $record[$field];
+            $value = null;
+
+            // Handle both object and array record types
+            if (is_object($record)) {
+                $value = property_exists($record, $field) ? $record->{$field} : null;
+            } else {
+                $value = isset($record[$field]) ? $record[$field] : null;
+            }
+
+            // If field doesn't exist, log warning and skip
+            if ($value === null) {
+                Log::warning("Field '{$field}' not found in record. Available fields: " .
+                    implode(', ', is_object($record) ? array_keys(get_object_vars($record)) : array_keys($record)));
+                continue;
+            }
+
             $keyParts[] = strtolower(trim($value ?? ''));
+        }
+
+        // If no valid fields found, use ID as fallback
+        if (empty($keyParts)) {
+            $id = is_object($record) ? ($record->id ?? 'unknown') : ($record['id'] ?? 'unknown');
+            $keyParts[] = 'id_' . $id;
         }
 
         return implode('|', $keyParts);
