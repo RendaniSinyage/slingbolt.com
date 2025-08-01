@@ -256,7 +256,7 @@ class RefreshCompanyCommand extends Command
     }
 
     /**
-     * Display refresh results - UPDATED for new response format
+     * Display refresh results - ENHANCED to show more details
      */
     private function displayResults($result)
     {
@@ -264,7 +264,7 @@ class RefreshCompanyCommand extends Command
         $this->line("==================");
         $this->info("Template Used: {$result['template_company_id']}");
         $this->info("Currency: {$result['currency']}");
-        $this->info("Company ID: {$result['company_id']}"); // Same company, refreshed in-place
+        $this->info("Company ID: {$result['company_id']}");
         $this->info("Operation: " . ($result['is_dry_run'] ? 'DRY RUN (no changes applied)' : 'ACTUAL REFRESH (changes applied)'));
 
         // Summary stats
@@ -274,7 +274,7 @@ class RefreshCompanyCommand extends Command
         $this->line("  • Records added: {$summary['records_added']}");
         $this->line("  • Records updated: {$summary['records_updated']}");
         $this->line("  • Records preserved: {$summary['records_preserved']}");
-        
+
         if (isset($summary['settings_preserved'])) {
             $this->line("  • Settings preserved: {$summary['settings_preserved']}");
             $this->line("  • Settings updated: {$summary['settings_updated']}");
@@ -282,16 +282,36 @@ class RefreshCompanyCommand extends Command
             $this->line("  • Settings skipped: {$summary['settings_skipped']}");
         }
 
-        // Show some recent operations
+        // Show DETAILED SETTINGS if they exist
+        if (!empty($result['transfer_log'])) {
+            $settingsLogs = array_filter($result['transfer_log'], function($log) {
+                return $log['table'] === 'settings';
+            });
+
+            if (!empty($settingsLogs)) {
+                $this->info("\n⚙️  DETAILED SETTINGS CHANGES:");
+                foreach ($settingsLogs as $log) {
+                    $dryRunIndicator = ($log['dry_run'] ?? false) ? ' (DRY RUN)' : '';
+                    $icon = $this->getSettingsIcon($log['action']);
+                    $this->line("  {$icon} {$log['details']}{$dryRunIndicator}");
+                }
+            }
+        }
+
+        // Show some recent operations (non-settings)
         if (!empty($result['transfer_log'])) {
             $this->info("\n🔍 Recent Operations:");
             $logCount = 0;
-            foreach (array_reverse($result['transfer_log']) as $log) {
-                if ($logCount >= 8) break; // Show last 8 operations
+            $nonSettingsLogs = array_filter($result['transfer_log'], function($log) {
+                return $log['table'] !== 'settings';
+            });
+
+            foreach (array_reverse($nonSettingsLogs) as $log) {
+                if ($logCount >= 10) break; // Show last 10 non-settings operations
 
                 $details = $log['details'] ?? 'N/A';
                 $dryRunIndicator = ($log['dry_run'] ?? false) ? ' (DRY RUN)' : '';
-                
+
                 switch ($log['action']) {
                     case 'added_from_template':
                         $this->line("  • ✅ Added: {$details}{$dryRunIndicator}");
@@ -302,15 +322,6 @@ class RefreshCompanyCommand extends Command
                     case 'kept_user_version':
                         $this->line("  • 👤 Kept User: {$details}{$dryRunIndicator}");
                         break;
-                    case 'setting_preserved':
-                        $this->line("  • 🛡️  Preserved: {$details}{$dryRunIndicator}");
-                        break;
-                    case 'setting_updated_from_template':
-                        $this->line("  • ⚙️  Updated Setting: {$details}{$dryRunIndicator}");
-                        break;
-                    case 'setting_skipped_superadmin':
-                        $this->line("  • ⏭️  Skipped: {$details}{$dryRunIndicator}");
-                        break;
                     default:
                         $this->line("  • ℹ️  {$log['action']}: {$details}{$dryRunIndicator}");
                 }
@@ -319,10 +330,30 @@ class RefreshCompanyCommand extends Command
         }
 
         $this->info("\nCompleted at: {$result['completed_at']}");
-        
+
         if ($result['is_dry_run']) {
             $this->warn("\n🧪 This was a DRY RUN - no permanent changes were made!");
             $this->info("The analysis above shows what WOULD happen during actual refresh.");
+        }
+    }
+
+    /**
+     * Get appropriate icon for settings actions
+     */
+    private function getSettingsIcon($action)
+    {
+        switch ($action) {
+            case 'setting_preserved':
+                return '🛡️  Preserved:';
+            case 'setting_updated_from_template':
+                return '🔄 Updated:';
+            case 'setting_added_from_template':
+            case 'setting_added_if_missing':
+                return '✅ Added:';
+            case 'setting_skipped_superadmin':
+                return '⏭️  Skipped:';
+            default:
+                return '⚙️  Setting:';
         }
     }
 

@@ -23,7 +23,7 @@ class CompanyRefreshService
      */
     private $masterDataTables = [
         // Financial Master Data - TEMPLATE WINS (compliance, match by code)
-        'chart_of_accounts' => ['account_code', 'name'], // Match by code, fallback to name
+        'chart_of_accounts' => ['code', 'name'], // Match by code, fallback to name
         'chart_of_account_parents' => ['name'],
         'chart_of_account_types' => ['name'],
         'chart_of_account_sub_types' => ['name'],
@@ -44,7 +44,7 @@ class CompanyRefreshService
         'lead_stages' => ['name'],
 
         // HR Options - USER WINS in conflicts, but merge
-        'leave_types' => ['name'],
+        'leave_types' => ['title'],
         'allowance_options' => ['name'],
         'deduction_options' => ['name'],
         'loan_options' => ['name'],
@@ -56,25 +56,25 @@ class CompanyRefreshService
         'training_types' => ['name'],
 
         // HR Structure - USER WINS completely
-        'job_categories' => ['name'],
-        'job_stages' => ['name'],
+        'job_categories' => ['title'],
+        'job_stages' => ['title'],
         'departments' => ['name'],
         'designations' => ['name'],
         'branches' => ['name'],
 
         // Document & Certificate Templates - USER WINS if content modified
-        'joining_letters' => ['content', 'is_enabled'],
-        'experience_certificates' => ['content', 'is_enabled'],
-        'generate_offer_letters' => ['content', 'is_enabled'],
-        'noc_certificates' => ['content', 'is_enabled'],
+        'joining_letters' => ['content', 'lang'],
+        'experience_certificates' => ['content', 'lang'],
+        'generate_offer_letters' => ['content', 'lang'],
+        'noc_certificates' => ['content', 'lang'],
 
         // Email & Communication Templates - USER WINS if modified
-        'email_template_langs' => ['template_id', 'lang', 'subject'],
+        'email_template_langs' => ['parent_id', 'lang', 'subject' , 'content'],
         'notification_templates' => ['subject', 'content', 'lang'],
-        'notification_template_langs' => ['template_id', 'lang', 'subject'],
+        'notification_template_langs' => ['parent_id', 'lang', 'content' , 'variables'],
 
         // System Templates - TEMPLATE WINS
-        'templates' => ['name', 'type'], // Template wins
+        //'templates' => ['name', 'type'], // Template wins
 
         // Configuration that should be merged - USER WINS
         'company_payment_settings' => ['value'], // Payment gateway configurations
@@ -86,8 +86,8 @@ class CompanyRefreshService
         'competencies' => ['name'],
         'languages' => ['code'],
         'contract_types' => ['name'],
-        'bug_statuses' => ['name'],
-        'task_stages' => ['name'],
+        'bug_statuses' => ['title'],
+        'task_stages' => ['name', 'type'],
     ];
 
     /**
@@ -637,6 +637,12 @@ class CompanyRefreshService
                 return $userContent === $templateContent;
 
             case 'email_template_langs':
+                        // Check if user has modified the subject
+                        $userSubject = is_object($existingRecord) ? $existingRecord->subject : $existingRecord['subject'];
+                        $templateSubject = is_object($templateRecord) ? $templateRecord->subject : $templateRecord['subject'];
+
+                        // If same, template can win. If different, user has modified - user wins
+                        return $userSubject === $templateSubject;
             case 'notification_templates':
             case 'notification_template_langs':
                 // Check if user has modified the content/subject
@@ -668,7 +674,6 @@ class CompanyRefreshService
             case 'sources':
             case 'labels':
             case 'lead_stages':
-            case 'leave_types':
             case 'allowance_options':
             case 'deduction_options':
             case 'loan_options':
@@ -681,17 +686,32 @@ class CompanyRefreshService
             case 'custom_questions':
             case 'competencies':
             case 'contract_types':
-            case 'bug_statuses':
             case 'task_stages':
-                // Check if user record looks like a default/minimal entry
-                $userContent = is_object($existingRecord) ? $existingRecord->name : $existingRecord['name'];
-                $isUserDefault = in_array(strtolower(trim($userContent)), [
-                    'default', 'basic', 'standard', 'general', 'other', 'misc', 'temp', 'test'
-                ]);
-                return $isUserDefault; // Only update if user has default/temp values
+                        // Check if user record looks like a default/minimal entry using 'name' field
+                        $userContent = is_object($existingRecord) ? $existingRecord->name : $existingRecord['name'];
+                        $isUserDefault = in_array(strtolower(trim($userContent)), [
+                            'default', 'basic', 'standard', 'general', 'other', 'misc', 'temp', 'test'
+                        ]);
+                        return $isUserDefault; // Only update if user has default/temp values
 
-            default:
-                return false; // Default: prefer user customizations
+                    case 'leave_types':
+                        // Use 'title' field for leave_types since your schema has 'title', not 'name'
+                        $userContent = is_object($existingRecord) ? $existingRecord->title : $existingRecord['title'];
+                        $isUserDefault = in_array(strtolower(trim($userContent)), [
+                            'default', 'basic', 'standard', 'general', 'other', 'misc', 'temp', 'test'
+                        ]);
+                        return $isUserDefault; // Only update if user has default/temp values
+
+                    case 'bug_statuses':
+                        // Use 'title' field for bug_statuses since your schema has 'title', not 'name'
+                        $userContent = is_object($existingRecord) ? $existingRecord->title : $existingRecord['title'];
+                        $isUserDefault = in_array(strtolower(trim($userContent)), [
+                            'default', 'basic', 'standard', 'general', 'other', 'misc', 'temp', 'test'
+                        ]);
+                        return $isUserDefault; // Only update if user has default/temp values
+
+                    default:
+                        return false; // Default: prefer user customizations
         }
     }
 
@@ -922,8 +942,8 @@ class CompanyRefreshService
             case 'taxes':
                 return 'template_wins_compliance';
 
-            case 'templates':
-                return 'template_wins_always';
+           // case 'templates':
+             //   return 'template_wins_always';
 
             case 'joining_letters':
             case 'experience_certificates':

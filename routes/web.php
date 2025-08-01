@@ -156,6 +156,7 @@ use App\Http\Controllers\QuotationController;
 use App\Http\Controllers\ReferralProgramController;
 use App\Http\Controllers\TapController;
 use App\Http\Controllers\OAuth2Controller;
+use App\Http\Controllers\CompanyRefreshController;
 use App\Models\ProjectType;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
@@ -347,6 +348,8 @@ Route::post('customer/{id}/payment', [StripePaymentController::class, 'addpaymen
 Route::get('invoice/pdf/{id}', [InvoiceController::class, 'invoice'])->name('invoice.pdf')->middleware(['XSS', 'revalidate']);
 
 Route::get('users/{id}/login-with-company', [UserController::class, 'LoginWithCompany'])->name('login.with.company')->middleware(['auth']);
+Route::get('/company/{id}/refresh', [CompanyRefreshController::class, 'refresh'])->name('company.refresh')->middleware('auth');
+
 Route::get('login-with-company/exit', [UserController::class, 'ExitCompany'])->name('exit.company')->middleware(['auth']);
 Route::get('user-login/{id}', [UserController::class, 'LoginManage'])->name('users.login');
 
