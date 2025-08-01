@@ -238,29 +238,6 @@
 @endsection
 
 @push('script-page')
-$(document).on('click', '.refresh-company', function(e) {
-    e.preventDefault(); // Prevent the default link behavior
-    var url = $(this).data('url');
-
-    $.ajax({
-        url: url,
-        type: 'GET',
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                // Display the success message on the UI
-                show_toastr('Success', response.success, 'success');
-            } else if (response.error) {
-                // Display an error message
-                show_toastr('Error', response.error, 'error');
-            }
-        },
-        error: function(xhr, status, error) {
-            // Display a generic error message
-            show_toastr('Error', 'An error occurred.', 'error');
-        }
-    });
-});
     <script>
         $(document).on('change', '#password_switch', function() {
             if ($(this).is(':checked')) {
@@ -282,5 +259,30 @@ $(document).on('click', '.refresh-company', function(e) {
                 }));
             }, 2000);
         });
+
+        // Add the new JavaScript code here
+                $(document).on('click', '.refresh-company', function(e) {
+                    e.preventDefault(); // Prevent the default link behavior
+                    var url = $(this).data('url');
+
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.success) {
+                                // Display the success message on the UI
+                                show_toastr('Success', response.success, 'success');
+                            } else if (response.error) {
+                                // Display an error message
+                                show_toastr('Error', response.error, 'error');
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            // Display a generic error message
+                            show_toastr('Error', 'An error occurred.', 'error');
+                        }
+                    });
+                });
     </script>
 @endpush
