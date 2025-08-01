@@ -95,9 +95,9 @@
                                             <span> {{ __('Login As Company') }}</span>
                                         </a>
                                         <a href="#"
-                                            class="dropdown-item refresh-company"
-                                            data-url="{{ route('company.refresh', ['id' => $user->id, 'dry' => false]) }}"
-                                            data-bs-original-title="{{ __('Refresh Company') }}">
+                                           class="dropdown-item refresh-company"
+                                           data-url="{{ route('company.refresh', $user->id) }}?dry=false"
+                                           data-bs-original-title="{{ __('Refresh Company') }}">
                                             <i class="ti ti-refresh"></i>
                                             <span>{{ __('Refresh Company') }}</span>
                                         </a>
@@ -271,13 +271,15 @@
                         dataType: 'json',
                         success: function(response) {
                             if (response.success) {
-                                show_toastr('Success', response.success, 'success');
+                                // Call show_toastr with the correct parameter order for your function
+                                // Your function expects: show_toastr(type, message)
+                                show_toastr('success', response.success);
                             } else if (response.error) {
-                                show_toastr('Error', response.error, 'error');
+                                show_toastr('error', response.error);
                             }
                         },
                         error: function(xhr, status, error) {
-                            show_toastr('Error', 'An error occurred.', 'error');
+                            show_toastr('error', 'An error occurred.');
                         }
                     });
                 });

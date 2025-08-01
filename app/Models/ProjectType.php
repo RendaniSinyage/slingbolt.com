@@ -9,7 +9,7 @@ class ProjectType extends Model
     // Define all available project types
     const STANDARD = 'standard';
     const ROADMAP = 'roadmap';
-   // const DEVELOPMENT = 'development';
+    const DEVELOPMENT = 'development';
    // const MARKETING = 'marketing';
    // const RESEARCH = 'research';
 
@@ -19,9 +19,9 @@ class ProjectType extends Model
     public static function getTypes()
     {
         return [
-            self::STANDARD => 'Standard Project',
-            self::ROADMAP => 'Product Roadmap',
-         //   self::DEVELOPMENT => 'Software Development', 
+            self::STANDARD => 'Standard',
+            self::ROADMAP => 'Roadmap',
+           self::DEVELOPMENT => 'Development', 
          //   self::MARKETING => 'Marketing Campaign',
          //   self::RESEARCH => 'Research Project',
         ];

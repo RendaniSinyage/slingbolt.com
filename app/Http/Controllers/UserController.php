@@ -100,6 +100,49 @@ class UserController extends Controller
                     $code = rand(100000, 999999);
                 } while (User::where('referral_code', $code)->exists());
 
+                // IMPROVED PLAN ASSIGNMENT LOGIC FOR SUPER ADMIN
+                $selectedPlan = 1; // Fallback default
+                $trialPlan = 0;
+                $trialExpireDate = null;
+                $planExpireDate = null;
+                $requestedPlan = 0;
+
+                // Since super admin typically doesn't select a plan, we need smart defaults
+                // Option 1: Use a specific "default company plan" (e.g., plan ID 3 like in registration)
+                $defaultCompanyPlan = Plan::find(3); // Same logic as registration default
+                if ($defaultCompanyPlan && $defaultCompanyPlan->is_disable == 1) {
+                    $selectedPlan = $defaultCompanyPlan->id;
+
+                    // Give them a trial of this plan
+                    $trialPlan = $defaultCompanyPlan->id;
+                    $trialDays = $defaultCompanyPlan->trial_days && $defaultCompanyPlan->trial_days > 0 ? $defaultCompanyPlan->trial_days : 14;
+                    $trialExpireDate = now()->addDays($trialDays)->toDateString();
+                    $planExpireDate = now()->addDays($trialDays)->toDateString();
+
+                    \Log::info("Super admin creating company - assigned default trial plan", [
+                        'plan_id' => $selectedPlan,
+                        'plan_name' => $defaultCompanyPlan->name,
+                        'trial_days' => $trialDays
+                    ]);
+                } else {
+                    // Fallback: Find the cheapest enabled plan or any enabled plan
+                    $fallbackPlan = Plan::where('is_disable', 1)->orderBy('price', 'asc')->first();
+                    if ($fallbackPlan) {
+                        $selectedPlan = $fallbackPlan->id;
+                        \Log::info("Super admin creating company - using fallback enabled plan", [
+                            'plan_id' => $selectedPlan,
+                            'plan_name' => $fallbackPlan->name
+                        ]);
+                    } else {
+                        // Last resort: use any plan that exists
+                        $anyPlan = Plan::first();
+                        $selectedPlan = $anyPlan ? $anyPlan->id : 1;
+                        \Log::warning("Super admin creating company - no enabled plans found, using any available plan", [
+                            'plan_id' => $selectedPlan
+                        ]);
+                    }
+                }
+
                 $user = new User();
                 $user['name'] = $request->name;
                 $user['email'] = $request->email;
@@ -107,11 +150,15 @@ class UserController extends Controller
                 $user['password'] = !empty($userpassword)?\Hash::make($userpassword) : null;
                 $user['type'] = 'company';
                 $user['default_pipeline'] = 1;
-                $user['plan'] = 1;
+                $user['plan'] = $selectedPlan;
+                $user['plan_expire_date'] = $planExpireDate;
+                $user['trial_plan'] = $trialPlan;
+                $user['trial_expire_date'] = $trialExpireDate;
+                $user['requested_plan'] = $requestedPlan;
                 $user['lang'] = !empty($default_language) ? $default_language->value : 'en';
                 $user['referral_code'] = $code;
                 $user['created_by'] = \Auth::user()->creatorId();
-                $user['plan'] = Plan::first()->id;
+
                 if ($settings['email_verification'] == 'on') {
                     $user['email_verified_at'] = null;
                 } else {
@@ -231,6 +278,7 @@ class UserController extends Controller
         }
 
     }
+
     public function show()
     {
         return redirect()->route('user.index');
