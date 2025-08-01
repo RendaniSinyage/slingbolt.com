@@ -1,4 +1,5 @@
 <?php
+// app/Models/EmailTemplate.php (Updated to match your existing structure)
 
 namespace App\Models;
 
@@ -11,11 +12,24 @@ class EmailTemplate extends Model
         'from',
         'slug',
         'created_by',
+          'is_enabled',
     ];
 
     public function template()
     {
         return $this->hasOne('App\Models\UserEmailTemplate', 'template_id', 'id')->where('user_id', '=', \Auth::user()->id);
+    }
+
+    // Relationship with email_template_langs
+    public function templateLangs()
+    {
+        return $this->hasMany('App\Models\EmailTemplateLang', 'parent_id', 'id');
+    }
+
+    // Get template content for specific language
+    public function getTemplateLang($lang = 'en')
+    {
+        return $this->templateLangs()->where('lang', $lang)->first();
     }
 
     private static $templateData = NULL;
@@ -24,7 +38,7 @@ class EmailTemplate extends Model
     {
         if(self::$templateData == null)
         {
-            $emailTemplate     = EmailTemplate::first();
+            $emailTemplate = EmailTemplate::first();
             self::$templateData = $emailTemplate;
         }
         return self::$templateData;

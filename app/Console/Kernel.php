@@ -1,4 +1,6 @@
 <?php
+// app/Console/Kernel.php
+
 namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
@@ -8,10 +10,14 @@ use App\Jobs\CleanupUnverifiedCompaniesJob;
 class Kernel extends ConsoleKernel
 {
     /**
+     * The Artisan commands provided by your application.
+     */
+    protected $commands = [
+        Commands\CheckExpiredPlans::class,
+    ];
+
+    /**
      * Define the application's command schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
      */
     protected function schedule(Schedule $schedule): void
     {
@@ -19,12 +25,16 @@ class Kernel extends ConsoleKernel
         $schedule->job(new CleanupUnverifiedCompaniesJob(48))
                  ->twiceDaily(2, 14)
                  ->withoutOverlapping();
+
+        // Run plan expiration check daily at 9:00 AM
+        $schedule->command('plans:check-expired')
+                ->dailyAt('09:00')
+                ->withoutOverlapping()
+                ->runInBackground();
     }
 
     /**
      * Register the commands for the application.
-     *
-     * @return void
      */
     protected function commands(): void
     {
