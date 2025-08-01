@@ -289,7 +289,7 @@ class RefreshCompanyCommand extends Command
         $this->info("\n📈 RESULTS SUMMARY");
         $this->line("==================");
         $this->info("Template Used: {$result['template_company_id']}");
-        $this->info("Currency: {$result['currency_matched']}");
+        $this->info("Currency: {$result['currency']}");
         $this->info("New Company ID: {$result['new_company_id']}");
 
         if (!$result['is_dry_run']) {
