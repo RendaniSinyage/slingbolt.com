@@ -2789,7 +2789,12 @@ class Utility extends Model
             '{task_start_date}',
             '{task_end_date}',
             '{invoice_payment_method}',
-
+	    // ADD THESE NEW VARIABLES FOR TRIAL/PLAN EMAILS:
+    		'{trial_days}',
+    		'{days_left}',
+    		'{expiry_date}',
+    		'{plan_name}',
+    		'{days_inactive}',
         ];
         $arrValue = [
             'app_name' => '-',
@@ -2930,6 +2935,12 @@ class Utility extends Model
             'task_start_date' => '',
             'task_end_date' => '',
             'invoice_payment_method' => '',
+	// ADD THESE NEW DEFAULT VALUES:
+    		'trial_days' => '-',
+    		'days_left' => '-',
+    		'expiry_date' => '-',
+    		'plan_name' => '-',
+    		'days_inactive' => '-',
          ];
 
         foreach ($obj as $key => $val) {
@@ -5030,22 +5041,7 @@ public static function refreshGoogleToken()
     public static function flagOfCountry()
     {
         $arr = [
-            'ar' => '🇦🇪 ar',
-            'zh' => '🇨🇳 zh',
-            'da' => '🇩🇰 da',
-            'de' => '🇩🇪 de',
-            'es' => '🇪🇸 es',
-            'fr' => '🇫🇷 fr',
-            'he' => '🇮🇱 he',
-            'it' => '🇮🇹 it',
-            'ja' => '🇯🇵 ja',
-            'nl' => '🇳🇱 nl',
-            'pl' => '🇵🇱 pl',
-            'ru' => '🇷🇺 ru',
-            'pt' => '🇵🇹 pt',
             'en' => '🇮🇳 en',
-            'tr' => '🇹🇷 tr',
-            'pt-br' => '🇵🇹 pt-br',
         ];
         return $arr;
     }
@@ -5053,22 +5049,7 @@ public static function refreshGoogleToken()
     public static function langList()
     {
         $languages = [
-            "ar" => "Arabic",
-            "zh" => "Chinese",
-            "da" => "Danish",
-            "de" => "German",
             "en" => "English",
-            "es" => "Spanish",
-            "fr" => "French",
-            "he" => "Hebrew",
-            "it" => "Italian",
-            "ja" => "Japanese",
-            "nl" => "Dutch",
-            "pl" => "Polish",
-            "pt" => "Portuguese",
-            "ru" => "Russian",
-            "tr" => "Turkish",
-            "pt-br" => "Portuguese (Brazil)",
         ];
         return $languages;
     }
