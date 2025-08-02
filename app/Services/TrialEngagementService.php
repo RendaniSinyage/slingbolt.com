@@ -1,5 +1,4 @@
 <?php
-// app/Services/TrialEngagementService.php
 
 namespace App\Services;
 
@@ -7,6 +6,7 @@ use App\Models\User;
 use App\Models\Utility;
 use App\Models\EmailTemplate;
 use App\Models\EmailSendLog;
+use App\Services\ConsoleEmailService; // Add this import
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -142,8 +142,15 @@ class TrialEngagementService
                 return;
             }
 
-            // Send the email using existing Utility method
-            $resp = Utility::sendEmailTemplate($templateSlug, [$user->id => $user->email], $variables);
+            Log::info("About to send engagement email", [
+                'template' => $templateSlug,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'context' => app()->runningInConsole() ? 'console' : 'web'
+            ]);
+
+            // CHANGED: Use ConsoleEmailService instead of Utility::sendEmailTemplate
+            $resp = ConsoleEmailService::sendEmailTemplate($templateSlug, [$user->id => $user->email], $variables);
 
             // Check if email sending was successful
             if (!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) {

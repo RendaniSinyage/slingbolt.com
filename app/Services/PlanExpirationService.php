@@ -1,5 +1,4 @@
 <?php
-// app/Services/PlanExpirationService.php (COMPLETE - Fixed template names)
 
 namespace App\Services;
 
@@ -8,6 +7,7 @@ use App\Models\Utility;
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateLang;
 use App\Models\EmailSendLog;
+use App\Services\ConsoleEmailService; // Add this import
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -186,11 +186,12 @@ class PlanExpirationService
                 'user_email' => $user->email,
                 'user_type' => $user->type ?? 'null',
                 'tracking_slug' => $trackingSlug,
-                'variables' => $variables
+                'variables' => $variables,
+                'context' => app()->runningInConsole() ? 'console' : 'web'
             ]);
 
-            // Send the email using existing Utility method (using template NAME not slug)
-            $resp = Utility::sendEmailTemplate($templateName, [$user->id => $user->email], $variables);
+            // CHANGED: Use ConsoleEmailService instead of Utility::sendEmailTemplate
+            $resp = ConsoleEmailService::sendEmailTemplate($templateName, [$user->id => $user->email], $variables);
 
             // Check if email sending was successful
             if (!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) {
