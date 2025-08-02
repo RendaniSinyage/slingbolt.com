@@ -79,8 +79,9 @@ class ConsoleEmailService
             $content->from = $template->from;
             
             if (!empty($content->content)) {
-                // Replace variables in content
+                // FIXED: Replace variables in BOTH content AND subject
                 $content->content = Utility::replaceVariable($content->content, $variables);
+                $content->subject = Utility::replaceVariable($content->subject, $variables);
                 
                 // Send email
                 try {
