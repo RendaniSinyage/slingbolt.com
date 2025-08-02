@@ -1,11 +1,11 @@
 <?php
-// app/Console/Commands/CheckExpiredPlans.php
+// app/Console/Commands/CheckExpiredPlans.php (UPDATED - No queue, direct processing)
 
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Jobs\ProcessPlanExpiration;
-use App\Jobs\ProcessTrialEngagement;
+use App\Services\PlanExpirationService;
+use App\Services\TrialEngagementService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -44,6 +44,9 @@ class CheckExpiredPlans extends Command
         $expiringPlans = 0;
         $engagementEmails = 0;
 
+        $planService = new PlanExpirationService();
+        $engagementService = new TrialEngagementService();
+
         foreach ($usersToProcess as $user) {
             
             // Check for trial expiration
@@ -56,7 +59,7 @@ class CheckExpiredPlans extends Command
                     $this->line("⏰ Trial EXPIRED: {$user->email} (expired on {$trialExpiry->format('Y-m-d')})");
                     
                     if (!$isDryRun) {
-                        ProcessPlanExpiration::dispatch($user);
+                        $planService->processUser($user);
                     }
                     
                 } elseif ($trialExpiry->diffInDays($today) <= 3 && $trialExpiry->gte($today)) {
@@ -66,7 +69,7 @@ class CheckExpiredPlans extends Command
                     $this->line("⚠️  Trial expiring: {$user->email} ({$daysLeft} days left)");
                     
                     if (!$isDryRun) {
-                        ProcessPlanExpiration::dispatch($user);
+                        $planService->processUser($user);
                     }
                 }
             }
@@ -81,7 +84,7 @@ class CheckExpiredPlans extends Command
                     $this->line("💳 Plan EXPIRED: {$user->email} (expired on {$planExpiry->format('Y-m-d')})");
                     
                     if (!$isDryRun) {
-                        ProcessPlanExpiration::dispatch($user);
+                        $planService->processUser($user);
                     }
                     
                 } elseif ($planExpiry->diffInDays($today) <= 7 && $planExpiry->gte($today)) {
@@ -91,7 +94,7 @@ class CheckExpiredPlans extends Command
                     $this->line("💳 Plan expiring: {$user->email} ({$daysLeft} days left)");
                     
                     if (!$isDryRun) {
-                        ProcessPlanExpiration::dispatch($user);
+                        $planService->processUser($user);
                     }
                 }
             }
@@ -102,7 +105,7 @@ class CheckExpiredPlans extends Command
                 $this->line("📧 Processing engagement: {$user->email}");
                 
                 if (!$isDryRun) {
-                    ProcessTrialEngagement::dispatch($user);
+                    $engagementService->processUser($user);
                 }
             }
         }
@@ -120,8 +123,8 @@ class CheckExpiredPlans extends Command
             $this->warn('🔍 This was a DRY RUN - no actual changes were made');
             $this->info('💡 Run without --dry-run to actually process these users');
         } else {
-            $this->info('✅ All jobs have been queued for processing');
-            $this->info('🔄 Make sure your queue worker is running: php artisan queue:work');
+            $this->info('✅ All processing completed synchronously');
+            $this->info('📧 Emails were sent immediately (no queue needed)');
         }
 
         return 0;
