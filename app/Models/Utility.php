@@ -2795,6 +2795,10 @@ class Utility extends Model
     		'{expiry_date}',
     		'{plan_name}',
     		'{days_inactive}',
+    		'{current_plan_name}',
+            '{free_plan_name}',
+            '{upgrade_link}',
+            '{trial_plan_upgrade_link}',
         ];
         $arrValue = [
             'app_name' => '-',
@@ -2941,6 +2945,10 @@ class Utility extends Model
     		'expiry_date' => '-',
     		'plan_name' => '-',
     		'days_inactive' => '-',
+    		'current_plan_name' => '-',
+            'free_plan_name' => '-',
+            'upgrade_link' => '-',
+            'trial_plan_upgrade_link' => '-',
          ];
 
         foreach ($obj as $key => $val) {
