@@ -1,11 +1,12 @@
 <?php
-// app/Services/PlanExpirationService.php (NEW - Synchronous service, no queue)
+// app/Services/PlanExpirationService.php (COMPLETE - Fixed template names)
 
 namespace App\Services;
 
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\EmailTemplate;
+use App\Models\EmailTemplateLang;
 use App\Models\EmailSendLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
@@ -45,10 +46,34 @@ class PlanExpirationService
         }
     }
 
-    private function isTemplateEnabled($templateSlug)
+    private function isTemplateEnabled($templateName)
     {
-        $template = EmailTemplate::where('slug', $templateSlug)->first();
+        $template = EmailTemplate::where('name', $templateName)->first();
         return $template && $template->is_enabled;
+    }
+
+    private function templateHasContent($templateName, $lang = 'en')
+    {
+        $template = EmailTemplate::where('name', $templateName)->first();
+        if (!$template) {
+            Log::warning("Email template not found", ['template' => $templateName]);
+            return false;
+        }
+
+        $templateLang = EmailTemplateLang::where('parent_id', $template->id)
+                                        ->where('lang', $lang)
+                                        ->first();
+        
+        if (!$templateLang) {
+            Log::warning("Email template language content not found", [
+                'template' => $templateName,
+                'lang' => $lang,
+                'template_id' => $template->id
+            ]);
+            return false;
+        }
+
+        return true;
     }
 
     private function expireTrial($user)
@@ -63,11 +88,11 @@ class PlanExpirationService
 
         // Send trial expired email (only once)
         if (!EmailSendLog::wasEmailSent($user->id, 'trial_expired')) {
-            $this->sendEmail($user, 'trial_expired', [
+            $this->sendEmail($user, 'Trial Expired', [
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'trial_days' => 'trial period'
-            ]);
+            ], 'trial_expired');
         } else {
             Log::info("Trial expired email already sent to user: {$user->email}");
         }
@@ -84,11 +109,11 @@ class PlanExpirationService
 
         // Send plan expired email (only once)
         if (!EmailSendLog::wasEmailSent($user->id, 'plan_expired')) {
-            $this->sendEmail($user, 'plan_expired', [
+            $this->sendEmail($user, 'Plan Expired', [
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'plan_name' => 'subscription'
-            ]);
+            ], 'plan_expired');
         } else {
             Log::info("Plan expired email already sent to user: {$user->email}");
         }
@@ -97,16 +122,16 @@ class PlanExpirationService
     private function sendTrialExpiringEmail($user, $daysLeft)
     {
         // Create unique template slug for each day to allow multiple reminders
-        $templateSlug = "trial_expiring_day_{$daysLeft}";
+        $trackingSlug = "trial_expiring_day_{$daysLeft}";
         
         // Check if we already sent this specific reminder
-        if (!EmailSendLog::wasEmailSent($user->id, $templateSlug)) {
-            $this->sendEmail($user, 'trial_expiring', [
+        if (!EmailSendLog::wasEmailSent($user->id, $trackingSlug)) {
+            $this->sendEmail($user, 'Trial Expiring', [
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'days_left' => $daysLeft,
                 'expiry_date' => Carbon::parse($user->trial_expire_date)->format('M d, Y')
-            ], $templateSlug); // Use unique slug for tracking
+            ], $trackingSlug);
         } else {
             Log::info("Trial expiring ({$daysLeft} days) email already sent to user: {$user->email}");
         }
@@ -115,43 +140,63 @@ class PlanExpirationService
     private function sendPlanExpiringEmail($user, $daysLeft)
     {
         // Create unique template slug for each day to allow multiple reminders
-        $templateSlug = "plan_expiring_day_{$daysLeft}";
+        $trackingSlug = "plan_expiring_day_{$daysLeft}";
         
         // Check if we already sent this specific reminder
-        if (!EmailSendLog::wasEmailSent($user->id, $templateSlug)) {
-            $this->sendEmail($user, 'plan_expiring', [
+        if (!EmailSendLog::wasEmailSent($user->id, $trackingSlug)) {
+            $this->sendEmail($user, 'Plan Expiring', [
                 'user_name' => $user->name,
                 'user_email' => $user->email,
                 'days_left' => $daysLeft,
                 'expiry_date' => Carbon::parse($user->plan_expire_date)->format('M d, Y')
-            ], $templateSlug); // Use unique slug for tracking
+            ], $trackingSlug);
         } else {
             Log::info("Plan expiring ({$daysLeft} days) email already sent to user: {$user->email}");
         }
     }
 
-    private function sendEmail($user, $templateSlug, $variables, $trackingSlug = null)
+    private function sendEmail($user, $templateName, $variables, $trackingSlug = null)
     {
-        $trackingSlug = $trackingSlug ?: $templateSlug;
+        $trackingSlug = $trackingSlug ?: strtolower(str_replace(' ', '_', $templateName));
         
         try {
             // Check if template is enabled
-            if (!$this->isTemplateEnabled($templateSlug)) {
+            if (!$this->isTemplateEnabled($templateName)) {
                 Log::info("Template disabled, skipping email", [
-                    'template' => $templateSlug,
+                    'template' => $templateName,
                     'user_email' => $user->email
                 ]);
                 return;
             }
 
-            // Send the email using existing Utility method
-            $resp = Utility::sendEmailTemplate($templateSlug, [$user->id => $user->email], $variables);
+            // Check if template has content
+            if (!$this->templateHasContent($templateName)) {
+                Log::error("Template missing content, skipping email", [
+                    'template' => $templateName,
+                    'user_email' => $user->email
+                ]);
+                EmailSendLog::logFailure($user->id, $trackingSlug, $user->email, 'Template missing content', $variables);
+                return;
+            }
+
+            // Additional debugging
+            Log::info("About to send email", [
+                'template' => $templateName,
+                'user_id' => $user->id,
+                'user_email' => $user->email,
+                'user_type' => $user->type ?? 'null',
+                'tracking_slug' => $trackingSlug,
+                'variables' => $variables
+            ]);
+
+            // Send the email using existing Utility method (using template NAME not slug)
+            $resp = Utility::sendEmailTemplate($templateName, [$user->id => $user->email], $variables);
 
             // Check if email sending was successful
             if (!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) {
                 EmailSendLog::logFailure($user->id, $trackingSlug, $user->email, $resp['error'], $variables);
                 Log::error("Email failed", [
-                    'template' => $templateSlug,
+                    'template' => $templateName,
                     'user_email' => $user->email,
                     'error' => $resp['error']
                 ]);
@@ -162,7 +207,7 @@ class PlanExpirationService
             EmailSendLog::logSuccess($user->id, $trackingSlug, $user->email, $variables);
             
             Log::info("Email sent successfully", [
-                'template' => $templateSlug,
+                'template' => $templateName,
                 'tracking_slug' => $trackingSlug,
                 'user_id' => $user->id,
                 'user_email' => $user->email
@@ -172,9 +217,10 @@ class PlanExpirationService
             EmailSendLog::logFailure($user->id, $trackingSlug, $user->email, $e->getMessage(), $variables);
             
             Log::error("Failed to send email", [
-                'template' => $templateSlug,
+                'template' => $templateName,
                 'user_email' => $user->email,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
         }
     }
