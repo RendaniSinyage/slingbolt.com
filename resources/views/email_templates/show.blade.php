@@ -73,8 +73,120 @@
                     <div class="row text-xs">
 
                         <h6 class="font-weight-bold mb-4">{{ __('Variables') }}</h6>
+                        {{-- TRIAL LIFECYCLE TEMPLATES --}}
+                                               @if($emailTemplate->slug=='trial_welcome_day1')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_getting_started')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_expiring')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Days Left')}} : <span class="pull-right text-primary">{days_left}</span></p>
+                                                       <p class="col-4">{{__('Expiry Date')}} : <span class="pull-right text-primary">{expiry_date}</span></p>
+                                                       {{-- ADD THESE NEW VARIABLES --}}
+                                                       <p class="col-4">{{__('Upgrade Link')}} : <span class="pull-right text-primary">{upgrade_link}</span></p>
+                                                       <p class="col-4">{{__('Trial Plan Upgrade Link')}} : <span class="pull-right text-primary">{trial_plan_upgrade_link}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_expired')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                       {{-- ADD THESE NEW VARIABLES --}}
+                                                       <p class="col-4">{{__('Current Plan Name')}} : <span class="pull-right text-primary">{current_plan_name}</span></p>
+                                                       <p class="col-4">{{__('Free Plan Name')}} : <span class="pull-right text-primary">{free_plan_name}</span></p>
+                                                       <p class="col-4">{{__('Upgrade Link')}} : <span class="pull-right text-primary">{upgrade_link}</span></p>
+                                                       <p class="col-4">{{__('Trial Plan Upgrade Link')}} : <span class="pull-right text-primary">{trial_plan_upgrade_link}</span></p>
+                                                   </div>
 
-                        @if($emailTemplate->slug=='new_user')
+                                               {{-- PLAN LIFECYCLE TEMPLATES --}}
+                                               @elseif($emailTemplate->slug=='plan_expiring')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Days Left')}} : <span class="pull-right text-primary">{days_left}</span></p>
+                                                       <p class="col-4">{{__('Expiry Date')}} : <span class="pull-right text-primary">{expiry_date}</span></p>
+                                                       {{-- ADD THESE NEW VARIABLES --}}
+                                                       <p class="col-4">{{__('Current Plan Name')}} : <span class="pull-right text-primary">{current_plan_name}</span></p>
+                                                       <p class="col-4">{{__('Free Plan Name')}} : <span class="pull-right text-primary">{free_plan_name}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='plan_expired')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Plan Name')}} : <span class="pull-right text-primary">{plan_name}</span></p>
+                                                       {{-- ADD THESE NEW VARIABLES --}}
+                                                       <p class="col-4">{{__('Current Plan Name')}} : <span class="pull-right text-primary">{current_plan_name}</span></p>
+                                                       <p class="col-4">{{__('Free Plan Name')}} : <span class="pull-right text-primary">{free_plan_name}</span></p>
+                                                   </div>
+
+                                               {{-- USER ENGAGEMENT TEMPLATES --}}
+                                               @elseif($emailTemplate->slug=='trial_inactive_reminder')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Days Inactive')}} : <span class="pull-right text-primary">{days_inactive}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_never_logged_in')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+
+                                               {{-- EDUCATIONAL TEMPLATES --}}
+                                               @elseif($emailTemplate->slug=='trial_education_features')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_education_tips')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+                                               @elseif($emailTemplate->slug=='trial_education_advanced')
+                                                   <div class="row">
+                                                       <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
+                                                       <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
+                                                       <p class="col-4">{{__('App Url')}} : <span class="pull-right text-primary">{app_url}</span></p>
+                                                       <p class="col-4">{{__('User Name')}} : <span class="pull-right text-primary">{user_name}</span></p>
+                                                       <p class="col-4">{{__('Trial Days')}} : <span class="pull-right text-primary">{trial_days}</span></p>
+                                                   </div>
+
+                        @elseif($emailTemplate->slug=='new_user')
                             <div class="row">
                                 <p class="col-4">{{__('App Name')}} : <span class="pull-end text-primary">{app_name}</span></p>
                                 <p class="col-4">{{__('Company Name')}} : <span class="pull-right text-primary">{company_name}</span></p>
