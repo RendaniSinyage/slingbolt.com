@@ -1240,6 +1240,20 @@ class User extends Authenticatable implements MustVerifyEmail
     // For Email template Module
     public static function defaultEmail()
     {
+        // Get all email templates from database
+        $emailTemplates = EmailTemplate::all(); // ← This WILL return templates!
+        foreach ($emailTemplates as $template) {
+            // Get all language versions for this template from database
+            $templateLangs = EmailTemplateLang::where('parent_id', $template->id)->get();
+
+            // If no language versions exist, this template is incomplete
+            if ($templateLangs->isEmpty()) {
+                \Log::warning("Email template '{$template->name}' has no language versions");
+                continue;
+            }
+            // Template and its content exist in database - nothing more needed
+            // The actual email sending will fetch from EmailTemplate and EmailTemplateLang tables
+        }
     }
 
     public static function userDefaultData()
