@@ -102,7 +102,7 @@
                                 </div>
                                 </div>
                                 @if(isset($setting) && $setting->is_enable == 0 || !isset($setting))
-                                        <h6 class="text-end text-danger text-md mt-2">{{ __('Note : super admin has disabled the referral program.') }}</h6>
+                                        <h6 class="text-end text-danger text-md mt-2">{{ __('Note : We are currently not running a referral program.') }}</h6>
                                     @endif
                             </div>
                         </div>
