@@ -1247,18 +1247,11 @@
                                         <a class="dash-link" href="{{ route('pos.barcode') }}">{{ __('Print Barcode') }}</a>
                                     </li>
                                 @endcan
-                                @can('manage pos')
-                                    <li
-                                        class="dash-item {{ Request::route()->getName() == 'pos-print-setting' ? ' active' : '' }}">
-                                        <a class="dash-link"
-                                            href="{{ route('pos.print.setting') }}">{{ __('Print Settings') }}</a>
-                                    </li>
-                                @endcan
                             </ul>
                         </li>
                     @endif
                 @endif
-                <!--------------------- End POs System ----------------------------------->
+                <!--------------------- End POS System ----------------------------------->
 
                 @if (\Auth::user()->type != 'super admin')
                     <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'support' ? 'active' : '' }}">
@@ -1281,12 +1274,12 @@
                         </a>
                     </li>
                 @endif
-
-                @if (\Auth::user()->type == 'company')
-                    <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'notification_templates' ? 'active' : '' }}">
-                        <a href="{{ route('notification-templates.index') }}" class="dash-link">
-                            <span class="dash-micon"><i class="ti ti-notification"></i></span><span
-                                class="dash-mtext">{{ __('Notification Template') }}</span>
+                @if (Gate::check('manage company plan'))
+                    <li class="dash-item dash-hasmenu {{ Request::route()->getName() == 'plans.index' || 
+                        Request::route()->getName() == 'stripe' ? ' active' : '' }}">
+                        <a href="{{ route('plans.index') }}" class="dash-link">
+			<span class="dash-micon"><i class="ti ti-trophy"></i></span><span
+                        class="dash-mtext">{{ __('Subscription Plan') }}</span>
                         </a>
                     </li>
                 @endif
@@ -1416,13 +1409,6 @@
                                 </li>
                             @endif
                         </ul>
-                    </li>
-                @endif
-
-                @if (Gate::check('manage company plan'))
-                    <li class="dash-item {{ Request::route()->getName() == 'plans.index' || 
-                        Request::route()->getName() == 'stripe' ? ' active' : '' }}">
-                        <a href="{{ route('plans.index') }}" class="dash-link">{{ __('Subscription Plan') }}</a>
                     </li>
                 @endif
 
