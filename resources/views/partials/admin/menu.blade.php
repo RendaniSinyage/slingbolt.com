@@ -619,83 +619,21 @@
                                 </li>
                             @endif
 
-                            <!-- Accounting Setup (multiple items - grouped) -->
+                            <!-- Accounting Setup (was originally a single link) -->
                             @if (Gate::check('manage constant tax') || Gate::check('manage constant category') || Gate::check('manage constant unit') || Gate::check('manage constant custom field'))
-                                <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'taxes' || Request::segment(1) == 'product-category' || Request::segment(1) == 'product-unit' || Request::segment(1) == 'payment-method' || Request::segment(1) == 'custom-field' || Request::segment(1) == 'chart-of-account-type' ? 'active dash-trigger' : '' }}">
-                                    <a class="dash-link" href="#">{{ __('Accounting Setup') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
-                                    <ul class="dash-submenu">
-                                        @can('manage constant tax')
-                                            <li class="dash-item {{ Request::segment(1) == 'taxes' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('taxes.index') }}">{{ __('Taxes') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage constant category')
-                                            <li class="dash-item {{ Request::segment(1) == 'product-category' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('product-category.index') }}">{{ __('Product Category') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage constant unit')
-                                            <li class="dash-item {{ Request::segment(1) == 'product-unit' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('product-unit.index') }}">{{ __('Product Unit') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage constant payment method')
-                                            <li class="dash-item {{ Request::segment(1) == 'payment-method' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('payment-method.index') }}">{{ __('Payment Method') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage constant custom field')
-                                            <li class="dash-item {{ Request::segment(1) == 'custom-field' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('custom-field.index') }}">{{ __('Custom Field') }}</a>
-                                            </li>
-                                        @endcan
-                                        <li class="dash-item {{ Request::segment(1) == 'chart-of-account-type' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('chart-of-account-type.index') }}">{{ __('Chart of Account Type') }}</a>
-                                        </li>
-                                    </ul>
+                                <li class="dash-item {{ Request::segment(1) == 'taxes' || Request::segment(1) == 'product-category' || Request::segment(1) == 'product-unit' || Request::segment(1) == 'payment-method' || Request::segment(1) == 'custom-field' || Request::segment(1) == 'chart-of-account-type' ? 'active' : '' }}">
+                                    <a class="dash-link" href="{{ route('taxes.index') }}">{{ __('Accounting Setup') }}</a>
                                 </li>
                             @endif
 
-                            <!-- CRM Setup (multiple items - grouped) -->
+                            <!-- CRM Setup (was originally a single link) -->
                             @if (Gate::check('manage lead stage') || Gate::check('manage pipeline') || Gate::check('manage source') || Gate::check('manage label') || Gate::check('manage stage') || Gate::check('manage contract type'))
-                                <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'stages' || Request::segment(1) == 'labels' || Request::segment(1) == 'sources' || Request::segment(1) == 'lead_stages' || Request::segment(1) == 'pipelines' || Request::segment(1) == 'contractType' ? 'active dash-trigger' : '' }}">
-                                    <a class="dash-link" href="#">{{ __('CRM Setup') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
-                                    <ul class="dash-submenu">
-                                        @can('manage pipeline')
-                                            <li class="dash-item {{ Request::segment(1) == 'pipelines' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('pipelines.index') }}">{{ __('Pipelines') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage stage')
-                                            <li class="dash-item {{ Request::segment(1) == 'stages' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('stages.index') }}">{{ __('Stages') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage lead stage')
-                                            <li class="dash-item {{ Request::segment(1) == 'lead_stages' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('lead_stages.index') }}">{{ __('Lead Stages') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage source')
-                                            <li class="dash-item {{ Request::segment(1) == 'sources' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('sources.index') }}">{{ __('Sources') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage label')
-                                            <li class="dash-item {{ Request::segment(1) == 'labels' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('labels.index') }}">{{ __('Labels') }}</a>
-                                            </li>
-                                        @endcan
-                                        @can('manage contract type')
-                                            <li class="dash-item {{ Request::segment(1) == 'contractType' ? 'active' : '' }}">
-                                                <a class="dash-link" href="{{ route('contractType.index') }}">{{ __('Contract Type') }}</a>
-                                            </li>
-                                        @endcan
-                                    </ul>
+                                <li class="dash-item {{ Request::segment(1) == 'stages' || Request::segment(1) == 'labels' || Request::segment(1) == 'sources' || Request::segment(1) == 'lead_stages' || Request::segment(1) == 'pipelines' || Request::segment(1) == 'contractType' ? 'active' : '' }}">
+                                    <a class="dash-link" href="{{ route('pipelines.index') }}">{{ __('CRM Setup') }}</a>
                                 </li>
                             @endif
 
-                            <!-- Project Setup (multiple items - grouped) -->
+                            <!-- Project Setup (keep as submenu since it had submenu in original) -->
                             @if (Gate::check('manage project task stage') || Gate::check('manage bug status'))
                                 <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'bugstatus' || Request::segment(1) == 'project-task-stages' ? 'active dash-trigger' : '' }}">
                                     <a class="dash-link" href="#">{{ __('Project Setup') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
@@ -714,63 +652,10 @@
                                 </li>
                             @endif
 
-                            <!-- HRM Setup (multiple items - grouped) -->
+                            <!-- HRM Setup (was originally a single link) -->
                             @if (\Auth::user()->type == 'company' || \Auth::user()->type == 'HR')
-                                <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'leavetype' || Request::segment(1) == 'document' || Request::segment(1) == 'performanceType' || Request::segment(1) == 'branch' || Request::segment(1) == 'department' || Request::segment(1) == 'designation' || Request::segment(1) == 'job-stage' || Request::segment(1) == 'competencies' || Request::segment(1) == 'job-category' || Request::segment(1) == 'terminationtype' || Request::segment(1) == 'awardtype' || Request::segment(1) == 'trainingtype' || Request::segment(1) == 'goaltype' || Request::segment(1) == 'paysliptype' || Request::segment(1) == 'allowanceoption' || Request::segment(1) == 'loanoption' || Request::segment(1) == 'deductionoption' ? 'active dash-trigger' : '' }}">
-                                    <a class="dash-link" href="#">{{ __('HRM Setup') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
-                                    <ul class="dash-submenu">
-                                        <li class="dash-item {{ Request::segment(1) == 'branch' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('branch.index') }}">{{ __('Branch') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'department' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('department.index') }}">{{ __('Department') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'designation' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('designation.index') }}">{{ __('Designation') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'leavetype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('leavetype.index') }}">{{ __('Leave Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'document' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('document.index') }}">{{ __('Document Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'paysliptype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('paysliptype.index') }}">{{ __('Payslip Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'allowanceoption' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('allowanceoption.index') }}">{{ __('Allowance Option') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'loanoption' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('loanoption.index') }}">{{ __('Loan Option') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'deductionoption' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('deductionoption.index') }}">{{ __('Deduction Option') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'goaltype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('goaltype.index') }}">{{ __('Goal Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'trainingtype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('trainingtype.index') }}">{{ __('Training Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'awardtype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('awardtype.index') }}">{{ __('Award Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'terminationtype' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('terminationtype.index') }}">{{ __('Termination Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'job-category' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('job-category.index') }}">{{ __('Job Category') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'job-stage' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('job-stage.index') }}">{{ __('Job Stage') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'performanceType' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('performanceType.index') }}">{{ __('Performance Type') }}</a>
-                                        </li>
-                                        <li class="dash-item {{ Request::segment(1) == 'competencies' ? 'active' : '' }}">
-                                            <a class="dash-link" href="{{ route('competencies.index') }}">{{ __('Competencies') }}</a>
-                                        </li>
-                                    </ul>
+                                <li class="dash-item {{ Request::segment(1) == 'leavetype' || Request::segment(1) == 'document' || Request::segment(1) == 'performanceType' || Request::segment(1) == 'branch' || Request::segment(1) == 'department' || Request::segment(1) == 'designation' || Request::segment(1) == 'job-stage' || Request::segment(1) == 'competencies' || Request::segment(1) == 'job-category' || Request::segment(1) == 'terminationtype' || Request::segment(1) == 'awardtype' || Request::segment(1) == 'trainingtype' || Request::segment(1) == 'goaltype' || Request::segment(1) == 'paysliptype' || Request::segment(1) == 'allowanceoption' || Request::segment(1) == 'loanoption' || Request::segment(1) == 'deductionoption' ? 'active' : '' }}">
+                                    <a class="dash-link" href="{{ route('branch.index') }}">{{ __('HRM Setup') }}</a>
                                 </li>
                             @endif
 
