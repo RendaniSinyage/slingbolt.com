@@ -300,12 +300,12 @@
 
         </ul>
     </li>
-@elseif(!Gate::check('show hrm dashboard') ||
-    !Gate::check('show project dashboard') ||
-    !Gate::check('show account dashboard') ||
-    !Gate::check('show crm dashboard') ||
-    !Gate::check('show pos dashboard')
-     && \Auth::user()->type != 'super admin')
+@elseif(!Gate::check('show hrm dashboard') &&
+    !Gate::check('show project dashboard') &&
+    !Gate::check('show account dashboard') &&
+    !Gate::check('show crm dashboard') &&
+    !Gate::check('show pos dashboard') &&
+    \Auth::user()->type != 'super admin')
 
         <li class="dash-item dash-hasmenu {{ Request::segment(1) == null || Request::segment(1) == 'dashboard' ? ' active' : '' }}">
             <a href="{{ route('dashboard') }}" class="dash-link">
