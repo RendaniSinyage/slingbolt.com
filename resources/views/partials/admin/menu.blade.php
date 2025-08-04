@@ -984,25 +984,6 @@
                                             href="{{ route('goal.index') }}">{{ __('Financial Goal') }}</a>
                                     </li>
                                 @endif
-                                @if (Gate::check('manage constant tax') ||
-                                        Gate::check('manage constant category') ||
-                                        Gate::check('manage constant unit') ||
-                                        Gate::check('manage constant custom field'))
-                                    <li
-                                        class="dash-item {{ Request::segment(1) == 'taxes' || Request::segment(1) == 'product-category' || Request::segment(1) == 'product-unit' || Request::segment(1) == 'payment-method' || Request::segment(1) == 'custom-field' || Request::segment(1) == 'chart-of-account-type' ? 'active dash-trigger' : '' }}">
-                                        <a class="dash-link"
-                                            href="{{ route('taxes.index') }}">{{ __('Accounting Setup') }}</a>
-                                    </li>
-                                @endif
-
-                                @if (Gate::check('manage print settings'))
-                                    <li
-                                        class="dash-item {{ Request::route()->getName() == 'print-setting' ? ' active' : '' }}">
-                                        <a class="dash-link"
-                                            href="{{ route('print.setting') }}">{{ __('Print Settings') }}</a>
-                                    </li>
-                                @endif
-
                             </ul>
                         </li>
                     @endif
@@ -1346,58 +1327,155 @@
                     </li>
                 @endif
 
-                <!--------------------- Start System Setup ----------------------------------->
+                <!--------------------- Start Module Setup ----------------------------------->
+@if (\Auth::user()->type != 'super admin')
+    <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'notification_templates' ||
+        Request::segment(1) == 'taxes' || Request::segment(1) == 'product-category' ||
+        Request::segment(1) == 'product-unit' || Request::segment(1) == 'payment-method' ||
+        Request::segment(1) == 'custom-field' || Request::segment(1) == 'chart-of-account-type' ||
+        Request::segment(1) == 'stages' || Request::segment(1) == 'labels' ||
+        Request::segment(1) == 'sources' || Request::segment(1) == 'lead_stages' ||
+        Request::segment(1) == 'pipelines' || Request::segment(1) == 'contractType' ||
+        Request::segment(1) == 'bugstatus' || Request::segment(1) == 'project-task-stages'
+        ? ' active dash-trigger' : '' }}">
+        <a href="#!" class="dash-link">
+            <span class="dash-micon"><i class="ti ti-settings-cog"></i></span><span
+                class="dash-mtext">{{ __('Module Setup') }}</span>
+            <span class="dash-arrow"><i data-feather="chevron-right"></i></span>
+        </a>
+        <ul class="dash-submenu">
+            @if (\Auth::user()->type == 'company')
+                <li class="dash-item {{ Request::segment(1) == 'notification_templates' ? 'active' : '' }}">
+                    <a href="{{ route('notification-templates.index') }}" class="dash-link">
+                        {{ __('Notification Template') }}
+                    </a>
+                </li>
+            @endif
 
-                @if (\Auth::user()->type != 'super admin')
-                    @if (Gate::check('manage company plan') || Gate::check('manage order') || Gate::check('manage company settings'))
-                        <li
-                            class="dash-item dash-hasmenu {{ Request::segment(1) == 'settings' ||
-                            Request::segment(1) == 'plans' ||
-                            Request::segment(1) == 'stripe' ||
-                            Request::segment(1) == 'order'
-                                ? ' active dash-trigger'
-                                : '' }}">
-                            <a href="#!" class="dash-link">
-                                <span class="dash-micon"><i class="ti ti-settings"></i></span><span
-                                    class="dash-mtext">{{ __('Settings') }}</span>
-                                <span class="dash-arrow">
-                                    <i data-feather="chevron-right"></i></span>
-                            </a>
-                            <ul class="dash-submenu">
-                                @if (Gate::check('manage company settings'))
-                                    <li
-                                        class="dash-item dash-hasmenu {{ Request::segment(1) == 'settings' ? ' active' : '' }}">
-                                        <a href="{{ route('settings') }}"
-                                            class="dash-link">{{ __('System Settings') }}</a>
-                                    </li>
-                                @endif
-                                @if (Gate::check('manage company plan'))
-                                    <li
-                                        class="dash-item{{ Request::route()->getName() == 'plans.index' || Request::route()->getName() == 'stripe' ? ' active' : '' }}">
-                                        <a href="{{ route('plans.index') }}"
-                                            class="dash-link">{{ __('Setup Subscription Plan') }}</a>
-                                    </li>
-                                @endif
-                                <li
-                                    class="dash-item{{ Request::route()->getName() == 'referral-program.company' ? ' active' : '' }}">
-                                    <a href="{{ route('referral-program.company') }}"
-                                        class="dash-link">{{ __('Referral Program') }}</a>
+            @if (!empty($userPlan) && $userPlan->account == 1)
+                @if (Gate::check('manage constant tax') ||
+                        Gate::check('manage constant category') ||
+                        Gate::check('manage constant unit') ||
+                        Gate::check('manage constant custom field'))
+                    <li class="dash-item {{ Request::segment(1) == 'taxes' || 
+                        Request::segment(1) == 'product-category' || 
+                        Request::segment(1) == 'product-unit' || 
+                        Request::segment(1) == 'payment-method' || 
+                        Request::segment(1) == 'custom-field' || 
+                        Request::segment(1) == 'chart-of-account-type' ? 'active' : '' }}">
+                        <a class="dash-link" href="{{ route('taxes.index') }}">{{ __('Accounting Setup') }}</a>
+                    </li>
+                @endif
+            @endif
+
+            @if (!empty($userPlan) && $userPlan->crm == 1)
+                @if (Gate::check('manage lead stage') ||
+                        Gate::check('manage pipeline') ||
+                        Gate::check('manage source') ||
+                        Gate::check('manage label') ||
+                        Gate::check('manage contract type') ||
+                        Gate::check('manage stage'))
+                    <li class="dash-item {{ Request::segment(1) == 'stages' || 
+                        Request::segment(1) == 'labels' || 
+                        Request::segment(1) == 'sources' || 
+                        Request::segment(1) == 'lead_stages' || 
+                        Request::segment(1) == 'pipelines' || 
+                        Request::segment(1) == 'contractType' ? 'active' : '' }}">
+                        <a class="dash-link" href="{{ route('pipelines.index') }}">{{ __('CRM System Setup') }}</a>
+                    </li>
+                @endif
+            @endif
+
+            @if (!empty($userPlan) && $userPlan->project == 1)
+                @if (Gate::check('manage project task stage') || Gate::check('manage bug status'))
+                    <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'bugstatus' || 
+                        Request::segment(1) == 'project-task-stages' ? 'active dash-trigger' : '' }}">
+                        <a class="dash-link" href="#">{{ __('Project System Setup') }}<span
+                                class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
+                        <ul class="dash-submenu">
+                            @can('manage project task stage')
+                                <li class="dash-item {{ Request::route()->getName() == 'project-task-stages.index' ? 'active' : '' }}">
+                                    <a class="dash-link" href="{{ route('project-task-stages.index') }}">{{ __('Project Task Stages') }}</a>
                                 </li>
+                            @endcan
+                            @can('manage bug status')
+                                <li class="dash-item {{ Request::route()->getName() == 'bugstatus.index' ? 'active' : '' }}">
+                                    <a class="dash-link" href="{{ route('bugstatus.index') }}">{{ __('Bug Status') }}</a>
+                                </li>
+                            @endcan
+                        </ul>
+                    </li>
+                @endif
+            @endif
+        </ul>
+    </li>
+@endif
+<!--------------------- End Module Setup ----------------------------------->
 
-                                @if (Gate::check('manage order') && Auth::user()->type == 'company')
-                                    <li class="dash-item {{ Request::segment(1) == 'order' ? 'active' : '' }}">
-                                        <a href="{{ route('order.index') }}" class="dash-link">{{ __('Order') }}</a>
-                                    </li>
-                                @endif
-                            </ul>
-                        </li>
-                    @endif
+<!--------------------- Start Settings ----------------------------------->
+@if (\Auth::user()->type != 'super admin')
+    @if (Gate::check('manage company plan') || Gate::check('manage order') || Gate::check('manage company settings') || Gate::check('manage print settings'))
+        <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'settings' ||
+            Request::segment(1) == 'plans' ||
+            Request::segment(1) == 'stripe' ||
+            Request::segment(1) == 'order' ||
+            Request::route()->getName() == 'print-setting' ||
+            Request::route()->getName() == 'pos-print-setting' ||
+            Request::route()->getName() == 'referral-program.company'
+            ? ' active dash-trigger' : '' }}">
+            <a href="#!" class="dash-link">
+                <span class="dash-micon"><i class="ti ti-settings"></i></span><span
+                    class="dash-mtext">{{ __('Settings') }}</span>
+                <span class="dash-arrow"><i data-feather="chevron-right"></i></span>
+            </a>
+            <ul class="dash-submenu">
+                @if (Gate::check('manage company settings'))
+                    <li class="dash-item {{ Request::segment(1) == 'settings' ? ' active' : '' }}">
+                        <a href="{{ route('settings') }}" class="dash-link">{{ __('System Settings') }}</a>
+                    </li>
                 @endif
 
+                @if (Gate::check('manage print settings'))
+                    <li class="dash-item dash-hasmenu {{ Request::route()->getName() == 'print-setting' || 
+                        Request::route()->getName() == 'pos-print-setting' ? 'active dash-trigger' : '' }}">
+                        <a class="dash-link" href="#">{{ __('Print Settings') }}<span
+                                class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
+                        <ul class="dash-submenu">
+                            @if (!empty($userPlan) && $userPlan->account == 1)
+                                <li class="dash-item {{ Request::route()->getName() == 'print-setting' ? ' active' : '' }}">
+                                    <a class="dash-link" href="{{ route('print.setting') }}">{{ __('Accounting Print Settings') }}</a>
+                                </li>
+                            @endif
+                            @if (!empty($userPlan) && $userPlan->pos == 1)
+                                <li class="dash-item {{ Request::route()->getName() == 'pos-print-setting' ? ' active' : '' }}">
+                                    <a class="dash-link" href="{{ route('pos.print.setting') }}">{{ __('POS Print Settings') }}</a>
+                                </li>
+                            @endif
+                        </ul>
+                    </li>
+                @endif
 
+                @if (Gate::check('manage company plan'))
+                    <li class="dash-item {{ Request::route()->getName() == 'plans.index' || 
+                        Request::route()->getName() == 'stripe' ? ' active' : '' }}">
+                        <a href="{{ route('plans.index') }}" class="dash-link">{{ __('Subscription Plan') }}</a>
+                    </li>
+                @endif
 
+                <li class="dash-item {{ Request::route()->getName() == 'referral-program.company' ? ' active' : '' }}">
+                    <a href="{{ route('referral-program.company') }}" class="dash-link">{{ __('Referral Program') }}</a>
+                </li>
 
-                <!--------------------- End System Setup ----------------------------------->
+                @if (Gate::check('manage order') && Auth::user()->type == 'company')
+                    <li class="dash-item {{ Request::segment(1) == 'order' ? 'active' : '' }}">
+                        <a href="{{ route('order.index') }}" class="dash-link">{{ __('Order') }}</a>
+                    </li>
+                @endif
+            </ul>
+        </li>
+    @endif
+@endif
+<!--------------------- End Settings ----------------------------------->
             </ul>
         @endif
         @if (\Auth::user()->type == 'client')
