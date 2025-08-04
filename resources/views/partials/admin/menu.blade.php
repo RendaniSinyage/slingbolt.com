@@ -1032,19 +1032,6 @@
                                             href="{{ route('contract.index') }}">{{ __('Contract') }}</a>
                                     </li>
                                 @endcan
-                        @if (Gate::check('manage lead stage') ||
-                                Gate::check('manage pipeline') ||
-                                Gate::check('manage source') ||
-                                Gate::check('manage label') ||
-                                Gate::check('manage contract type') ||
-                                Gate::check('manage stage'))
-                            <li
-                                class="dash-item  {{ Request::segment(1) == 'stages' || Request::segment(1) == 'labels' || Request::segment(1) == 'sources' || Request::segment(1) == 'lead_stages' || Request::segment(1) == 'pipelines' || Request::segment(1) == 'product-category' || Request::segment(1) == 'product-unit' || Request::segment(1) == 'contractType' || Request::segment(1) == 'payment-method' || Request::segment(1) == 'custom-field' || Request::segment(1) == 'chart-of-account-type' ? 'active dash-trigger' : '' }}">
-                                <a class="dash-link"
-                                    href="{{ route('pipelines.index') }}   ">{{ __('CRM System Setup') }}</a>
-
-                            </li>
-                        @endif
                             </ul>
                         </li>
                     @endif
@@ -1119,29 +1106,6 @@
                                     </li>
                                 @endif
 
-                                @if (Gate::check('manage project task stage') || Gate::check('manage bug status'))
-                                    <li
-                                        class="dash-item dash-hasmenu {{ Request::segment(1) == 'bugstatus' || Request::segment(1) == 'project-task-stages' ? 'active dash-trigger' : '' }}">
-                                        <a class="dash-link" href="#">{{ __('Project System Setup') }}<span
-                                                class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
-                                        <ul class="dash-submenu">
-                                            @can('manage project task stage')
-                                                <li
-                                                    class="dash-item  {{ Request::route()->getName() == 'project-task-stages.index' ? 'active' : '' }}">
-                                                    <a class="dash-link"
-                                                        href="{{ route('project-task-stages.index') }}">{{ __('Project Task Stages') }}</a>
-                                                </li>
-                                            @endcan
-                                            @can('manage bug status')
-                                                <li
-                                                    class="dash-item {{ Request::route()->getName() == 'bugstatus.index' ? 'active' : '' }}">
-                                                    <a class="dash-link"
-                                                        href="{{ route('bugstatus.index') }}">{{ __('Bug Status') }}</a>
-                                                </li>
-                                            @endcan
-                                        </ul>
-                                    </li>
-                                @endif
                             </ul>
                         </li>
                     @endif
