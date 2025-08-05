@@ -42,9 +42,42 @@
             <div class="user-card d-flex flex-column h-100">
                 <div class="user-card-top d-flex align-items-center justify-content-between flex-1 gap-2 mb-3">
                     @if (\Auth::user()->type == 'super admin')
-                        <div class="badge bg-primary p-1 px-2">
-                            {{ !empty($user->currentPlan) ? $user->currentPlan->name : '' }}
-                        </div>
+                        <span class="badge bg-primary p-1 px-2">
+                            @php
+                                $planName = !empty($user->currentPlan) ? $user->currentPlan->name : '';
+                                // Remove (yearly) or (Yearly) from plan name if it exists
+                                $cleanPlanName = preg_replace('/\s*\(yearly\)/i', '', $planName);
+                            @endphp
+                            {{ $cleanPlanName }}
+                        </span>
+
+                        {{-- Add second badge for plan type right next to the first one --}}
+                        @if(!empty($user->currentPlan))
+                            @php
+                                $plan = $user->currentPlan;
+                                $isOnTrial = !empty($user->trial_expire_date) && \Carbon\Carbon::parse($user->trial_expire_date)->isFuture();
+                                $isFirstPlan = $plan->id == 1; // Assuming first plan is ID 1 (free plan)
+                                $hasYearlyInName = stripos($plan->name, '(yearly)') !== false;
+                            @endphp
+
+                            @if($isOnTrial)
+                                <span class="badge bg-warning text-white p-1 px-2 ms-1">
+                                    {{ __('TRIAL') }}
+                                </span>
+                            @elseif($isFirstPlan)
+                                <span class="badge bg-success p-1 px-2 ms-1">
+                                    {{ __('FREE') }}
+                                </span>
+                            @elseif($hasYearlyInName)
+                                <span class="badge bg-info p-1 px-2 ms-1">
+                                    {{ __('YEARLY') }}
+                                </span>
+                            @else
+                                <span class="badge bg-purple p-1 px-2 ms-1">
+                                    {{ __('PRO') }}
+                                </span>
+                            @endif
+                        @endif
 
                     @else
                         <div class="badge bg-primary p-1 px-2">
