@@ -121,6 +121,11 @@
                                             <span class="period">/{{ $plan->duration }}</span>
                                         </div>
                                         <p class="plan-description">Perfect for getting started</p>
+                                        @if($plan->trial && $plan->trial_days > 0)
+                                            <div class="trial-info">
+                                                <span class="trial-badge">{{ $plan->trial_days }}-day free trial</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -180,13 +185,32 @@
                                 <div class="cta-spacer"></div>
                             </div>
                             @foreach($monthly_plans as $key => $plan)
-                                @php $is_popular = $key == 1; @endphp
+                                @php 
+                                    $is_popular = $key == 1;
+                                    $has_trial = $plan->trial && $plan->trial_days > 0;
+                                    $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
+                                    $trial_url = route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id));
+                                @endphp
                                 <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
                                     <div class="cta-button-container">
-                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
-                                           class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
-                                            Get Started
-                                        </a>
+                                        @if($has_trial)
+                                            <!-- Trial Button -->
+                                            <a href="{{ $trial_url }}"
+                                               class="btn btn-primary rounded-pill w-100 mb-2">
+                                                Start Free
+                                            </a>
+                                            <!-- Purchase Button -->
+                                            <a href="{{ $purchase_url }}"
+                                               class="btn btn-outline-primary rounded-pill w-100">
+                                                Buy Now
+                                            </a>
+                                        @else
+                                            <!-- Single Purchase Button -->
+                                            <a href="{{ $purchase_url }}"
+                                               class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
+                                                Get Started
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -221,6 +245,11 @@
                                             <span class="period">/month</span>
                                         </div>
                                         <p class="plan-description">Billed annually ({{ isset($admin_payment_setting['currency_symbol']) ? $admin_payment_setting['currency_symbol'] : '$' }}{{ $yearly_price }})</p>
+                                        @if($plan->trial && $plan->trial_days > 0)
+                                            <div class="trial-info">
+                                                <span class="trial-badge">{{ $plan->trial_days }}-day free trial</span>
+                                            </div>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -280,13 +309,32 @@
                                 <div class="cta-spacer"></div>
                             </div>
                             @foreach($yearly_plans as $key => $plan)
-                                @php $is_popular = $key == 1; @endphp
+                                @php 
+                                    $is_popular = $key == 1;
+                                    $has_trial = $plan->trial && $plan->trial_days > 0;
+                                    $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
+                                    $trial_url = route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id));
+                                @endphp
                                 <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
                                     <div class="cta-button-container">
-                                        <a href="{{ Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]) }}"
-                                           class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
-                                            Get Started
-                                        </a>
+                                        @if($has_trial)
+                                            <!-- Trial Button -->
+                                            <a href="{{ $trial_url }}"
+                                               class="btn btn-primary rounded-pill w-100 mb-2">
+                                                Start Free
+                                            </a>
+                                            <!-- Purchase Button -->
+                                            <a href="{{ $purchase_url }}"
+                                               class="btn btn-outline-primary rounded-pill w-100">
+                                                Buy Now
+                                            </a>
+                                        @else
+                                            <!-- Single Purchase Button -->
+                                            <a href="{{ $purchase_url }}"
+                                               class="btn {{ $is_popular ? 'btn-primary' : 'btn-outline-primary' }} rounded-pill w-100">
+                                                Get Started
+                                            </a>
+                                        @endif
                                     </div>
                                 </div>
                             @endforeach
@@ -497,7 +545,27 @@
         .plan-description {
             color: rgba(255, 255, 255, 0.8);
             font-size: 0.9rem;
-            margin: 0;
+            margin: 0 0 1rem 0;
+        }
+
+        /* Trial Badge */
+        .trial-info {
+            margin-top: 0.5rem;
+        }
+
+        .trial-badge {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .trial-then-buy {
+            text-align: center;
         }
 
         /* Feature Categories */
@@ -573,14 +641,6 @@
             opacity: 0.7;
         }
 
-        .feature-check {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-        }
-
         .plan-category-spacer {
             height: 100%;
             width: 100%;
@@ -595,6 +655,11 @@
         .cta-button-container {
             width: 100%;
             padding: 1rem;
+            text-align: center;
+        }
+
+        .cta-button-container .btn.mb-2 {
+            margin-bottom: 0.5rem !important;
         }
 
         .cta-spacer {
@@ -602,7 +667,40 @@
         }
 
         .feature-header-space {
-            height: 200px;
+            height: 220px; /* Increased to accommodate trial badges */
+        }
+
+        /* Button Styling */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border: none;
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-outline-primary {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: white;
+            font-weight: 600;
+            padding: 12px 24px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-outline-primary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.8);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
         }
 
         /* Responsive Design */
@@ -642,6 +740,11 @@
 
             .plan-toggle-label {
                 font-size: 0.8rem;
+            }
+
+            .trial-badge {
+                font-size: 0.7rem;
+                padding: 3px 10px;
             }
         }
     </style>
