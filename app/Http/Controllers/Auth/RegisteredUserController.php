@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules;
 use Spatie\Permission\Models\Role;
 use App\Services\CompanyClonerService;
+use Illuminate\Support\Facades\DB;
 
 class RegisteredUserController extends Controller
 {
@@ -269,6 +270,20 @@ class RegisteredUserController extends Controller
                  // Clone all defaults from template company
                  \Log::info("Public Registration (No Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
                  $user->cloneCompanyDefaults($user->id);
+
+                 // SET COMPANY NAME - Fixed placement for no email verification path
+                                  if ($request->has('company_name') && !empty($request->company_name)) {
+                                      DB::table('settings')->insert([
+                                          'name' => 'company_name',
+                                          'value' => $request->company_name,
+                                          'created_by' => $user->id,
+                                          'created_at' => now(),
+                                          'updated_at' => now()
+                                      ]);
+
+                                      \Log::info("Set company name '{$request->company_name}' for registered user: {$user->id}");
+                                  }
+
                  \Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
                  // Send welcome email (fix the method name)
