@@ -1,9 +1,7 @@
 name: Laravel Deployment Workflow
-
 on:
   push:
     branches: [ main, master ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -24,6 +22,9 @@ jobs:
             --exclude 'storage/*.log' \
             --exclude 'storage/*/token.json' \
             --exclude 'storage/*/credentials.json' \
+            --exclude 'storage/oauth-private.key' \
+            --exclude 'storage/oauth-public.key' \
+            --exclude 'storage/logs/' \
             -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
             ./ \
             root@s1.juvo.app:/var/www/fastuser/data/www/slingbolt.com/

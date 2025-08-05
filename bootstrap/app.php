@@ -1,8 +1,8 @@
 <?php
-
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Laravel\Passport\Passport;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -20,7 +20,6 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\PreventRequestsDuringMaintenance::class,
             \App\Http\Middleware\TrimStrings::class,
         ]);
-
         // RouteMiddleware / Alias
         $middleware->alias([
             'auth' => \App\Http\Middleware\Authenticate::class,
@@ -28,20 +27,20 @@ return Application::configure(basePath: dirname(__DIR__))
             'XSS' => \App\Http\Middleware\XSS::class,
             'revalidate' => \App\Http\Middleware\RevalidateBackHistory::class,
             'pusher' => \App\Http\Middleware\pusherConfig::class,
-             ]);
-
+            // ADD THESE TWO LINES:
+            'client.credentials' => \App\Http\Middleware\ClientCredentialsMiddleware::class,
+            'external.user' => \App\Http\Middleware\ExternalUserMiddleware::class,
+        ]);
         // middlewareGroups / Group Middleware
         // Append middleware to the 'web' group
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\EncryptCookies::class,
             \App\Http\Middleware\FilterRequest::class,
-                   ]);
-
+        ]);
         // Append middleware to the 'api' group
         $middleware->appendToGroup('api', [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
-
         // Exclude specific routes from CSRF protection
         $middleware->validateCsrfTokens(
             except: [
@@ -56,7 +55,6 @@ return Application::configure(basePath: dirname(__DIR__))
                 'invoice-easebuzz-payment-notify*',
             ] // Add your routes here
         );
-
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

@@ -10,6 +10,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens as PassportHasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Lab404\Impersonate\Models\Impersonate;
 use App\Services\CompanyClonerService;
@@ -48,7 +49,10 @@ class User extends Authenticatable implements MustVerifyEmail
    	    'registration_ip',
    	    'user_agent',
         'created_by',
-    ];
+        'external_platform',
+        'external_id',
+        'external_linked_at',
+   ];
 
     protected $hidden = [
         'password',
@@ -57,6 +61,7 @@ class User extends Authenticatable implements MustVerifyEmail
 
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'external_linked_at' => 'datetime',
     ];
 
     public $settings;
@@ -108,6 +113,57 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         return $this->lang;
     }
+
+    /**
+     * Check if user is linked to an external platform
+     */
+    public function isLinkedToExternalPlatform($platform = null)
+    {
+        if ($platform) {
+            return $this->external_platform === $platform && !empty($this->external_id);
+        }
+
+        return !empty($this->external_platform) && !empty($this->external_id);
+    }
+
+    /**
+     * Check if user is a Juvo seller
+     */
+    public function isFoodymanSeller()
+    {
+        return $this->isLinkedToExternalPlatform('juvo');
+    }
+
+    /**
+     * Get external platform display name
+     */
+    public function getExternalPlatformDisplayName()
+    {
+        switch ($this->external_platform) {
+            case 'juvo':
+                return 'Marketplace';
+            default:
+                return $this->external_platform ? ucfirst($this->external_platform) : null;
+        }
+    }
+
+    /**
+     * Scope for external platform users
+     */
+    public function scopeExternalPlatform($query, $platform)
+    {
+        return $query->where('external_platform', $platform);
+    }
+
+    /**
+     * Scope for linked external users
+     */
+    public function scopeLinkedExternal($query)
+    {
+        return $query->whereNotNull('external_platform')
+                    ->whereNotNull('external_id');
+    }
+
 
     public function priceFormat($price)
     {

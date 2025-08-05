@@ -18,6 +18,7 @@
         "lab404/laravel-impersonate": "^1.7",
         "lahirulhr/laravel-payhere": "^1.0",
         "laravel/framework": "^11.9",
+        "laravel/passport": "^13.0",
         "laravel/reverb": "^1.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.21",
