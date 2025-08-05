@@ -55,6 +55,7 @@ class PlanExpirationService
         $user->plan = 1;
         $user->trial_plan = 0;
         $user->trial_expire_date = null;
+        $user->has_used_trial = true;
         $user->save();
 
         Log::info("Trial expired - downgraded user {$user->email} from plan {$user->previous_plan} to plan 1");
@@ -99,7 +100,7 @@ class PlanExpirationService
     {
         // Create unique template slug for each day to allow multiple reminders
         $trackingSlug = "trial_expiring_day_{$daysLeft}";
-        
+
         // Check if we already sent this specific reminder
         if (!EmailSendLog::wasEmailSent($user->id, $trackingSlug)) {
             $this->sendEmail($user, 'Trial Expiring', [
@@ -117,7 +118,7 @@ class PlanExpirationService
     {
         // Create unique template slug for each day to allow multiple reminders
         $trackingSlug = "plan_expiring_day_{$daysLeft}";
-        
+
         // Check if we already sent this specific reminder
         if (!EmailSendLog::wasEmailSent($user->id, $trackingSlug)) {
             $this->sendEmail($user, 'Plan Expiring', [
@@ -134,7 +135,7 @@ class PlanExpirationService
     private function sendEmail($user, $templateName, $variables, $trackingSlug = null)
     {
         $trackingSlug = $trackingSlug ?: strtolower(str_replace(' ', '_', $templateName));
-        
+
         try {
             // Check if template is enabled
             if (!$this->isTemplateEnabled($templateName)) {
@@ -182,7 +183,7 @@ class PlanExpirationService
 
             // Log successful send
             EmailSendLog::logSuccess($user->id, $trackingSlug, $user->email, $variables);
-            
+
             Log::info("Email sent successfully", [
                 'template' => $templateName,
                 'tracking_slug' => $trackingSlug,
@@ -192,7 +193,7 @@ class PlanExpirationService
 
         } catch (\Exception $e) {
             EmailSendLog::logFailure($user->id, $trackingSlug, $user->email, $e->getMessage(), $variables);
-            
+
             Log::error("Failed to send email", [
                 'template' => $templateName,
                 'user_email' => $user->email,
@@ -219,7 +220,7 @@ class PlanExpirationService
         $templateLang = EmailTemplateLang::where('parent_id', $template->id)
                                         ->where('lang', $lang)
                                         ->first();
-        
+
         if (!$templateLang) {
             Log::warning("Email template language content not found", [
                 'template' => $templateName,
