@@ -237,8 +237,11 @@ class User extends Authenticatable implements MustVerifyEmail
     {
         $plan = Plan::find($planID);
         if ($plan) {
+
+            // Store previous plan BEFORE changing
+            $this->previous_plan = $this->plan;
             $this->plan = $plan->id;
-            if($this->trial_expire_date != null);
+            if($this->trial_expire_date != null)
             {
                 $this->trial_expire_date = null;
             }
