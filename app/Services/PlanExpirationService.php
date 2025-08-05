@@ -7,7 +7,7 @@ use App\Models\Utility;
 use App\Models\EmailTemplate;
 use App\Models\EmailTemplateLang;
 use App\Models\EmailSendLog;
-use App\Services\ConsoleEmailService; // Add this import
+use App\Services\ConsoleEmailService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
@@ -46,45 +46,18 @@ class PlanExpirationService
         }
     }
 
-    private function isTemplateEnabled($templateName)
-    {
-        $template = EmailTemplate::where('name', $templateName)->first();
-        return $template && $template->is_enabled;
-    }
-
-    private function templateHasContent($templateName, $lang = 'en')
-    {
-        $template = EmailTemplate::where('name', $templateName)->first();
-        if (!$template) {
-            Log::warning("Email template not found", ['template' => $templateName]);
-            return false;
-        }
-
-        $templateLang = EmailTemplateLang::where('parent_id', $template->id)
-                                        ->where('lang', $lang)
-                                        ->first();
-        
-        if (!$templateLang) {
-            Log::warning("Email template language content not found", [
-                'template' => $templateName,
-                'lang' => $lang,
-                'template_id' => $template->id
-            ]);
-            return false;
-        }
-
-        return true;
-    }
-
     private function expireTrial($user)
     {
         Log::info("Expiring trial for user: {$user->email}");
 
-        // Downgrade to free plan
+        // UPDATED: Store previous plan before downgrading
+        $user->previous_plan = $user->plan;
         $user->plan = 1;
         $user->trial_plan = 0;
         $user->trial_expire_date = null;
         $user->save();
+
+        Log::info("Trial expired - downgraded user {$user->email} from plan {$user->previous_plan} to plan 1");
 
         // Send trial expired email (only once)
         if (!EmailSendLog::wasEmailSent($user->id, 'trial_expired')) {
@@ -102,10 +75,13 @@ class PlanExpirationService
     {
         Log::info("Expiring plan for user: {$user->email}");
 
-        // Downgrade to free plan
+        // UPDATED: Store previous plan before downgrading
+        $user->previous_plan = $user->plan;
         $user->plan = 1;
         $user->plan_expire_date = null;
         $user->save();
+
+        Log::info("Plan expired - downgraded user {$user->email} from plan {$user->previous_plan} to plan 1");
 
         // Send plan expired email (only once)
         if (!EmailSendLog::wasEmailSent($user->id, 'plan_expired')) {
@@ -190,7 +166,7 @@ class PlanExpirationService
                 'context' => app()->runningInConsole() ? 'console' : 'web'
             ]);
 
-            // CHANGED: Use ConsoleEmailService instead of Utility::sendEmailTemplate
+            // Use ConsoleEmailService instead of Utility::sendEmailTemplate
             $resp = ConsoleEmailService::sendEmailTemplate($templateName, [$user->id => $user->email], $variables);
 
             // Check if email sending was successful
@@ -224,5 +200,35 @@ class PlanExpirationService
                 'trace' => $e->getTraceAsString()
             ]);
         }
+    }
+
+    private function isTemplateEnabled($templateName)
+    {
+        $template = EmailTemplate::where('name', $templateName)->first();
+        return $template && $template->is_enabled;
+    }
+
+    private function templateHasContent($templateName, $lang = 'en')
+    {
+        $template = EmailTemplate::where('name', $templateName)->first();
+        if (!$template) {
+            Log::warning("Email template not found", ['template' => $templateName]);
+            return false;
+        }
+
+        $templateLang = EmailTemplateLang::where('parent_id', $template->id)
+                                        ->where('lang', $lang)
+                                        ->first();
+        
+        if (!$templateLang) {
+            Log::warning("Email template language content not found", [
+                'template' => $templateName,
+                'lang' => $lang,
+                'template_id' => $template->id
+            ]);
+            return false;
+        }
+
+        return true;
     }
 }
