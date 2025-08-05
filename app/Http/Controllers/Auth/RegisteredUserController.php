@@ -112,6 +112,7 @@ class RegisteredUserController extends Controller
                  'email' => 'required|string|email|max:255|unique:users',
                  'password' => ['required', 'string',
                               'min:8','confirmed', Rules\Password::defaults()],
+                 'company_name' => 'required|string|max:255',
                  'terms' => 'required',
              ]);
 
@@ -230,6 +231,19 @@ class RegisteredUserController extends Controller
                      // Clone all defaults from template company
                      \Log::info("Public Registration (Email Verify): About to call cloneCompanyDefaults for user: " . $user->id);
                      $user->cloneCompanyDefaults($user->id);
+
+                     // ADD THIS: Set company name from registration form
+                     if ($request->has('company_name') && !empty($request->company_name)) {
+                         DB::table('settings')->insert([
+                             'name' => 'company_name',
+                             'value' => $request->company_name,
+                             'created_by' => $user->id,
+                             'created_at' => now(),
+                             'updated_at' => now()
+                         ]);
+
+                         \Log::info("Set company name '{$request->company_name}' for registered user: {$user->id}");
+                     }
                      \Log::info("Public Registration (Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
                  } catch (\Exception $e) {

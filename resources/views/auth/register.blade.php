@@ -47,7 +47,7 @@
         backdrop-filter: blur(20px);
         border-radius: 20px;
         padding: 1.25rem;
-        box-shadow: 
+        box-shadow:
             0 25px 50px rgba(0, 0, 0, 0.15),
             0 0 0 1px rgba(255, 255, 255, 0.2);
         border: 1px solid rgba(255, 255, 255, 0.18);
@@ -263,7 +263,7 @@
             border-radius: 16px;
             margin: 0.8rem;
         }
-        
+
         h2 {
             font-size: 1.3rem;
         }
@@ -293,6 +293,14 @@
                     </span>
                 @enderror
             </div>
+        <div class="form-group">
+            <label for="company_name">{{ __('Company Name') }}</label>
+            <input type="text" class="form-control" id="company_name" name="company_name"
+                   value="{{ old('company_name') }}" required>
+            @error('company_name')
+                <span class="text-danger">{{ $message }}</span>
+            @enderror
+        </div>
             <div class="form-group mb-3">
                 <input class="form-control @error('email') is-invalid @enderror" id="email" type="email"
                     name="email" value="{{ old('email') }}" autocomplete="email" autofocus
