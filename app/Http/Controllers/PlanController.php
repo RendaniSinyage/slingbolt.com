@@ -384,7 +384,12 @@ class PlanController extends Controller
             if($plan->price > 0)
             {
                 $user = User::find($objUser->id);
+                // Check if user has already used trial
+                if ($user->has_used_trial) {
+                   return redirect()->back()->with('error', __('You have already used your trial period.'));
+                    }
                 $user->trial_plan = $planID;
+                $user->has_used_trial = true;
                 $currentDate = date('Y-m-d');
                 $numberOfDaysToAdd = $plan->trial_days;
 
