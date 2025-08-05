@@ -16,6 +16,7 @@ class CompanyRefreshService
     private $originalBackup = [];
     private $transferLog = [];
     private $isDryRun = false;
+    private $roleIdMappings = [];
 
     /**
      * Master data tables that should be merged with template
@@ -197,6 +198,9 @@ class CompanyRefreshService
                 // Step 5: Add missing template configurations
                 $this->addMissingTemplateConfigurations();
 
+                // Step 6: Merge role permissions (NEW!)
+                            $this->mergeRolePermissions();
+
                 Log::info($this->isDryRun ? "DRY RUN completed successfully" : "ACTUAL REFRESH completed successfully");
 
                 return $this->generateSuccessResponse();
@@ -288,6 +292,21 @@ class CompanyRefreshService
 
         $this->originalBackup['settings'] = $settings->toArray();
         Log::info("Backed up {$settings->count()} settings");
+
+        // Backup role permissions
+            $userRoleIds = DB::table('roles')
+                ->where('created_by', $this->companyId)
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($userRoleIds)) {
+                $rolePermissions = DB::table('role_has_permissions')
+                    ->whereIn('role_id', $userRoleIds)
+                    ->get();
+
+                $this->originalBackup['role_has_permissions'] = $rolePermissions->toArray();
+                Log::info("Backed up {$rolePermissions->count()} role permissions");
+            }
     }
 
     /**
@@ -366,6 +385,11 @@ class CompanyRefreshService
                     }
                     $updated++;
 
+                    // Track role ID mapping for permissions
+                                    if ($tableName === 'roles') {
+                                        $this->roleIdMappings[$templateRecord->id] = $existingRecord->id;
+                                    }
+
                     $this->transferLog[] = [
                         'action' => 'updated_with_template',
                         'table' => $tableName,
@@ -374,6 +398,12 @@ class CompanyRefreshService
                     ];
                 } else {
                     $skipped++;
+
+                    // Still track role ID mapping even if we keep user version
+                                    if ($tableName === 'roles') {
+                                        $this->roleIdMappings[$templateRecord->id] = $existingRecord->id;
+                                    }
+
                     $this->transferLog[] = [
                         'action' => 'kept_user_version',
                         'table' => $tableName,
@@ -385,6 +415,11 @@ class CompanyRefreshService
                 // No conflict: Template has something user doesn't have
                 if (!$this->isDryRun) {
                     $this->addTemplateRecord($tableName, $templateRecord);
+
+                    // Track role ID mapping for new roles
+                                    if ($tableName === 'roles') {
+                                        $this->roleIdMappings[$templateRecord->id] = $newId;
+                                    }
                 }
                 $added++;
 
@@ -680,7 +715,7 @@ class CompanyRefreshService
             case 'goal_types':
             case 'award_types':
             case 'performance_types':
-            case 'termination_types':
+            case 'terminat ion_types':
             case 'payslip_types':
             case 'training_types':
             case 'custom_questions':
@@ -742,6 +777,59 @@ class CompanyRefreshService
         DB::table($tableName)->insert($newData);
     }
 
+
+    // Add this method to the CompanyRefreshService class
+    private function mergeRolePermissions()
+    {
+        Log::info("Step 6: Merging role permissions");
+
+        if (empty($this->roleIdMappings)) {
+            Log::info("No role mappings found, skipping role permissions");
+            return;
+        }
+
+        $permissionsAdded = 0;
+        $permissionsSkipped = 0;
+
+        foreach ($this->roleIdMappings as $templateRoleId => $userRoleId) {
+            // Get template role permissions
+            $templatePermissions = DB::table('role_has_permissions')
+                ->where('role_id', $templateRoleId)
+                ->get();
+
+            // Get existing user role permissions
+            $existingPermissions = DB::table('role_has_permissions')
+                ->where('role_id', $userRoleId)
+                ->pluck('permission_id')
+                ->toArray();
+
+            foreach ($templatePermissions as $permission) {
+                if (!in_array($permission->permission_id, $existingPermissions)) {
+                    // Permission doesn't exist for user role, add it
+                    if (!$this->isDryRun) {
+                        DB::table('role_has_permissions')->insert([
+                            'role_id' => $userRoleId,
+                            'permission_id' => $permission->permission_id,
+                        ]);
+                    }
+                    $permissionsAdded++;
+
+                    $this->transferLog[] = [
+                        'action' => 'added_role_permission',
+                        'table' => 'role_has_permissions',
+                        'details' => "Added permission {$permission->permission_id} to role {$userRoleId}",
+                        'dry_run' => $this->isDryRun
+                    ];
+                } else {
+                    $permissionsSkipped++;
+                }
+            }
+        }
+
+        Log::info("Role permissions: {$permissionsAdded} added, {$permissionsSkipped} already existed");
+    }
+
+
     /**
      * Get company's currency
      */
@@ -775,14 +863,28 @@ class CompanyRefreshService
                     foreach ($records as $record) {
                         DB::table('settings')->insert((array) $record);
                     }
-                } else {
-                    // Restore other tables
-                    DB::table($tableName)->where('created_by', $this->companyId)->delete();
-                    foreach ($records as $record) {
-                        DB::table($tableName)->insert((array) $record);
-                    }
-                }
-            }
+                } elseif ($tableName === 'role_has_permissions') {
+                                // Restore role permissions
+                                $userRoleIds = DB::table('roles')
+                                    ->where('created_by', $this->companyId)
+                                    ->pluck('id')
+                                    ->toArray();
+
+                                if (!empty($userRoleIds)) {
+                                    DB::table('role_has_permissions')->whereIn('role_id', $userRoleIds)->delete();
+                                    foreach ($records as $record) {
+                                        DB::table('role_has_permissions')->insert((array) $record);
+                                    }
+                                }
+                            } else {
+                                // Restore other tables
+                                DB::table($tableName)->where('created_by', $this->companyId)->delete();
+                                foreach ($records as $record) {
+                                    DB::table($tableName)->insert((array) $record);
+                                }
+                            }
+                        }
+
 
             Log::info("Rollback completed successfully");
         } catch (\Exception $e) {
