@@ -42,40 +42,56 @@
             <div class="user-card d-flex flex-column h-100">
                 <div class="user-card-top d-flex align-items-center justify-content-between flex-1 gap-2 mb-3">
                     @if (\Auth::user()->type == 'super admin')
-                        <div class="d-inline-flex gap-1">
-                            <span class="badge bg-primary p-1 px-2">
-                                @php
-                                    $planName = !empty($user->currentPlan) ? $user->currentPlan->name : '';
-                                    $cleanPlanName = preg_replace('/\s*\(yearly\)/i', '', $planName);
-                                @endphp
-                                {{ $cleanPlanName }}
-                            </span>
+                       <div class="d-inline-flex gap-1">
+                           <span class="badge bg-primary p-1 px-2">
+                               @php
+                                   $planName = !empty($user->currentPlan) ? $user->currentPlan->name : '';
+                                   $cleanPlanName = preg_replace('/\s*\(yearly\)/i', '', $planName);
+                               @endphp
+                               {{ $cleanPlanName }}
+                           </span>
 
-                            @if(!empty($user->currentPlan))
-                                @php
-                                    $plan = $user->currentPlan;
-                                    $isOnTrial = !empty($user->trial_expire_date) && \Carbon\Carbon::parse($user->trial_expire_date)->isFuture();
-                                    $isFirstPlan = $plan->id == 1;
-                                    $hasYearlyInName = stripos($plan->name, '(yearly)') !== false;
-                                @endphp
+                           @if(!empty($user->currentPlan))
+                               @php
+                                   $plan = $user->currentPlan;
+                                   $isOnTrial = !empty($user->trial_expire_date) && \Carbon\Carbon::parse($user->trial_expire_date)->isFuture();
+                                   $isFirstPlan = $plan->id == 1;
+                                   $hasYearlyInName = stripos($plan->name, '(yearly)') !== false;
+                                   $wasDowngraded = ($user->plan == 1 && !empty($user->previous_plan) && $user->previous_plan > 1);
+                               @endphp
 
-                                @if($isOnTrial)
-                                    <span class="badge bg-warning text-white p-1 px-2">{{ __('TRIAL') }}</span>
-                                @elseif($isFirstPlan)
-                                    <span class="badge bg-success p-1 px-2">{{ __('FREE') }}</span>
-                                @elseif($hasYearlyInName)
-                                    <span class="badge bg-info p-1 px-2">{{ __('YEARLY') }}</span>
-                                @else
-                                    <span class="badge bg-purple p-1 px-2">{{ __('PRO') }}</span>
-                                @endif
-                            @endif
-                        </div>
+                               {{-- Show trial badge if currently on active trial --}}
+                               @if($isOnTrial)
+                                   <span class="badge bg-warning text-white p-1 px-2">{{ __('TRIAL') }}</span>
+                               @endif
+
+                               {{-- Show expired badge if plan was downgraded --}}
+                               @if($wasDowngraded)
+                                   <span class="badge bg-danger text-white p-1 px-2">{{ __('DOWNGRADED') }}</span>
+                               @endif
+
+                               {{-- Show plan type --}}
+                               @if($isFirstPlan && !$wasDowngraded)
+                                   <span class="badge bg-success p-1 px-2">{{ __('FREE') }}</span>
+                               @elseif($hasYearlyInName)
+                                   <span class="badge bg-info p-1 px-2">{{ __('YEARLY') }}</span>
+                               @elseif(!$isFirstPlan)
+                                   <span class="badge bg-purple p-1 px-2">{{ __('PRO') }}</span>
+                               @endif
+                           @endif
+                       </div>
                     @else
-                        <div class="badge bg-primary p-1 px-2">
-                            {{ ucfirst($user->type) }}
-                        </div>
+                       <div class="badge bg-primary p-1 px-2">
+                           {{ ucfirst($user->type) }}
+                       </div>
                     @endif
 
+                    <div class="d-flex align-items-center gap-2">
+                            @if ($user->email_verified_at)
+                                <span class="badge bg-primary text-white p-1 px-2">
+                                    {{ __('VERIFIED') }}
+                                </span>
+                            @endif
                     @if (Gate::check('edit user') || Gate::check('delete user'))
                         <div class="btn-group card-option">
                             @if ($user->is_active == 1 && $user->is_disable == 1)
@@ -163,6 +179,7 @@
                         </div>
                     @endif
                 </div>
+            </div>
                 <div class="user-info-wrp d-flex align-items-center gap-3 border-bottom pb-3 mb-3">
                     <div class="user-image rounded-1 border-1 border border-primary">
 
@@ -170,15 +187,23 @@
                             alt="user-image" height="100%" width="100%">
                     </div>
                     <div class="user-info flex-1">
-                        <h5 class="mb-1 text-black">{{ $user->name }}</h5>
+                        <h5 class="mb-1 text-black">
+                           @if (\Auth::user()->type == 'super admin')
+                               @php
+                                   $companyName = \DB::table('settings')
+                                       ->where('created_by', $user->id)
+                                       ->where('name', 'company_name')
+                                       ->value('value');
+                               @endphp
+                               {{ $companyName ?: $user->name }}
+                           @else
+                               {{ $user->name }}
+                           @endif
+                        </h5>
                         @if ($user->delete_status == 0)
                             <h6 class="mb-1">{{ __('Soft Deleted') }}</h6>
                         @endif
-                        <span class="text-sm text-muted text-break">{{ $user->email }}@if ($user->email_verified_at)
-        <div class="verified-badge" data-bs-toggle="tooltip" title="{{ __('Verified Email') }}">
-            <i class="ti ti-circle-check" style="font-size: 18px; color: #1DA1F2;"></i>
-        </div>
-    @endif</span>
+                        <span class="text-sm text-muted text-break">{{ $user->email }}</span>
                     </div>
                 </div>
                 <div class="date-wrp d-flex align-items-center justify-content-between gap-2">
