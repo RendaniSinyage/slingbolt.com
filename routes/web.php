@@ -412,6 +412,8 @@ Route::group(['middleware' => ['verified']], function () {
             ],
         ],
         function () {
+		// Company self-deletion route - uses DELETE method like regular user deletion
+    Route::delete('/delete-my-company', [UserController::class, 'selfDestroy'])->name('company.self-delete');
             Route::get('change-language/{lang}', [LanguageController::class, 'changeLanquage'])->name('change.language');
 
             Route::get('manage-language/{lang}', [LanguageController::class, 'manageLanguage'])->name('manage.language');

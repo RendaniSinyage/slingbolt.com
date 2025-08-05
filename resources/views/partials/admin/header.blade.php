@@ -46,6 +46,19 @@
                         <a href="{{route('profile')}}" class="dropdown-item">
                             <i class="ti ti-user text-dark"></i><span>{{__('Profile')}}</span>
                         </a>
+{{-- Add Self-Delete option for company users only --}}
+    @if(\Auth::user()->type == 'company' && \Auth::user()->id != 2)
+        {!! Form::open([
+            'method' => 'DELETE',
+            'route' => ['company.self-delete'],
+            'id' => 'self-delete-form',
+        ]) !!}
+        <a href="#!" class="dropdown-item text-danger bs-pass-para">
+            <i class="ti ti-trash text-danger"></i>
+            <span>{{__('Delete My Company')}}</span>
+        </a>
+        {!! Form::close() !!}
+    @endif
 
                         <a href="{{ route('logout') }}" onclick="event.preventDefault(); document.getElementById('frm-logout').submit();" class="dropdown-item">
                             <i class="ti ti-power text-dark"></i><span>{{__('Logout')}}</span>

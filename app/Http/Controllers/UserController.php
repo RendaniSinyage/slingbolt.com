@@ -416,6 +416,50 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('success', __('User successfully deleted .'));
         }
 
+/**
+ * Allow company owner to delete their own company and all data
+ * Uses same modal pattern as regular user deletion
+ */
+public function selfDestroy()
+{
+    $user = \Auth::user();
+
+    // Only allow company owners to delete their own company
+    if ($user->type !== 'company') {
+        return redirect()->back()->with('error', __('Only company owners can delete their company.'));
+    }
+
+    // Don't allow deletion of template company (ID 2)
+    if ($user->id == 2) {
+        return redirect()->back()->with('error', __('Template company cannot be deleted.'));
+    }
+
+    // Verify this is the company owner
+    if ($user->created_by !== null && $user->created_by !== $user->id) {
+        return redirect()->back()->with('error', __('Only the company owner can delete the company.'));
+    }
+
+    try {
+        DB::transaction(function () use ($user) {
+            // Use the same logic as super admin deletion
+            CompanyCleanupService::cascadeDeleteCompanyData($user->id);
+            $user->delete();
+
+            // Log the self-deletion for audit purposes
+            \Log::info("Company self-deletion completed for company ID: {$user->id}, Name: {$user->name}, Email: {$user->email}");
+        });
+
+        // Logout the user since their account no longer exists
+        \Auth::logout();
+
+        return redirect()->route('login')->with('success', __('Your company and all associated data have been permanently deleted.'));
+
+    } catch (\Exception $e) {
+        \Log::error("Error in company self-deletion for company {$user->id}: " . $e->getMessage());
+        return redirect()->back()->with('error', __('Error occurred while deleting company. Please contact support.'));
+    }
+}
+
 
 public function getDeletionPreview($companyId)
 {
@@ -546,6 +590,7 @@ public function getDeletionPreview($companyId)
 
         return $todo->toJson();
     }
+
 
     public function todo_update($todo_id)
     {
