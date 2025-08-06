@@ -1,3 +1,7 @@
+<?php
+
+namespace App\Http\Middleware;
+
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -10,7 +14,8 @@ class ClientCredentialsMiddleware
     {
         try {
             // Check token existence via guard
-            $token = Auth::guard('api')->getToken();
+            $tokenString = $request->bearerToken();
+
 
             if (!$token) {
                 return response()->json([
