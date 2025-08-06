@@ -1,84 +1,69 @@
-<?php
-
-namespace App\Http\Middleware;
-
 use Closure;
 use Illuminate\Http\Request;
-use Laravel\Passport\Token;
+use Illuminate\Support\Facades\Auth;
+use Laravel\Passport\TokenRepository;
+use Laravel\Passport\Passport;
 
 class ClientCredentialsMiddleware
 {
-    /**
-     * Handle an incoming request for machine-to-machine authentication.
-     */
     public function handle(Request $request, Closure $next)
     {
         try {
-            // Check for Authorization header
-            $authorization = $request->header('Authorization');
-            
-            if (!$authorization) {
+            // Check token existence via guard
+            $token = Auth::guard('api')->getToken();
+
+            if (!$token) {
                 return response()->json([
-                    'error' => 'missing_authorization',
-                    'message' => 'Authorization header is required'
+                    'error' => 'missing_token',
+                    'message' => 'Access token not found'
                 ], 401);
             }
 
-            // Extract bearer token
-            if (!preg_match('/Bearer\s+(.*)$/i', $authorization, $matches)) {
-                return response()->json([
-                    'error' => 'invalid_authorization_format',
-                    'message' => 'Authorization header must be in Bearer format'
-                ], 401);
-            }
+            // Get token ID from parsed token
+            $tokenId = $token->getClaim('jti'); // 'jti' is the token ID
 
-            $tokenId = $matches[1];
+            // Retrieve token from DB
+            $tokenRepository = app(TokenRepository::class);
+            $accessToken = $tokenRepository->find($tokenId);
 
-            // Find the token in database using Token model
-            $accessToken = Token::find($tokenId);
-            
             if (!$accessToken) {
                 return response()->json([
                     'error' => 'invalid_token',
-                    'message' => 'Invalid or expired access token'
+                    'message' => 'Token not found in database'
                 ], 401);
             }
 
-            // Check if token is expired
-            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
-                return response()->json([
-                    'error' => 'token_expired',
-                    'message' => 'Access token has expired'
-                ], 401);
-            }
-
-            // Check if token is revoked
             if ($accessToken->revoked) {
                 return response()->json([
                     'error' => 'token_revoked',
-                    'message' => 'Access token has been revoked'
+                    'message' => 'Token revoked'
                 ], 401);
             }
 
-            // Verify it's a client credentials token (no user_id)
+            if ($accessToken->expires_at && $accessToken->expires_at->isPast()) {
+                return response()->json([
+                    'error' => 'token_expired',
+                    'message' => 'Token expired'
+                ], 401);
+            }
+
             if ($accessToken->user_id) {
                 return response()->json([
                     'error' => 'invalid_token_type',
-                    'message' => 'This endpoint requires client credentials token'
+                    'message' => 'User token not allowed for this endpoint'
                 ], 401);
             }
 
-            // Add client info to request for controllers
             $request->merge([
                 'oauth_client_id' => $accessToken->client_id,
-                'oauth_scopes' => $accessToken->scopes ?? []
+                'oauth_scopes' => $accessToken->scopes ?? [],
             ]);
 
             return $next($request);
 
         } catch (\Exception $e) {
             \Log::error('Client credentials middleware error: ' . $e->getMessage());
-            
+
             return response()->json([
                 'error' => 'authentication_error',
                 'message' => 'Authentication failed'
