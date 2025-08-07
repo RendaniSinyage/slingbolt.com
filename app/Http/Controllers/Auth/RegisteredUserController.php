@@ -220,7 +220,6 @@ class RegisteredUserController extends Controller
 
              if ($settings['email_verification'] == 'on') {
                  try {
-
                      Utility::smtpDetail(1);
 
                      // event(new Registered($user));
@@ -258,7 +257,29 @@ class RegisteredUserController extends Controller
                      return redirect()->back()->with('status', __('Email SMTP settings does not configure so please contact to your site admin.'));
                  }
 
-                 // For email verification flow, don't redirect to payment
+                 // Check if this was a purchase request (no trial parameter) AND plan costs money
+                 $isTrialRequest = isset($request->trial) && $request->trial == 'true';
+
+                 if (!$isTrialRequest && isset($request->plan) && !empty($request->plan)) {
+                     try {
+                         $planId = Crypt::decrypt($request->plan);
+                         $plan = Plan::find($planId);
+
+                         if ($plan && $plan->price > 0) {
+                             $encryptedPlanId = Crypt::encrypt($planId);
+                             \Log::info("Redirecting user to payment after email verification", [
+                                 'user_id' => $user->id,
+                                 'plan_id' => $planId,
+                                 'plan_price' => $plan->price
+                             ]);
+                             return redirect()->route('stripe', $encryptedPlanId);
+                         }
+                     } catch (\Exception $e) {
+                         \Log::warning("Plan decryption failed", ['error' => $e->getMessage()]);
+                     }
+                 }
+
+                 // For email verification flow, go to dashboard (trial users or free plans)
                  return redirect(RouteServiceProvider::HOME);
 
              } else {
@@ -272,17 +293,17 @@ class RegisteredUserController extends Controller
                  $user->cloneCompanyDefaults($user->id);
 
                  // SET COMPANY NAME - Fixed placement for no email verification path
-                                  if ($request->has('company_name') && !empty($request->company_name)) {
-                                      DB::table('settings')->insert([
-                                          'name' => 'company_name',
-                                          'value' => $request->company_name,
-                                          'created_by' => $user->id,
-                                          'created_at' => now(),
-                                          'updated_at' => now()
-                                      ]);
+                 if ($request->has('company_name') && !empty($request->company_name)) {
+                     DB::table('settings')->insert([
+                         'name' => 'company_name',
+                         'value' => $request->company_name,
+                         'created_by' => $user->id,
+                         'created_at' => now(),
+                         'updated_at' => now()
+                     ]);
 
-                                      \Log::info("Set company name '{$request->company_name}' for registered user: {$user->id}");
-                                  }
+                     \Log::info("Set company name '{$request->company_name}' for registered user: {$user->id}");
+                 }
 
                  \Log::info("Public Registration (No Email Verify): Finished calling cloneCompanyDefaults for user: " . $user->id);
 
@@ -302,10 +323,36 @@ class RegisteredUserController extends Controller
                      // Continue registration even if email fails
                  }
 
-                 // Always redirect to home for trial users - no payment needed
+                 // Check if this was a purchase request (no trial parameter) AND plan costs money
+                 $isTrialRequest = isset($request->trial) && $request->trial == 'true';
+
+                 if (!$isTrialRequest && isset($request->plan) && !empty($request->plan)) {
+                     try {
+                         $planId = Crypt::decrypt($request->plan);
+                         $plan = Plan::find($planId);
+
+                         if ($plan && $plan->price > 0) {
+                             $encryptedPlanId = Crypt::encrypt($planId);
+                             \Log::info("Redirecting user to payment (no email verification)", [
+                                 'user_id' => $user->id,
+                                 'plan_id' => $planId,
+                                 'plan_price' => $plan->price
+                             ]);
+                             return redirect()->route('stripe', $encryptedPlanId);
+                         }
+                     } catch (\Exception $e) {
+                         \Log::warning("Plan decryption failed", ['error' => $e->getMessage()]);
+                     }
+                 }
+
+                 // For all other cases (trial users or free plans), go to dashboard
                  return redirect(RouteServiceProvider::HOME);
              }
          }
+
+
+
+
 
          public function showRegistrationForm(Request $request, $ref = '' , $lang = '')
          {

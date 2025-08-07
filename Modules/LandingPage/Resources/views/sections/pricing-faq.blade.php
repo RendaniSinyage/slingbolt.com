@@ -189,7 +189,7 @@
                                     $is_popular = $key == 1;
                                     $has_trial = $plan->trial && $plan->trial_days > 0;
                                     $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
-                                    $trial_url = route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id));
+                                    $trial_url = Auth::check() ? route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id), 'trial' => true]);
                                 @endphp
                                 <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
                                     <div class="cta-button-container">
@@ -313,7 +313,7 @@
                                     $is_popular = $key == 1;
                                     $has_trial = $plan->trial && $plan->trial_days > 0;
                                     $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
-                                    $trial_url = route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id));
+                                    $trial_url = Auth::check() ? route('plan.trial', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id), 'trial' => true]);
                                 @endphp
                                 <div class="plan-column {{ $is_popular ? 'popular-column' : '' }}">
                                     <div class="cta-button-container">
