@@ -48,6 +48,7 @@
                                 <th>Payment Date</th>
                                 <th>Principal</th>
                                 <th>Interest</th>
+                                <th>Penalty</th>
                                 <th>Total Payment</th>
                                 <th>Outstanding Principal</th>
                                 <th>Status</th>
@@ -60,7 +61,8 @@
                                     <td>{{ $installment->payment_date->format('Y-m-d') }}</td>
                                     <td>{{ number_format($installment->principal_amount, 2) }}</td>
                                     <td>{{ number_format($installment->interest_amount, 2) }}</td>
-                                    <td>{{ number_format($installment->total_amount, 2) }}</td>
+                                    <td>{{ number_format($installment->penalty_amount, 2) }}</td>
+                                    <td>{{ number_format($installment->total_amount + $installment->penalty_amount, 2) }}</td>
                                     <td>{{ number_format($installment->outstanding_principal_balance, 2) }}</td>
                                     <td>{{ $installment->is_paid ? 'Paid' : 'Unpaid' }}</td>
                                 </tr>
@@ -68,6 +70,30 @@
                         </tbody>
                     </table>
                 @endif
+
+                <h2 class="mt-5">Repayments History</h2>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Amount Paid</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($loan->repayments as $repayment)
+                            <tr>
+                                <td>{{ $repayment->payment_date->format('Y-m-d') }}</td>
+                                <td>{{ number_format($repayment->amount_paid, 2) }}</td>
+                                <td>{{ $repayment->remarks }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3">No repayments recorded yet.</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

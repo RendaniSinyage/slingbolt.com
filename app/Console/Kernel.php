@@ -14,6 +14,7 @@ class Kernel extends ConsoleKernel
      */
     protected $commands = [
         Commands\CheckExpiredPlans::class,
+        \Modules\LendingTmp\Console\ApplyLoanPenalties::class,
     ];
 
     /**
@@ -31,6 +32,9 @@ class Kernel extends ConsoleKernel
                 ->dailyAt('09:00')
                 ->withoutOverlapping()
                 ->runInBackground();
+
+        // Run loan penalty calculation daily
+        $schedule->command('lending:apply-penalties')->daily();
     }
 
     /**
