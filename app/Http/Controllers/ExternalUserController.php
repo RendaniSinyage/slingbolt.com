@@ -73,7 +73,7 @@ class ExternalUserController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'external_id' => 'required',
-            'external_platform' => 'string|in:foodyman'
+            'external_platform' => 'string|in:juvo'
         ]);
 
         if ($validator->fails()) {
@@ -109,7 +109,7 @@ class ExternalUserController extends Controller
 
         // Link the existing user to external platform
         $user->update([
-            'external_platform' => $request->external_platform ?? 'foodyman',
+            'external_platform' => $request->external_platform ?? 'juvo',
             'external_id' => $request->external_id,
             'updated_at' => now()
         ]);
@@ -152,7 +152,7 @@ class ExternalUserController extends Controller
             'restaurant_name' => 'required|string|max:120',
             'external_id' => 'required',
             'password' => 'nullable|string|min:6',
-            'external_platform' => 'string|in:foodyman'
+            'external_platform' => 'string|in:juvo'
         ]);
 
         if ($validator->fails()) {
@@ -208,7 +208,7 @@ class ExternalUserController extends Controller
             $user->user_agent = $request->userAgent();
             
             // Store external platform reference
-            $user->external_platform = $request->external_platform ?? 'foodyman';
+            $user->external_platform = $request->external_platform ?? 'juvo';
             $user->external_id = $request->external_id;
 
             $user->save();
@@ -260,7 +260,7 @@ class ExternalUserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'external_id' => 'required',
-            'external_platform' => 'required|string|in:foodyman'
+            'external_platform' => 'required|string|in:juvo'
         ]);
 
         if ($validator->fails()) {
@@ -299,7 +299,7 @@ class ExternalUserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'external_id' => 'required',
-            'external_platform' => 'required|string|in:foodyman',
+            'external_platform' => 'required|string|in:juvo',
             'email' => 'sometimes|email',
             'first_name' => 'sometimes|string|max:120',
             'last_name' => 'sometimes|string|max:120',
@@ -375,7 +375,7 @@ class ExternalUserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'external_id' => 'required',
-            'external_platform' => 'required|string|in:foodyman'
+            'external_platform' => 'required|string|in:juvo'
         ]);
 
         if ($validator->fails()) {
@@ -447,7 +447,7 @@ class ExternalUserController extends Controller
     public function getExternalUserStats(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'external_platform' => 'required|string|in:foodyman'
+            'external_platform' => 'required|string|in:juvo'
         ]);
 
         if ($validator->fails()) {
@@ -478,7 +478,7 @@ class ExternalUserController extends Controller
     public function bulkSyncExternalUsers(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'external_platform' => 'required|string|in:foodyman',
+            'external_platform' => 'required|string|in:juvo',
             'users' => 'required|array',
             'users.*.external_id' => 'required',
             'users.*.email' => 'required|email',
