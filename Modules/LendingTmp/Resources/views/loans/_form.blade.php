@@ -15,7 +15,7 @@
     <label for="loan_product_id">Loan Product</label>
     <select name="loan_product_id" id="loan_product_id" class="form-control" required>
         @foreach($loanProducts as $product)
-            <option value="{{ $product->id }}" {{ (old('loan_product_id', $loan->loan_product_id ?? '') == $product->id) ? 'selected' : '' }}>
+            <option value="{{ $product->id }}" data-is-term-loan="{{ $product->is_term_loan }}" {{ (old('loan_product_id', $loan->loan_product_id ?? '') == $product->id) ? 'selected' : '' }}>
                 {{ $product->product_name }}
             </option>
         @endforeach
@@ -37,6 +37,18 @@
     <input type="date" name="disbursement_date" id="disbursement_date" class="form-control" value="{{ old('disbursement_date', isset($loan) ? optional($loan->disbursement_date)->format('Y-m-d') : '') }}">
     <small>Required if status is 'Disbursed'.</small>
 </div>
+
+<div class="form-check">
+    <input type="hidden" name="is_term_loan" value="0">
+    <input type="checkbox" name="is_term_loan" id="is_term_loan" class="form-check-input" value="1" {{ old('is_term_loan', $loan->is_term_loan ?? false) ? 'checked' : '' }}>
+    <label class="form-check-label" for="is_term_loan">Is Term Loan?</label>
+</div>
+
+<div class="form-group">
+    <label for="repayment_periods">Repayment Periods (Months)</label>
+    <input type="number" name="repayment_periods" id="repayment_periods" class="form-control" value="{{ old('repayment_periods', $loan->repayment_periods ?? '') }}">
+</div>
+
 
 <div class="form-group">
     <label for="status">Status</label>

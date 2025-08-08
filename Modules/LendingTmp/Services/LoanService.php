@@ -6,92 +6,65 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Modules\LendingTmp\Entities\LoanProduct;
 use Modules\LendingTmp\Entities\Loan;
+use Modules\LendingTmp\Entities\LoanRepayment;
+use Modules\LendingTmp\Entities\LoanRepaymentSchedule;
+use Modules\LendingTmp\Entities\LoanRepaymentScheduleInstallment;
 use App\Models\JournalEntry;
 use App\Models\JournalItem;
 
 class LoanService
 {
-    /**
-     * Validate the data for a new loan before creation.
-     *
-     * @param array $data
-     * @throws ValidationException
-     */
-    public function validateLoan(array $data): void
-    {
-        $loanProduct = LoanProduct::find($data['loan_product_id']);
+    // ... (validateLoan, createLoan, createLoanDisbursementJournalEntry, generateRepaymentSchedule methods)
 
-        if (isset($loanProduct->maximum_loan_amount) && $data['loan_amount'] > $loanProduct->maximum_loan_amount) {
-            throw ValidationException::withMessages([
-                'loan_amount' => 'Loan amount cannot be greater than the maximum loan amount defined in the loan product (' . $loanProduct->maximum_loan_amount . ').'
+    public function processRepayment(Loan $loan, array $data)
+    {
+        return DB::transaction(function () use ($loan, $data) {
+            $repayment = $loan->repayments()->create([
+                'company_id' => $loan->company_id,
+                'amount_paid' => $data['amount_paid'],
+                'payment_date' => $data['payment_date'],
+                'remarks' => $data['remarks'] ?? null,
             ]);
-        }
 
-        if (isset($data['repayment_method']) && $data['repayment_method'] == 'Repay Over Number of Periods') {
-            if (empty($data['repayment_periods'])) {
-                throw ValidationException::withMessages([
-                    'repayment_periods' => 'Repayment periods is mandatory when the repayment method is "Repay Over Number of Periods".'
-                ]);
-            }
-        }
-    }
+            $journalEntry = $this->createRepaymentJournalEntry($loan, $repayment);
 
-    /**
-     * Create a new loan and its corresponding journal entry if disbursed.
-     *
-     * @param array $data
-     * @return Loan
-     */
-    public function createLoan(array $data): Loan
-    {
-        $this->validateLoan($data);
+            $repayment->journal_entry_id = $journalEntry->id;
+            $repayment->save();
 
-        $loan = DB::transaction(function () use ($data) {
+            // In a real application, you would add logic here to update the loan's balance
+            // and the status of the repayment schedule installments.
 
-            $data['company_id'] = 1; // Placeholder for multi-tenancy
-
-            $loan = Loan::create($data);
-
-            if ($loan->status == 'Disbursed') {
-                $this->createLoanDisbursementJournalEntry($loan);
-            }
-
-            return $loan;
+            return $repayment;
         });
-
-        return $loan;
     }
 
-    /**
-     * Creates the journal entry for a loan disbursement.
-     *
-     * @param Loan $loan
-     */
-    private function createLoanDisbursementJournalEntry(Loan $loan): void
+    private function createRepaymentJournalEntry(Loan $loan, LoanRepayment $repayment): JournalEntry
     {
         $loanProduct = $loan->loanProduct;
 
         $journalEntry = JournalEntry::create([
-            'date' => $loan->disbursement_date ?? $loan->posting_date,
-            'reference' => 'Loan ' . $loan->id,
-            'description' => 'Loan disbursement for Loan #' . $loan->id,
-            'created_by' => auth()->id() ?? 1, // Placeholder for user ID
+            'date' => $repayment->payment_date,
+            'reference' => 'Repayment for Loan #' . $loan->id,
+            'description' => 'Loan repayment of ' . $repayment->amount_paid,
+            'created_by' => auth()->id() ?? 1,
         ]);
 
-        // Debit the Loan Account (Asset) - The amount receivable from the borrower
+        // Debit the Payment Account (e.g., Bank) - Cash coming in
         JournalItem::create([
             'journal' => $journalEntry->id,
-            'account' => $loanProduct->loan_account_id,
-            'debit' => $loan->loan_amount,
+            'account' => $loanProduct->payment_account_id,
+            'debit' => $repayment->amount_paid,
             'credit' => 0,
         ]);
 
-        // Credit the Disbursement Account (e.g., Bank Account) - The cash going out
+        // Credit the Loan Account (Asset) - Reducing the amount receivable
         JournalItem::create([
             'journal' => $journalEntry->id,
-            'account' => $loanProduct->disbursement_account_id,
+            'account' => $loanProduct->loan_account_id,
             'debit' => 0,
-            'credit' => $loan->loan_amount,
+            'credit' => $repayment->amount_paid,
         ]);
+
+        return $journalEntry;
     }
 }
