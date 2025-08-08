@@ -5,17 +5,84 @@ namespace Modules\LendingTmp\Http\Controllers;
 use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Modules\LendingTmp\Entities\Loan;
+use Modules\LendingTmp\Entities\LoanProduct;
+use Modules\LendingTmp\Services\LoanService;
+// Assuming a Customer model exists in the main app
+use App\Models\Customer;
 
 class LendingController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     * @return Renderable
-     */
+    protected $loanService;
+
+    public function __construct(LoanService $loanService)
+    {
+        $this->loanService = $loanService;
+    }
+
     public function index()
     {
-        // The view name 'lendingtmp::index' uses the module's lower-case name
-        // as a namespace, which is the convention for nwidart/laravel-modules.
-        return view('lendingtmp::index');
+        $loans = Loan::with('loanProduct', 'applicant')->paginate(15);
+        return view('lendingtmp::loans.index', compact('loans'));
+    }
+
+    public function create()
+    {
+        $loanProducts = LoanProduct::all();
+        $customers = Customer::all();
+        return view('lendingtmp::loans.create', compact('loanProducts', 'customers'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'applicant_type' => 'required|string',
+            'applicant_id' => 'required|integer',
+            'loan_product_id' => 'required|exists:loan_products,id',
+            'loan_amount' => 'required|numeric',
+            'posting_date' => 'required|date',
+            'status' => 'required|string|in:Sanctioned,Disbursed',
+            'disbursement_date' => 'required_if:status,Disbursed|nullable|date',
+        ]);
+
+        try {
+            $this->loanService->createLoan($request->all());
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return redirect()->back()->withErrors($e->errors())->withInput();
+        }
+
+        return redirect()->route('lendingtmp.loans.index')->with('success', 'Loan created successfully.');
+    }
+
+    public function show(Loan $loan)
+    {
+        $loan->load('applicant', 'loanProduct');
+        return view('lendingtmp::loans.show', compact('loan'));
+    }
+
+    public function edit(Loan $loan)
+    {
+        $loanProducts = LoanProduct::all();
+        $customers = Customer::all();
+        return view('lendingtmp::loans.edit', compact('loan', 'loanProducts', 'customers'));
+    }
+
+    public function update(Request $request, Loan $loan)
+    {
+        $request->validate([
+            'status' => 'required|string',
+            'loan_amount' => 'required|numeric',
+        ]);
+
+        // In a real scenario, update would also use the service for validation and logic
+        $loan->update($request->all());
+
+        return redirect()->route('lendingtmp.loans.index')->with('success', 'Loan updated successfully.');
+    }
+
+    public function destroy(Loan $loan)
+    {
+        $loan->delete();
+        return redirect()->route('lendingtmp.loans.index')->with('success', 'Loan deleted successfully.');
     }
 }

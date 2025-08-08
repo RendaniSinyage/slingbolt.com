@@ -2,18 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\LendingTmp\Http\Controllers\LendingController;
+use Modules\LendingTmp\Http\Controllers\LoanProductController;
+use Modules\LendingTmp\Http\Controllers\LoanApplicationController;
 
 /*
 |--------------------------------------------------------------------------
 | Web Routes
 |--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| contains the "web" middleware group. Now create something great!
-|
 */
 
-Route::prefix('lendingtmp')->group(function() {
-    Route::get('/', [LendingController::class, 'index']);
+Route::prefix('lendingtmp')->name('lendingtmp.')->group(function() {
+    Route::get('/', [LendingController::class, 'index'])->name('index');
+    Route::resource('loans', LendingController::class);
+    Route::resource('loan-products', LoanProductController::class);
+    Route::resource('loan-applications', LoanApplicationController::class);
 });
