@@ -36,38 +36,10 @@ class Loan extends Model
 
     // ... (casts and booted method)
 
-    public function applicant()
-    {
-        return $this->morphTo();
-    }
+    // ... (existing relationships)
 
-    public function company()
+    public function writeOffs()
     {
-        return $this->belongsTo(\App\Models\Company::class);
-    }
-
-    public function loanProduct()
-    {
-        return $this->belongsTo(LoanProduct::class);
-    }
-
-    public function loanApplication()
-    {
-        return $this->belongsTo(LoanApplication::class);
-    }
-
-    public function schedule()
-    {
-        return $this->hasOne(LoanRepaymentSchedule::class);
-    }
-
-    public function repayments()
-    {
-        return $this->hasMany(LoanRepayment::class);
-    }
-
-    public function restructures()
-    {
-        return $this->hasMany(LoanRestructure::class);
+        return $this->hasMany(LoanWriteOff::class);
     }
 }

@@ -56,7 +56,7 @@ class LendingController extends Controller
 
     public function show(Loan $loan)
     {
-        $loan->load('applicant', 'loanProduct', 'schedule.installments', 'repayments');
+        $loan->load('applicant', 'loanProduct', 'schedule.installments', 'repayments', 'securityAssignments.pledges.security');
         return view('lending::loans.show', compact('loan'));
     }
 

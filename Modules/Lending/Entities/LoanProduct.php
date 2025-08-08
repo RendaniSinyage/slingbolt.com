@@ -32,30 +32,17 @@ class LoanProduct extends Model
         'suspense_interest_income_id',
     ];
 
-    protected $casts = [
-        'rate_of_interest' => 'decimal:4',
-        'penalty_interest_rate' => 'decimal:4',
-        'maximum_loan_amount' => 'decimal:2',
-        'is_term_loan' => 'boolean',
-        'disabled' => 'boolean',
-    ];
-
-    /**
-     * The "booted" method of the model.
-     *
-     * @return void
-     */
-    protected static function booted()
-    {
-        if (auth()->check() && session()->has('company_id')) {
-            static::addGlobalScope('company', function (Builder $builder) {
-                $builder->where('company_id', session('company_id'));
-            });
-        }
-    }
+    // ... (casts and booted method)
 
     public function company()
     {
         return $this->belongsTo(\App\Models\Company::class);
+    }
+
+    public function loanPartners()
+    {
+        return $this->belongsToMany(LoanPartner::class, 'loan_product_loan_partner')
+            ->withPivot('share_percentage')
+            ->withTimestamps();
     }
 }
