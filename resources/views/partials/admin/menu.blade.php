@@ -295,6 +295,19 @@
                         @endcan
                     @endif
 
+                    <!-- Lending Reports -->
+                    <li class="dash-item dash-hasmenu {{ (Request::segment(1) == 'lending' && Request::segment(2) == 'reports') ? 'active dash-trigger' : '' }}">
+                        <a class="dash-link" href="#">{{ __('Lending') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
+                        <ul class="dash-submenu">
+                            <li class="dash-item {{ (Request::route()->getName() == 'lending.reports.portfolio') ? 'active' : '' }}">
+                                <a class="dash-link" href="{{ route('lending.reports.portfolio') }}">{{ __('Portfolio Report') }}</a>
+                            </li>
+                            <li class="dash-item {{ (Request::route()->getName() == 'lending.reports.collections') ? 'active' : '' }}">
+                                <a class="dash-link" href="{{ route('lending.reports.collections') }}">{{ __('Collections Report') }}</a>
+                            </li>
+                        </ul>
+                    </li>
+
                 </ul>
             </li>
 

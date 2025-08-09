@@ -1,19 +1,14 @@
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Module Lending</title>
+@extends('layouts.admin')
 
-       {{-- Laravel Vite - CSS File --}}
-       {{-- {{ module_vite('build-lending', 'Resources/assets/sass/app.scss') }} --}}
+@section('page-title')
+    {{ __('Lending Management') }}
+@endsection
 
-    </head>
-    <body>
-        @yield('content')
+@section('breadcrumb')
+    <li class="breadcrumb-item"><a href="{{route('dashboard')}}">{{__('Dashboard')}}</a></li>
+    <li class="breadcrumb-item">{{__('Lending')}}</li>
+@endsection
 
-        {{-- Laravel Vite - JS File --}}
-        {{-- {{ module_vite('build-lending', 'Resources/assets/js/app.js') }} --}}
-    </body>
-</html>
+@section('content')
+    @yield('lending-content')
+@endsection
