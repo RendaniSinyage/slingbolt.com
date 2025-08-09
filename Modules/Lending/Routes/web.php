@@ -11,6 +11,8 @@ use Modules\Lending\Http\Controllers\LoanSecurityReleaseController;
 use Modules\Lending\Http\Controllers\LoanWriteOffController;
 use Modules\Lending\Http\Controllers\ReportController;
 use Modules\Lending\Http\Controllers\CompanyComplianceSettingsController;
+use Modules\Lending\Http\Controllers\LoanDocumentController;
+use Modules\Lending\Http\Controllers\ContractController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +27,9 @@ Route::prefix('lending')->name('lending.')->middleware(['auth', 'check.lending.p
     Route::resource('loan-products', LoanProductController::class);
     Route::resource('loan-applications', LoanApplicationController::class);
     Route::resource('loan-securities', LoanSecurityController::class);
+    Route::resource('loan-applications.documents', LoanDocumentController::class)->except(['show', 'edit', 'update']);
+    Route::get('loan-applications/documents/{document}/download', [LoanDocumentController::class, 'download'])->name('loan-applications.documents.download');
+    Route::get('contracts/create/{application}', [ContractController::class, 'create'])->name('contracts.create');
     Route::resource('loans', LendingController::class);
 
     // Nested Resourceful Routes

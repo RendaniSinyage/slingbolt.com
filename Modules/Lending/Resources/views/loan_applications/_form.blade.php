@@ -27,6 +27,41 @@
     <input type="number" step="0.01" name="loan_amount" id="loan_amount" class="form-control" value="{{ old('loan_amount', $application->loan_amount ?? '') }}" required>
 </div>
 
+<hr>
+<h5>Eligibility Information</h5>
+
+<div class="form-group">
+    <label for="monthly_income">Monthly Income</label>
+    <input type="number" step="0.01" name="monthly_income" id="monthly_income" class="form-control" value="{{ old('monthly_income', $application->monthly_income ?? '') }}">
+</div>
+
+<div class="form-group">
+    <label for="monthly_debt">Monthly Debt</label>
+    <input type="number" step="0.01" name="monthly_debt" id="monthly_debt" class="form-control" value="{{ old('monthly_debt', $application->monthly_debt ?? '') }}">
+</div>
+
+<div class="form-group">
+    <label>Failed Debit Orders (Last 3 Months)</label>
+    <div class="row">
+        <div class="col-md-4">
+            <input type="number" name="failed_debit_orders_last_3_months[month1]" class="form-control" placeholder="Month 1" value="{{ old('failed_debit_orders_last_3_months.month1', $application->failed_debit_orders_last_3_months['month1'] ?? '') }}">
+        </div>
+        <div class="col-md-4">
+            <input type="number" name="failed_debit_orders_last_3_months[month2]" class="form-control" placeholder="Month 2" value="{{ old('failed_debit_orders_last_3_months.month2', $application->failed_debit_orders_last_3_months['month2'] ?? '') }}">
+        </div>
+        <div class="col-md-4">
+            <input type="number" name="failed_debit_orders_last_3_months[month3]" class="form-control" placeholder="Month 3" value="{{ old('failed_debit_orders_last_3_months.month3', $application->failed_debit_orders_last_3_months['month3'] ?? '') }}">
+        </div>
+    </div>
+</div>
+
+<div class="form-group">
+    <label for="reversed_debit_orders_last_3_months">Reversed Debit Orders (Last 3 Months)</label>
+    <input type="number" name="reversed_debit_orders_last_3_months" id="reversed_debit_orders_last_3_months" class="form-control" value="{{ old('reversed_debit_orders_last_3_months', $application->reversed_debit_orders_last_3_months ?? '') }}">
+</div>
+
+<hr>
+
 <div class="form-check">
     <input type="hidden" name="is_secured_loan" value="0">
     <input type="checkbox" name="is_secured_loan" id="is_secured_loan" class="form-check-input" value="1" {{ old('is_secured_loan', $application->is_secured_loan ?? false) ? 'checked' : '' }}>

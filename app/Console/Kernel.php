@@ -35,6 +35,9 @@ class Kernel extends ConsoleKernel
 
         // Run loan penalty calculation daily
         $schedule->command('lending:apply-penalties')->daily();
+
+        // Run loan document cleanup daily
+        $schedule->command('lending:cleanup-documents')->daily();
     }
 
     /**

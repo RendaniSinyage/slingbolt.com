@@ -29,6 +29,18 @@
                             <td>{{ $application->status }}</td>
                         </tr>
                         <tr>
+                            <th>Recommendation</th>
+                            <td>
+                                <span class="badge badge-{{ $application->recommendation == 'eligible' ? 'success' : ($application->recommendation == 'ineligible' ? 'danger' : 'warning') }}">
+                                    {{ $application->recommendation ?? 'N/A' }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Recommendation Reason</th>
+                            <td>{{ $application->recommendation_reason ?? 'N/A' }}</td>
+                        </tr>
+                        <tr>
                             <th>Repayment Method</th>
                             <td>{{ $application->repayment_method }}</td>
                         </tr>
@@ -38,6 +50,9 @@
                         </tr>
                     </tbody>
                 </table>
+                @if($application->status == 'Approved')
+                    <a href="{{ route('lending.contracts.create', $application->id) }}" class="btn btn-success">Generate Contract</a>
+                @endif
                 <a href="{{ route('lending.loan-applications.index') }}" class="btn btn-default">Back to List</a>
             </div>
         </div>
