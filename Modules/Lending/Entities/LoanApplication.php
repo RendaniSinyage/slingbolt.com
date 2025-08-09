@@ -59,4 +59,9 @@ class LoanApplication extends Model
     {
         return $this->hasMany(LoanDocument::class);
     }
+
+    protected static function newFactory()
+    {
+        return \Modules\Lending\Database\factories\LoanApplicationFactory::new();
+    }
 }

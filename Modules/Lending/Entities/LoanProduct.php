@@ -43,4 +43,9 @@ class LoanProduct extends Model
             ->withPivot('share_percentage')
             ->withTimestamps();
     }
+
+    protected static function newFactory()
+    {
+        return \Modules\Lending\Database\factories\LoanProductFactory::new();
+    }
 }

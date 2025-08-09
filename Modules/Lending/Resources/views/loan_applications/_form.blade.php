@@ -82,7 +82,8 @@
 <div class="form-group">
     <label for="status">Status</label>
     <select name="status" id="status" class="form-control" required>
-        <option value="Open" {{ (old('status', $application->status) == 'Open') ? 'selected' : '' }}>Open</option>
+        <option value="Incomplete" {{ (old('status', $application->status) == 'Incomplete') ? 'selected' : '' }}>Incomplete</option>
+        <option value="Pending Review" {{ (old('status', $application->status) == 'Pending Review') ? 'selected' : '' }}>Pending Review</option>
         <option value="Approved" {{ (old('status', $application->status) == 'Approved') ? 'selected' : '' }}>Approved</option>
         <option value="Rejected" {{ (old('status', $application->status) == 'Rejected') ? 'selected' : '' }}>Rejected</option>
     </select>

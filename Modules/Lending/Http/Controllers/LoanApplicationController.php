@@ -40,11 +40,17 @@ class LoanApplicationController extends Controller
         DB::transaction(function () use ($request) {
             $data = $request->except('securities');
             $data['created_by'] = \Auth::user()->creatorId();
+            $data['status'] = 'Incomplete';
 
             $application = LoanApplication::create($data);
 
             $eligibilityService = new EligibilityService();
             $eligibilityService->checkEligibility($application);
+
+            if ($application->recommendation != 'ineligible') {
+                $application->status = 'Pending Review';
+                $application->save();
+            }
 
             if ($request->has('securities') && $request->is_secured_loan) {
                 $assignment = $application->securityAssignments()->create([
@@ -102,6 +108,11 @@ class LoanApplicationController extends Controller
 
             $eligibilityService = new EligibilityService();
             $eligibilityService->checkEligibility($application);
+
+            if ($application->status == 'Incomplete' && $application->recommendation != 'ineligible') {
+                $application->status = 'Pending Review';
+                $application->save();
+            }
 
             // Handle securities assignment
             if ($request->has('securities') && $request->is_secured_loan) {
