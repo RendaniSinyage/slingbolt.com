@@ -10,7 +10,7 @@ class LoanWriteOff extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'loan_id',
         'write_off_date',
         'write_off_amount',

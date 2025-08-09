@@ -12,7 +12,7 @@ class Loan extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'applicant_type',
         'applicant_id',
         'loan_product_id',

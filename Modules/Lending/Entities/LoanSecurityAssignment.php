@@ -11,7 +11,7 @@ class LoanSecurityAssignment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'assignable_id',
         'assignable_type',
         'status',
@@ -28,23 +28,14 @@ class LoanSecurityAssignment extends Model
         'release_time' => 'datetime',
     ];
 
-    protected static function booted()
-    {
-        if (auth()->check() && session()->has('company_id')) {
-            static::addGlobalScope('company', function (Builder $builder) {
-                $builder->where('company_id', session('company_id'));
-            });
-        }
-    }
-
     public function assignable()
     {
         return $this->morphTo();
     }
 
-    public function company()
+    public function createdBy()
     {
-        return $this->belongsTo(\App\Models\Company::class);
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
     public function pledges()

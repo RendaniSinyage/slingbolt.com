@@ -38,13 +38,13 @@ class LoanApplicationController extends Controller
 
         DB::transaction(function () use ($request) {
             $data = $request->except('securities');
-            $data['company_id'] = auth()->user()->company_id;
+            $data['created_by'] = \Auth::user()->creatorId();
 
             $application = LoanApplication::create($data);
 
             if ($request->has('securities') && $request->is_secured_loan) {
                 $assignment = $application->securityAssignments()->create([
-                    'company_id' => $application->company_id,
+                    'created_by' => $application->created_by,
                     'status' => 'Pledge Requested',
                     'total_security_value' => 0, // Should be calculated
                     'maximum_loan_value' => 0, // Should be calculated

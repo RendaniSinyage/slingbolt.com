@@ -10,7 +10,7 @@ class LoanRepayment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'loan_id',
         'amount_paid',
         'payment_date',

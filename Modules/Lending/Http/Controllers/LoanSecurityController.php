@@ -31,7 +31,7 @@ class LoanSecurityController extends Controller
         ]);
 
         $data = $request->all();
-        $data['company_id'] = 1; // Placeholder
+        $data['created_by'] = \Auth::user()->creatorId();
 
         LoanSecurity::create($data);
 

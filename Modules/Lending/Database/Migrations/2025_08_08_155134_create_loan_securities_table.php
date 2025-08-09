@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('loan_securities', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->integer('created_by')->default(0);
             $table->foreignId('loan_security_type_id')->constrained('loan_security_types')->onDelete('cascade');
 
             $table->string('loan_security_code')->unique();

@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('loans', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->integer('created_by')->default(0);
 
             // Using morphs for a polymorphic relationship to the applicant (Customer, Member, etc.)
             $table->morphs('applicant');

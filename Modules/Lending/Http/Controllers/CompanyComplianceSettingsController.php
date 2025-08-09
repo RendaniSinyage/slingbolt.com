@@ -15,8 +15,8 @@ class CompanyComplianceSettingsController extends Controller
             return redirect()->back()->with('error', 'Permission denied.');
         }
 
-        $settings = ComplianceSetting::where('company_id', $user->id)->first();
-        $defaults = ComplianceSetting::whereNull('company_id')->first();
+        $settings = ComplianceSetting::where('created_by', $user->id)->first();
+        $defaults = ComplianceSetting::whereNull('created_by')->first();
 
         return view('lending::settings.company_compliance', compact('settings', 'defaults'));
     }
@@ -29,7 +29,7 @@ class CompanyComplianceSettingsController extends Controller
         }
 
         ComplianceSetting::updateOrCreate(
-            ['company_id' => $user->id],
+            ['created_by' => $user->id],
             [
                 'max_interest_rate' => $request->max_interest_rate,
                 'max_initiation_fee' => $request->max_initiation_fee,

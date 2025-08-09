@@ -42,9 +42,9 @@ class LoanProductController extends Controller
             'rate_of_interest' => 'required|numeric',
         ]);
 
-        $company_id = auth()->user()->company_id;
+        $created_by = \Auth::user()->creatorId();
         $data = $request->all();
-        $data['company_id'] = $company_id;
+        $data['created_by'] = $created_by;
 
         // TODO: The account IDs should be selected from a dropdown in the UI.
         $data['disbursement_account_id'] = 1;
@@ -59,7 +59,7 @@ class LoanProductController extends Controller
         LoanProduct::create($data);
 
         // Check for compliance warning
-        $max_interest_rate = ComplianceHelper::getSetting('max_interest_rate', $company_id);
+        $max_interest_rate = ComplianceHelper::getSetting('max_interest_rate', $created_by);
         if ($max_interest_rate && $request->rate_of_interest > $max_interest_rate) {
             $warning = 'Warning: The interest rate of ' . $request->rate_of_interest . '% exceeds the compliance limit of ' . $max_interest_rate . '%.';
             return redirect()->route('lending.loan-products.index')->with('success', 'Loan Product created successfully.')->with('warning', $warning);

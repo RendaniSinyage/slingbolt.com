@@ -11,7 +11,7 @@ class LoanRestructure extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'loan_id',
         'status',
         'restructure_date',
@@ -28,13 +28,9 @@ class LoanRestructure extends Model
         'new_rate_of_interest' => 'decimal:4',
     ];
 
-    protected static function booted()
+    public function createdBy()
     {
-        if (auth()->check() && session()->has('company_id')) {
-            static::addGlobalScope('company', function (Builder $builder) {
-                $builder->where('company_id', session('company_id'));
-            });
-        }
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
     public function loan()

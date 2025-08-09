@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('loan_security_assignments', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->constrained()->onDelete('cascade');
+            $table->integer('created_by')->default(0);
 
             $table->morphs('assignable'); // For Loan or LoanApplication
 

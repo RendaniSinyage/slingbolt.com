@@ -12,7 +12,7 @@ class LoanProduct extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'product_code',
         'product_name',
         'rate_of_interest',
@@ -32,11 +32,9 @@ class LoanProduct extends Model
         'suspense_interest_income_id',
     ];
 
-    // ... (casts and booted method)
-
-    public function company()
+    public function createdBy()
     {
-        return $this->belongsTo(\App\Models\Company::class);
+        return $this->belongsTo(\App\Models\User::class, 'created_by');
     }
 
     public function loanPartners()
