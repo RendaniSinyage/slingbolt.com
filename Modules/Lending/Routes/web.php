@@ -17,7 +17,7 @@ use Modules\Lending\Http\Controllers\ReportController;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('lending')->name('lending.')->group(function() {
+Route::prefix('lending')->middleware(['auth', 'check.lending.plan'])->name('lending.')->group(function() {
     Route::get('/', [LendingController::class, 'index'])->name('index');
 
     // Resourceful Routes

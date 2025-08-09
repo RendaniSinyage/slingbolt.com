@@ -295,19 +295,6 @@
                         @endcan
                     @endif
 
-                    <!-- Lending Reports -->
-                    <li class="dash-item dash-hasmenu {{ (Request::segment(1) == 'lending' && Request::segment(2) == 'reports') ? 'active dash-trigger' : '' }}">
-                        <a class="dash-link" href="#">{{ __('Lending') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
-                        <ul class="dash-submenu">
-                            <li class="dash-item {{ (Request::route()->getName() == 'lending.reports.portfolio') ? 'active' : '' }}">
-                                <a class="dash-link" href="{{ route('lending.reports.portfolio') }}">{{ __('Portfolio Report') }}</a>
-                            </li>
-                            <li class="dash-item {{ (Request::route()->getName() == 'lending.reports.collections') ? 'active' : '' }}">
-                                <a class="dash-link" href="{{ route('lending.reports.collections') }}">{{ __('Collections Report') }}</a>
-                            </li>
-                        </ul>
-                    </li>
-
                 </ul>
             </li>
 
@@ -1265,6 +1252,43 @@
                     @endif
                 @endif
                 <!--------------------- End POS System ----------------------------------->
+
+                <!--------------------- Start Lending System ----------------------------------->
+                @if (!empty($userPlan) && $userPlan->lending == 1)
+                <li class="dash-item dash-hasmenu {{ (Request::segment(1) == 'lending' || Request::segment(1) == 'loans' || Request::segment(1) == 'loan-products' || Request::segment(1) == 'loan-applications') ? 'active dash-trigger' : '' }}">
+                    <a href="#!" class="dash-link">
+                        <span class="dash-micon"><i class="ti ti-cash"></i></span>
+                        <span class="dash-mtext">{{ __('Lending') }}</span>
+                        <span class="dash-arrow"><i data-feather="chevron-right"></i></span>
+                    </a>
+                    <ul class="dash-submenu">
+                        <li class="dash-item {{ Request::segment(1) == 'loans' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.loans.index') }}">{{ __('Loans') }}</a>
+                        </li>
+                        <li class="dash-item {{ Request::segment(1) == 'loan-applications' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.loan-applications.index') }}">{{ __('Applications') }}</a>
+                        </li>
+                        <li class="dash-item {{ Request::segment(1) == 'loan-products' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.loan-products.index') }}">{{ __('Products') }}</a>
+                        </li>
+                        <li class="dash-item {{ Request::segment(1) == 'loan-securities' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.loan-securities.index') }}">{{ __('Securities') }}</a>
+                        </li>
+                        <li class="dash-item dash-hasmenu">
+                            <a class="dash-link" href="#">{{ __('Reports') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
+                            <ul class="dash-submenu">
+                                <li class="dash-item">
+                                    <a class="dash-link" href="{{ route('lending.reports.portfolio') }}">{{ __('Portfolio') }}</a>
+                                </li>
+                                <li class="dash-item">
+                                    <a class="dash-link" href="{{ route('lending.reports.collections') }}">{{ __('Collections') }}</a>
+                                </li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                @endif
+                <!--------------------- End Lending System ----------------------------------->
 
                 @if (\Auth::user()->type != 'super admin')
                     <li class="dash-item dash-hasmenu {{ Request::segment(1) == 'support' ? 'active' : '' }}">
