@@ -5,6 +5,18 @@
         <div class="row">
             <div class="col-md-12">
                 <h1>Loan Products</h1>
+
+                @if (session('success'))
+                    <div class="alert alert-success">
+                        {{ session('success') }}
+                    </div>
+                @endif
+                @if (session('warning'))
+                    <div class="alert alert-warning">
+                        {{ session('warning') }}
+                    </div>
+                @endif
+
                 <a href="{{ route('lending.loan-products.create') }}" class="btn btn-primary">Create Loan Product</a>
                 <hr>
                 <table class="table table-bordered">

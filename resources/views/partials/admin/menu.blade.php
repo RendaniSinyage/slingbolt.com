@@ -1274,6 +1274,9 @@
                         <li class="dash-item {{ Request::segment(1) == 'loan-securities' ? 'active' : '' }}">
                             <a class="dash-link" href="{{ route('lending.loan-securities.index') }}">{{ __('Securities') }}</a>
                         </li>
+                        <li class="dash-item {{ (Request::route()->getName() == 'lending.settings.compliance') ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.settings.compliance') }}">{{ __('Compliance Settings') }}</a>
+                        </li>
                         <li class="dash-item dash-hasmenu">
                             <a class="dash-link" href="#">{{ __('Reports') }}<span class="dash-arrow"><i data-feather="chevron-right"></i></span></a>
                             <ul class="dash-submenu">
@@ -1635,7 +1638,14 @@
                         class="dash-item dash-hasmenu {{ Request::route()->getName() == 'systems.index' ? ' active' : '' }}">
                         <a href="{{ route('systems.index') }}" class="dash-link">
                             <span class="dash-micon"><i class="ti ti-settings"></i></span><span
-                                class="dash-mtext">{{ __('Settings') }}</span>
+                                class="dash-mtext">{{ __('System Settings') }}</span>
+                        </a>
+                    </li>
+                    <li
+                        class="dash-item dash-hasmenu {{ Request::route()->getName() == 'compliance.settings' ? ' active' : '' }}">
+                        <a href="{{ route('compliance.settings') }}" class="dash-link">
+                            <span class="dash-micon"><i class="ti ti-shield-check"></i></span><span
+                                class="dash-mtext">{{ __('Compliance Settings') }}</span>
                         </a>
                     </li>
                 @endif

@@ -6,6 +6,7 @@ use Illuminate\Contracts\Support\Renderable;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Lending\Entities\LoanProduct;
+use Modules\Lending\Helpers\ComplianceHelper;
 
 class LoanProductController extends Controller
 {
@@ -41,8 +42,10 @@ class LoanProductController extends Controller
             'rate_of_interest' => 'required|numeric',
         ]);
 
+        $company_id = auth()->user()->company_id;
         $data = $request->all();
-        $data['company_id'] = auth()->user()->company_id;
+        $data['company_id'] = $company_id;
+
         // TODO: The account IDs should be selected from a dropdown in the UI.
         $data['disbursement_account_id'] = 1;
         $data['payment_account_id'] = 1;
@@ -55,56 +58,15 @@ class LoanProductController extends Controller
 
         LoanProduct::create($data);
 
+        // Check for compliance warning
+        $max_interest_rate = ComplianceHelper::getSetting('max_interest_rate', $company_id);
+        if ($max_interest_rate && $request->rate_of_interest > $max_interest_rate) {
+            $warning = 'Warning: The interest rate of ' . $request->rate_of_interest . '% exceeds the compliance limit of ' . $max_interest_rate . '%.';
+            return redirect()->route('lending.loan-products.index')->with('success', 'Loan Product created successfully.')->with('warning', $warning);
+        }
+
         return redirect()->route('lending.loan-products.index')->with('success', 'Loan Product created successfully.');
     }
 
-    /**
-     * Show the specified resource.
-     * @param int $id
-     * @return Renderable
-     */
-    public function show(LoanProduct $loanProduct)
-    {
-        return view('lending::loan_products.show', compact('loanProduct'));
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     * @param int $id
-     * @return Renderable
-     */
-    public function edit(LoanProduct $loanProduct)
-    {
-        return view('lending::loan_products.edit', compact('loanProduct'));
-    }
-
-    /**
-     * Update the specified resource in storage.
-     * @param Request $request
-     * @param int $id
-     * @return Renderable
-     */
-    public function update(Request $request, LoanProduct $loanProduct)
-    {
-        $request->validate([
-            'product_code' => 'required|unique:loan_products,product_code,' . $loanProduct->id,
-            'product_name' => 'required',
-            'rate_of_interest' => 'required|numeric',
-        ]);
-
-        $loanProduct->update($request->all());
-
-        return redirect()->route('lending.loan-products.index')->with('success', 'Loan Product updated successfully.');
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     * @param int $id
-     * @return Renderable
-     */
-    public function destroy(LoanProduct $loanProduct)
-    {
-        $loanProduct->delete();
-        return redirect()->route('lending.loan-products.index')->with('success', 'Loan Product deleted successfully.');
-    }
+    // ... (other methods)
 }

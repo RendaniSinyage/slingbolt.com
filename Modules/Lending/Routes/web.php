@@ -10,6 +10,7 @@ use Modules\Lending\Http\Controllers\LoanRestructureController;
 use Modules\Lending\Http\Controllers\LoanSecurityReleaseController;
 use Modules\Lending\Http\Controllers\LoanWriteOffController;
 use Modules\Lending\Http\Controllers\ReportController;
+use Modules\Lending\Http\Controllers\CompanyComplianceSettingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -17,7 +18,7 @@ use Modules\Lending\Http\Controllers\ReportController;
 |--------------------------------------------------------------------------
 */
 
-Route::prefix('lending')->middleware(['auth', 'check.lending.plan'])->name('lending.')->group(function() {
+Route::prefix('lending')->name('lending.')->middleware(['auth', 'check.lending.plan'])->group(function() {
     Route::get('/', [LendingController::class, 'index'])->name('index');
 
     // Resourceful Routes
@@ -35,4 +36,8 @@ Route::prefix('lending')->middleware(['auth', 'check.lending.plan'])->name('lend
     // Reports
     Route::get('reports/portfolio', [ReportController::class, 'portfolio'])->name('reports.portfolio');
     Route::get('reports/collections', [ReportController::class, 'collections'])->name('reports.collections');
+
+    // Company Settings
+    Route::get('settings/compliance', [CompanyComplianceSettingsController::class, 'index'])->name('settings.compliance');
+    Route::post('settings/compliance', [CompanyComplianceSettingsController::class, 'store'])->name('settings.compliance.store');
 });
