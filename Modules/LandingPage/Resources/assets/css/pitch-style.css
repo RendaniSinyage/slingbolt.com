@@ -1,0 +1,142 @@
+/* Pitch.com Style Redesign */
+
+:root {
+    --background-color: #f8f8f8;
+    --text-color: #111111;
+    --primary-accent-color: #007bff; /* A generic blue for now */
+    --light-gray-border: #e0e0e0;
+}
+
+body.pitch-redesign {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}
+
+.pitch-redesign h1,
+.pitch-redesign h2,
+.pitch-redesign h3,
+.pitch-redesign h4,
+.pitch-redesign h5,
+.pitch-redesign h6 {
+    color: var(--text-color);
+    font-weight: 700;
+}
+
+.pitch-redesign a {
+    color: var(--primary-accent-color);
+}
+
+/* Hero Section (Pitch Style) */
+.hero-section.pitch-redesign {
+    padding: 160px 0 80px 0;
+    text-align: center;
+}
+
+.hero-offer {
+    display: inline-block;
+    margin-bottom: 24px;
+    padding: 8px 16px;
+    border-radius: 20px;
+    background-color: #e0e0e0;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.hero-heading {
+    font-size: 4.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+    margin-bottom: 24px;
+    letter-spacing: -2px;
+}
+
+.hero-description {
+    max-width: 600px;
+    margin: 0 auto 32px;
+    font-size: 1.25rem;
+    line-height: 1.6;
+    color: #555;
+}
+
+.hero-buttons .btn {
+    margin: 0 8px;
+    padding: 12px 24px;
+    font-weight: 600;
+    border-radius: 8px;
+}
+
+.hero-buttons .btn-primary {
+    background-color: #000;
+    color: #fff;
+    border-color: #000;
+}
+.hero-buttons .btn-primary:hover {
+    background-color: #333;
+    border-color: #333;
+}
+
+.hero-buttons .btn-secondary {
+    background-color: #fff;
+    color: #000;
+    border-color: var(--light-gray-border);
+}
+.hero-buttons .btn-secondary:hover {
+    background-color: #f0f0f0;
+    border-color: #ccc;
+}
+
+.hero-image-wrapper {
+    margin-top: 80px;
+}
+
+.hero-image {
+    width: 100%;
+    max-width: 900px;
+    border-radius: 12px;
+    border: 1px solid var(--light-gray-border);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .hero-heading {
+        font-size: 3rem;
+        letter-spacing: -1px;
+    }
+    .hero-description {
+        font-size: 1.1rem;
+    }
+
+/* Header Fixes for Light Theme */
+.pitch-redesign .main-header {
+    background-color: rgba(248, 248, 248, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--light-gray-border);
+}
+
+.pitch-redesign .navbar-nav .nav-link {
+    color: var(--text-color);
+    font-weight: 600;
+}
+.pitch-redesign .navbar-nav .nav-link:hover {
+    color: var(--primary-accent-color);
+}
+
+.pitch-redesign .btn-secondary-redesign {
+    color: var(--text-color);
+}
+.pitch-redesign .btn-secondary-redesign:hover {
+    color: #000;
+    background-color: #e0e0e0;
+}
+
+.pitch-redesign .navbar-toggler-icon {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba%280, 0, 0, 0.7%29' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+}
+
+.pitch-redesign .main-header.scrolled {
+    /* This class is from the old dark theme, let's make it do nothing in pitch style */
+}
+}
