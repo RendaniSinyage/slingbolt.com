@@ -50,21 +50,43 @@
 
 <head>
     @include('landingpage::partials.head')
+    
+    <style>
+        .header-hero-gradient {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100vh;
+            z-index: -1;
+            pointer-events: none;
+        }
 
-    {{-- Google Font: Inter --}}
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+        .landing-header, .hero-section {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .mockup-wrapper {
+            position: relative;
+            z-index: 2;
+        }
 
-    {{-- New Pitch Style CSS --}}
-    <link rel="stylesheet" href="{{ asset('Modules/LandingPage/Resources/assets/css/pitch-style.css') }}" id="pitch-style-css">
+        @media (max-width: 768px) {
+            .header-hero-gradient {
+                height: 120vh;
+            }
+        }
+    </style>
 </head>
 
 @if ($setting['cust_darklayout'] == 'on')
-    <body class="{{ $themeColor }} landing-dark pitch-redesign">
+    <body class="{{ $themeColor }} landing-dark">
 @else
-    <body class="{{ $themeColor }} pitch-redesign">
+    <body class="{{ $themeColor }}">
 @endif
+
+    <div class="header-hero-gradient bg-primary"></div>
 
     @include('landingpage::partials.header')
 

@@ -25,7 +25,7 @@
                     @php
                         // Determine logo type and set appropriate text color
                         $logo_filename = $settings['site_logo'] ?? '';
-                        $is_light_logo = str_contains(strtolower($logo_filename), 'light') ||
+                        $is_light_logo = str_contains(strtolower($logo_filename), 'light') || 
                                         str_contains(strtolower($logo_filename), 'white') ||
                                         str_contains(strtolower($logo_filename), 'inverse');
                         $nav_text_color = $is_light_logo ? 'text-white' : 'text-white';

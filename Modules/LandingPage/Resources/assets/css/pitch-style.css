@@ -107,6 +107,7 @@ body.pitch-redesign {
     .hero-description {
         font-size: 1.1rem;
     }
+}
 
 /* Header Fixes for Light Theme */
 .pitch-redesign .main-header {
@@ -138,5 +139,4 @@ body.pitch-redesign {
 
 .pitch-redesign .main-header.scrolled {
     /* This class is from the old dark theme, let's make it do nothing in pitch style */
-}
 }

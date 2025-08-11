@@ -84,7 +84,7 @@
                                     <label for="planBillingToggle" class="plan-toggle-slider"></label>
                                 </div>
                                 <span class="plan-toggle-label plan-yearly">
-                                    Annual
+                                    Annual 
                                     <span class="plan-save-badge">Save 25%</span>
                                 </span>
                             </div>
@@ -136,9 +136,9 @@
                             @php $category_index = 0; @endphp
                             @foreach($monthly_categories as $category_name => $features)
                                 <div class="feature-category">
-                                    <div class="feature-category-header collapsible-header"
-                                         data-bs-toggle="collapse"
-                                         data-bs-target="#monthly-category-{{ $category_index }}"
+                                    <div class="feature-category-header collapsible-header" 
+                                         data-bs-toggle="collapse" 
+                                         data-bs-target="#monthly-category-{{ $category_index }}" 
                                          aria-expanded="{{ $category_index == 0 ? 'true' : 'false' }}"
                                          aria-controls="monthly-category-{{ $category_index }}">
                                         <div class="feature-column">
@@ -153,7 +153,7 @@
                                             </div>
                                         @endforeach
                                     </div>
-
+                                    
                                     <div class="collapse {{ $category_index == 0 ? 'show' : '' }}" id="monthly-category-{{ $category_index }}">
                                         @foreach($features as $feature)
                                             <div class="feature-row">
@@ -185,7 +185,7 @@
                                 <div class="cta-spacer"></div>
                             </div>
                             @foreach($monthly_plans as $key => $plan)
-                                @php
+                                @php 
                                     $is_popular = $key == 1;
                                     $has_trial = $plan->trial && $plan->trial_days > 0;
                                     $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
@@ -260,9 +260,9 @@
                             @php $category_index = 0; @endphp
                             @foreach($yearly_categories as $category_name => $features)
                                 <div class="feature-category">
-                                    <div class="feature-category-header collapsible-header"
-                                         data-bs-toggle="collapse"
-                                         data-bs-target="#yearly-category-{{ $category_index }}"
+                                    <div class="feature-category-header collapsible-header" 
+                                         data-bs-toggle="collapse" 
+                                         data-bs-target="#yearly-category-{{ $category_index }}" 
                                          aria-expanded="{{ $category_index == 0 ? 'true' : 'false' }}"
                                          aria-controls="yearly-category-{{ $category_index }}">
                                         <div class="feature-column">
@@ -277,7 +277,7 @@
                                             </div>
                                         @endforeach
                                     </div>
-
+                                    
                                     <div class="collapse {{ $category_index == 0 ? 'show' : '' }}" id="yearly-category-{{ $category_index }}">
                                         @foreach($features as $feature)
                                             <div class="feature-row">
@@ -309,7 +309,7 @@
                                 <div class="cta-spacer"></div>
                             </div>
                             @foreach($yearly_plans as $key => $plan)
-                                @php
+                                @php 
                                     $is_popular = $key == 1;
                                     $has_trial = $plan->trial && $plan->trial_days > 0;
                                     $purchase_url = Auth::check() ? route('stripe', \Illuminate\Support\Facades\Crypt::encrypt($plan->id)) : route('register', ['plan' => \Illuminate\Support\Facades\Crypt::encrypt($plan->id)]);
