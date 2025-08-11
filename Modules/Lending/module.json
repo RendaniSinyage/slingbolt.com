@@ -1,0 +1,11 @@
+{
+    "name": "Lending",
+    "alias": "lending",
+    "description": "Laravel module for Lending.",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Lending\\Providers\\LendingServiceProvider"
+    ],
+    "files": []
+}

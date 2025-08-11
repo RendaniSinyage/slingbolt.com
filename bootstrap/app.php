@@ -27,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'XSS' => \App\Http\Middleware\XSS::class,
             'revalidate' => \App\Http\Middleware\RevalidateBackHistory::class,
             'pusher' => \App\Http\Middleware\pusherConfig::class,
+            'check.lending.plan' => \Modules\Lending\Http\Middleware\CheckLendingPlan::class,
             // ADD THESE TWO LINES:
             'client.credentials' => \App\Http\Middleware\ClientCredentialsMiddleware::class,
             'external.user' => \App\Http\Middleware\ExternalUserMiddleware::class,

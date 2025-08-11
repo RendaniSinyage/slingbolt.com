@@ -475,6 +475,10 @@ Route::group(['middleware' => ['verified']], function () {
             Route::post('cookie-setting', [SystemController::class, 'saveCookieSettings'])->name('cookie.setting');
 
             Route::post('cache-settings', [SystemController::class, 'cacheSettingStore'])->name('cache.settings.store')->middleware(['auth', 'XSS']);
+
+            // Compliance Settings
+            Route::get('compliance-settings', [\App\Http\Controllers\ComplianceSettingsController::class, 'index'])->name('compliance.settings')->middleware(['auth', 'XSS']);
+            Route::post('compliance-settings', [\App\Http\Controllers\ComplianceSettingsController::class, 'store'])->name('compliance.settings.store')->middleware(['auth', 'XSS']);
         }
     );
 
