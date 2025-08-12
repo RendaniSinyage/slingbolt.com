@@ -30,7 +30,7 @@ Route::prefix('lending')->name('lending.')->middleware(['auth', 'check.lending.p
     Route::resource('loan-applications.documents', LoanDocumentController::class)->except(['show', 'edit', 'update']);
     Route::get('loan-applications/documents/{document}/download', [LoanDocumentController::class, 'download'])->name('loan-applications.documents.download');
     Route::get('contracts/create/{application}', [ContractController::class, 'create'])->name('contracts.create');
-    Route::resource('loans', LendingController::class);
+    Route::resource('lending-loans', LendingController::class);
 
     // Nested Resourceful Routes
     Route::resource('loans.repayments', LoanRepaymentController::class)->only(['create', 'store']);

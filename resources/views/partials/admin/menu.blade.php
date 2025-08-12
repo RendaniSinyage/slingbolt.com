@@ -1262,8 +1262,8 @@
                         <span class="dash-arrow"><i data-feather="chevron-right"></i></span>
                     </a>
                     <ul class="dash-submenu">
-                        <li class="dash-item {{ Request::segment(1) == 'loans' ? 'active' : '' }}">
-                            <a class="dash-link" href="{{ route('lending.loans.index') }}">{{ __('Loans') }}</a>
+                        <li class="dash-item {{ Request::segment(1) == 'lending-loans' ? 'active' : '' }}">
+                            <a class="dash-link" href="{{ route('lending.lending-loans.index') }}">{{ __('Loans') }}</a>
                         </li>
                         <li class="dash-item {{ Request::segment(1) == 'loan-applications' ? 'active' : '' }}">
                             <a class="dash-link" href="{{ route('lending.loan-applications.index') }}">{{ __('Applications') }}</a>

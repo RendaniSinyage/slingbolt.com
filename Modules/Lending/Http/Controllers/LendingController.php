@@ -51,7 +51,7 @@ class LendingController extends Controller
             return redirect()->back()->withErrors($e->errors())->withInput();
         }
 
-        return redirect()->route('lending.loans.index')->with('success', 'Loan created successfully.');
+        return redirect()->route('lending.lending-loans.index')->with('success', 'Loan created successfully.');
     }
 
     public function show(Loan $loan)
@@ -77,12 +77,12 @@ class LendingController extends Controller
         // In a real scenario, update would also use the service for validation and logic
         $loan->update($request->all());
 
-        return redirect()->route('lending.loans.index')->with('success', 'Loan updated successfully.');
+        return redirect()->route('lending.lending-loans.index')->with('success', 'Loan updated successfully.');
     }
 
     public function destroy(Loan $loan)
     {
         $loan->delete();
-        return redirect()->route('lending.loans.index')->with('success', 'Loan deleted successfully.');
+        return redirect()->route('lending.lending-loans.index')->with('success', 'Loan deleted successfully.');
     }
 }

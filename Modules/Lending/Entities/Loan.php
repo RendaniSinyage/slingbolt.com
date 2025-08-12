@@ -11,6 +11,8 @@ class Loan extends Model
 {
     use HasFactory, SoftDeletes;
 
+    protected $table = 'lending_loans';
+
     protected $fillable = [
         'created_by',
         'applicant_type',
