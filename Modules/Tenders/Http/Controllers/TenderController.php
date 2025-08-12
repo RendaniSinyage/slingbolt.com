@@ -13,9 +13,9 @@ use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\ProjectTask;
 use App\Models\TaskFile;
+use App\Models\Utility;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
-use App\Models\Utility;
 
 class TenderController extends Controller
 {
@@ -141,8 +141,7 @@ class TenderController extends Controller
             'user_id' => $user->id,
         ]);
 
-        // Create default task stages
-        Utility::project_task_stages($project->created_by);
+        Utility::project_task_stages($user->creatorId());
 
         // Create a default task for tender documents
         $task = new ProjectTask();
