@@ -38,7 +38,7 @@ class FetchTenders extends Command
         $companies = User::where('type', 'company')->get();
 
         foreach ($companies as $company) {
-            $settings = TenderSetting::where('company_id', $company->id)->first();
+            $settings = TenderSetting::where('created_by', $company->id)->first();
 
             if (!$settings) {
                 $this->info("No tender settings found for company {$company->name}. Skipping.");
@@ -53,7 +53,7 @@ class FetchTenders extends Command
             }
 
             $releases = $response->json()['releases'];
-            $deniedTenders = DeniedTender::where('company_id', $company->id)->pluck('ocid')->toArray();
+            $deniedTenders = DeniedTender::where('created_by', $company->id)->pluck('ocid')->toArray();
             $newTenders = 0;
 
             foreach ($releases as $release) {
@@ -65,7 +65,7 @@ class FetchTenders extends Command
                 }
 
                 // Filter by settings
-                $passesFilters = $this->applyFilters($tenderData, $settings);
+                $passesFilters = $this->applyFilters($release, $settings);
 
                 if ($passesFilters) {
                     $tender = Tender::updateOrCreate(
@@ -84,9 +84,10 @@ class FetchTenders extends Command
                         ]
                     );
 
-                    if($tender->wasRecentlyCreated) {
+                    if ($tender->wasRecentlyCreated) {
                         $newTenders++;
                     }
+                    $company->tenders()->syncWithoutDetaching($tender->id);
                 }
             }
 
@@ -102,8 +103,10 @@ class FetchTenders extends Command
         $this->info('Tenders fetched successfully.');
     }
 
-    private function applyFilters($tenderData, $settings)
+    private function applyFilters($release, $settings)
     {
+        $tenderData = $release['tender'];
+
         // Category filter
         if (!empty($settings->categories)) {
             $settingCategories = json_decode($settings->categories, true);
@@ -113,17 +116,20 @@ class FetchTenders extends Command
             }
         }
 
-        // Province filter (assuming province is in procuringEntity name)
+        // Province filter
         if (!empty($settings->provinces)) {
             $settingProvinces = json_decode($settings->provinces, true);
-            $passesProvince = false;
-            foreach ($settingProvinces as $province) {
-                if (stripos($tenderData['procuringEntity']['name'], $province) !== false) {
-                    $passesProvince = true;
+            $procuringEntityId = $tenderData['procuringEntity']['id'];
+            $tenderProvince = '';
+
+            foreach ($release['parties'] as $party) {
+                if ($party['id'] == $procuringEntityId && in_array('procuringEntity', $party['roles'])) {
+                    $tenderProvince = $party['address']['region'] ?? '';
                     break;
                 }
             }
-            if (!$passesProvince) {
+
+            if (empty($tenderProvince) || !in_array($tenderProvince, $settingProvinces)) {
                 return false;
             }
         }

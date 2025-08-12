@@ -18,7 +18,11 @@ class TenderController extends Controller
      */
     public function index()
     {
-        $tenders = Tender::paginate(10);
+        $user = Auth::user();
+        $deniedTenderOcids = DeniedTender::where('created_by', $user->creatorId())->pluck('ocid');
+
+        $tenders = $user->tenders()->whereNotIn('ocid', $deniedTenderOcids)->paginate(10);
+
         return view('tenders::index', compact('tenders'));
     }
 
@@ -84,7 +88,7 @@ class TenderController extends Controller
 
     public function settings()
     {
-        $settings = TenderSetting::where('company_id', Auth::user()->id)->first();
+        $settings = TenderSetting::where('created_by', Auth::user()->creatorId())->first();
         return view('tenders::settings', compact('settings'));
     }
 
@@ -98,7 +102,7 @@ class TenderController extends Controller
         ]);
 
         TenderSetting::updateOrCreate(
-            ['company_id' => Auth::user()->id],
+            ['created_by' => Auth::user()->creatorId()],
             [
                 'categories' => json_encode($request->categories),
                 'provinces' => json_encode($request->provinces),
@@ -122,11 +126,10 @@ class TenderController extends Controller
         $tender = Tender::findOrFail($id);
 
         DeniedTender::create([
-            'company_id' => Auth::user()->id,
+            'created_by' => Auth::user()->creatorId(),
             'ocid' => $tender->ocid,
         ]);
 
-        $tender->delete();
 
         return redirect()->route('tenders.index')->with('success', 'Tender denied.');
     }

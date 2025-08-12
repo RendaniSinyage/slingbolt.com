@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('denied_tenders', function (Blueprint $table) {
             $table->id();
-            $table->integer('company_id');
+            $table->integer('created_by');
             $table->string('ocid');
             $table->timestamps();
         });

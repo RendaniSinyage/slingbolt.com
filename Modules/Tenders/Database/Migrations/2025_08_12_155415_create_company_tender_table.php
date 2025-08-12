@@ -13,13 +13,10 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('tender_settings', function (Blueprint $table) {
+        Schema::create('company_tender', function (Blueprint $table) {
             $table->id();
-            $table->integer('created_by');
-            $table->text('categories')->nullable();
-            $table->text('provinces')->nullable();
-            $table->string('type')->nullable();
-            $table->string('submission_type')->default('esubmission');
+            $table->integer('company_id');
+            $table->integer('tender_id');
             $table->timestamps();
         });
     }
@@ -31,6 +28,6 @@ return new class extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('tender_settings');
+        Schema::dropIfExists('company_tender');
     }
 };

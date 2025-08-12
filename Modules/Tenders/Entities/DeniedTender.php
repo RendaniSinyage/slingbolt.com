@@ -10,7 +10,7 @@ class DeniedTender extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'ocid',
     ];
 

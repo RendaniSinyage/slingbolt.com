@@ -10,7 +10,7 @@ class TenderSetting extends Model
     use HasFactory;
 
     protected $fillable = [
-        'company_id',
+        'created_by',
         'categories',
         'provinces',
         'type',

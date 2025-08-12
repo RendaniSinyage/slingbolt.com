@@ -1138,6 +1138,11 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasOne('App\Models\Employee', 'user_id', 'id');
     }
 
+    public function tenders()
+    {
+        return $this->belongsToMany(\Modules\Tenders\Entities\Tender::class, 'company_tender', 'company_id', 'tender_id');
+    }
+
     public function total_lead()
     {
         if (\Auth::user()->type == 'company') {

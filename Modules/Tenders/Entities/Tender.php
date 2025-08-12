@@ -27,4 +27,9 @@ class Tender extends Model
     {
         // return \Modules\Tenders\Database\factories\TenderFactory::new();
     }
+
+    public function companies()
+    {
+        return $this->belongsToMany(\App\Models\User::class, 'company_tender', 'tender_id', 'company_id');
+    }
 }
