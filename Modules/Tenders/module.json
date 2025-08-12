@@ -1,0 +1,11 @@
+{
+    "name": "Tenders",
+    "alias": "tenders",
+    "description": "Tenders module to fetch and manage tenders from etenders.gov.za",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\Tenders\\Providers\\TendersServiceProvider"
+    ],
+    "files": []
+}

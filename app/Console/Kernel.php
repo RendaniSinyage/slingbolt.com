@@ -38,6 +38,9 @@ class Kernel extends ConsoleKernel
 
         // Run loan document cleanup daily
         $schedule->command('lending:cleanup-documents')->daily();
+
+        // Fetch tenders daily
+        $schedule->command('tenders:fetch')->daily();
     }
 
     /**
