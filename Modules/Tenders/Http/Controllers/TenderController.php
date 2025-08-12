@@ -9,6 +9,13 @@ use Modules\Tenders\Entities\Tender;
 use Modules\Tenders\Entities\TenderSetting;
 use Modules\Tenders\Entities\DeniedTender;
 use Illuminate\Support\Facades\Auth;
+use App\Models\Project;
+use App\Models\ProjectUser;
+use App\Models\ProjectTask;
+use App\Models\TaskFile;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use App\Models\Utility;
 
 class TenderController extends Controller
 {
@@ -116,9 +123,63 @@ class TenderController extends Controller
 
     public function accept($id)
     {
-        // For now, just redirect back with a success message.
-        // Later, this could trigger a notification or some other action.
-        return redirect()->route('tenders.index')->with('success', 'Tender accepted.');
+        $tender = Tender::findOrFail($id);
+        $user = Auth::user();
+
+        $project = new Project();
+        $project->project_name = $tender->title;
+        $project->description = $tender->description;
+        $project->start_date = date('Y-m-d');
+        $project->end_date = $tender->tender_period_end_date;
+        $project->created_by = $user->creatorId();
+        $project->status = 'in_progress';
+        $project->type = 'tender';
+        $project->save();
+
+        ProjectUser::create([
+            'project_id' => $project->id,
+            'user_id' => $user->id,
+        ]);
+
+        // Create default task stages
+        Utility::project_task_stages($project->created_by);
+
+        // Create a default task for tender documents
+        $task = new ProjectTask();
+        $task->name = 'Tender Documents';
+        $task->project_id = $project->id;
+        $task->stage_id = \App\Models\TaskStage::where('created_by', $project->created_by)->first()->id;
+        $task->save();
+
+        // Fetch the full tender details to get the documents
+        $response = Http::get('https://ocds-api.etenders.gov.za/api/OCDSReleases/release/' . $tender->ocid);
+        if ($response->successful()) {
+            $release = $response->json();
+            $documents = $release['tender']['documents'] ?? [];
+
+            foreach ($documents as $document) {
+                try {
+                    $fileContents = Http::get($document['url'])->body();
+                    $fileName = basename($document['url']);
+                    Storage::disk('public')->put('tasks/' . $fileName, $fileContents);
+
+                    TaskFile::create([
+                        'task_id' => $task->id,
+                        'file' => 'tasks/' . $fileName,
+                        'name' => $document['title'],
+                        'extension' => pathinfo($fileName, PATHINFO_EXTENSION),
+                        'file_size' => strlen($fileContents),
+                        'user_type' => 'User',
+                        'created_by' => $user->id,
+                    ]);
+                } catch (\Exception $e) {
+                    // Log the error and continue
+                    \Log::error("Failed to download or save document for tender {$tender->ocid}: " . $e->getMessage());
+                }
+            }
+        }
+
+        return redirect()->route('projects.show', $project->id)->with('success', __('Tender accepted and project created successfully.'));
     }
 
     public function deny($id)
