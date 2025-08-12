@@ -15,8 +15,9 @@ return new class extends Migration
     {
         Schema::table('compliance_settings', function (Blueprint $table) {
             if (Schema::hasColumn('compliance_settings', 'company_id')) {
-                $table->dropUnique('compliance_settings_company_id_unique');
-                $table->dropConstrainedForeignId('company_id');
+                // Drop constraints by column name for robustness
+                $table->dropUnique(['company_id']);
+                $table->dropForeign(['company_id']);
                 $table->dropColumn('company_id');
             }
             $table->integer('created_by')->after('id')->nullable();
