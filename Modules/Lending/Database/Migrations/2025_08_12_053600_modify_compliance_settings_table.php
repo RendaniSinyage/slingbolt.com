@@ -14,8 +14,11 @@ return new class extends Migration
     public function up()
     {
         Schema::table('compliance_settings', function (Blueprint $table) {
-            $table->dropUnique('compliance_settings_company_id_unique');
-            $table->dropConstrainedForeignId('company_id');
+            if (Schema::hasColumn('compliance_settings', 'company_id')) {
+                $table->dropUnique('compliance_settings_company_id_unique');
+                $table->dropConstrainedForeignId('company_id');
+                $table->dropColumn('company_id');
+            }
             $table->integer('created_by')->after('id')->nullable();
         });
     }
