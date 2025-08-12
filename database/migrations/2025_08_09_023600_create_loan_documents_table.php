@@ -13,15 +13,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('loan_documents', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('loan_application_id')->constrained()->onDelete('cascade');
-            $table->string('file_name');
-            $table->string('file_path');
-            $table->integer('file_size');
-            $table->integer('created_by');
-            $table->timestamps();
-        });
+        if (!Schema::hasTable('loan_documents')) {
+            Schema::create('loan_documents', function (Blueprint $table) {
+                $table->id();
+                $table->foreignId('loan_application_id')->constrained()->onDelete('cascade');
+                $table->string('file_name');
+                $table->string('file_path');
+                $table->integer('file_size');
+                $table->integer('created_by');
+                $table->timestamps();
+            });
+        }
     }
 
     /**
