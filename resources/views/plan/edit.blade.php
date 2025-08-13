@@ -119,6 +119,12 @@
                 <label class="custom-control-label form-label" for="enable_chatgpt">{{__('Chat GPT')}}</label>
             </div>
         </div>
+        <div class="form-group col-md-3">
+            <div class="form-check form-switch">
+                <input type="checkbox" class="form-check-input" name="enable_tenders" id="enable_tenders" {{ $plan['tenders'] == 1 ? 'checked="checked"' : '' }}>
+                <label class="custom-control-label form-label" for="enable_tenders">{{__('Tenders')}}</label>
+            </div>
+        </div>
 
     </div>
     </div>
