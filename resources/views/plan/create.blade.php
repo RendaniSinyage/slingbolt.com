@@ -121,6 +121,12 @@
                 <label class="custom-control-label form-label" for="enable_tenders">{{__('Tenders')}}</label>
             </div>
         </div>
+        <div class="form-group col-md-3">
+            <div class="form-check form-switch ">
+                <input type="checkbox" class="form-check-input" name="enable_lending" id="enable_lending">
+                <label class="custom-control-label form-label" for="enable_lending">{{__('Lending')}}</label>
+            </div>
+        </div>
 
     </div>
 </div>

@@ -106,6 +106,10 @@ class PlanController extends Controller
                 {
                     $post['tenders'] = 1;
                 }
+                if(isset($request->enable_lending))
+                {
+                    $post['lending'] = 1;
+                }
                 if(isset($request->trial))
                 {
                     $post['trial'] = 1;
@@ -269,6 +273,14 @@ class PlanController extends Controller
                     else
                     {
                         $post['tenders'] = 0;
+                    }
+                    if(array_key_exists('enable_lending', $post))
+                    {
+                        $post['lending'] = 1;
+                    }
+                    else
+                    {
+                        $post['lending'] = 0;
                     }
                     if(isset($request->trial))
                     {

@@ -147,6 +147,9 @@
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
                                                 class="ti {{ $plan->tenders == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->tenders == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('Tenders') }}</li>
+                                    <li class="white-sapce-nowrap"><span class="theme-avtar"><i
+                                                class="ti {{ $plan->lending == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->lending == 1 ? __('Enable') : __('Disable') }}
+                                        {{ __('Lending') }}</li>
 
                                 </ul>
                             </div>
