@@ -1294,7 +1294,7 @@
                 <!--------------------- End Lending System ----------------------------------->
 
                 <!--------------------- Start Tenders System ----------------------------------->
-                @if (!empty($userPlan) && $userPlan->tenders == 1)
+                @if (!empty($userPlan) && isset($userPlan->tenders) && $userPlan->tenders == 1)
                 <li class="dash-item dash-hasmenu {{ (Request::segment(1) == 'tenders') ? 'active dash-trigger' : '' }}">
                     <a href="{{ route('tenders.index') }}" class="dash-link">
                         <span class="dash-micon"><i class="ti ti-report-money"></i></span>
