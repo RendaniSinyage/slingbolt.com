@@ -144,6 +144,9 @@
                                     <li class="white-sapce-nowrap"><span class="theme-avtar"><i
                                                 class="ti {{ $plan->chatgpt == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->chatgpt == 1 ? __('Enable') : __('Disable') }}
                                         {{ __('Chat GPT') }}</li>
+                                    <li class="white-sapce-nowrap"><span class="theme-avtar"><i
+                                                class="ti {{ $plan->tenders == 1 ? 'ti-circle-plus text-primary' : 'ti-circle-minus text-danger' }} "></i></span>{{ $plan->tenders == 1 ? __('Enable') : __('Disable') }}
+                                        {{ __('Tenders') }}</li>
 
                                 </ul>
                             </div>

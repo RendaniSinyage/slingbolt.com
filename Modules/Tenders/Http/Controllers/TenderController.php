@@ -118,7 +118,7 @@ class TenderController extends Controller
             ]
         );
 
-        return redirect()->route('tenders.settings')->with('success', 'Settings saved successfully.');
+        return redirect()->route('tenders.index')->with('success', 'Settings saved successfully.');
     }
 
     public function accept($id)

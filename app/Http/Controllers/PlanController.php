@@ -102,6 +102,10 @@ class PlanController extends Controller
                 {
                     $post['chatgpt'] = 1;
                 }
+                if(isset($request->enable_tenders))
+                {
+                    $post['tenders'] = 1;
+                }
                 if(isset($request->trial))
                 {
                     $post['trial'] = 1;
@@ -257,6 +261,14 @@ class PlanController extends Controller
                     else
                     {
                         $post['chatgpt'] = 0;
+                    }
+                    if(array_key_exists('enable_tenders', $post))
+                    {
+                        $post['tenders'] = 1;
+                    }
+                    else
+                    {
+                        $post['tenders'] = 0;
                     }
                     if(isset($request->trial))
                     {

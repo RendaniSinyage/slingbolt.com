@@ -9,6 +9,7 @@ use Modules\Tenders\Entities\TenderSetting;
 use Modules\Tenders\Entities\DeniedTender;
 use App\Models\User;
 use App\Models\Utility;
+use Illuminate\Support\Facades\Log;
 
 class FetchTenders extends Command
 {
@@ -45,10 +46,17 @@ class FetchTenders extends Command
                 continue;
             }
 
-            $response = Http::get('https://ocds-api.etenders.gov.za/api/OCDSReleases');
+            try {
+                $response = Http::get('https://ocds-api.etenders.gov.za/api/OCDSReleases');
 
-            if ($response->failed()) {
-                $this->error("Failed to fetch tenders from the API for company {$company->name}.");
+                if ($response->failed()) {
+                    $this->error("Failed to fetch tenders from the API for company {$company->name}. Status: " . $response->status());
+                    Log::error("Tenders API request failed for company {$company->id}: " . $response->body());
+                    continue;
+                }
+            } catch (\Exception $e) {
+                $this->error("Failed to fetch tenders from the API for company {$company->name}. Exception: " . $e->getMessage());
+                Log::error("Tenders API request exception for company {$company->id}: " . $e->getMessage());
                 continue;
             }
 

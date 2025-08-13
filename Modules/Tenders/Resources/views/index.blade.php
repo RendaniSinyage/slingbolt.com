@@ -11,7 +11,9 @@
                 <div class="card-header">
                     <h5>{{ __('Tenders Found') }}</h5>
                     <div class="card-header-right">
-                        <a href="{{ route('tenders.settings') }}" class="btn btn-sm btn-primary">{{ __('Settings') }}</a>
+                        <a href="#" data-url="{{ route('tenders.settings') }}" data-ajax-popup="true" data-title="{{__('Tender Settings')}}" data-bs-toggle="tooltip" title="{{__('Settings')}}"  class="btn btn-sm btn-primary">
+                            <i class="ti ti-settings"></i>
+                        </a>
                     </div>
                 </div>
                 <div class="card-body">
