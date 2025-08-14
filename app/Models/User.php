@@ -14,6 +14,7 @@ use Laravel\Passport\HasApiTokens as PassportHasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 use Lab404\Impersonate\Models\Impersonate;
 use App\Services\CompanyClonerService;
+use App\Models\ProjectTask;
 
 
 class User extends Authenticatable implements MustVerifyEmail
@@ -1283,6 +1284,21 @@ class User extends Authenticatable implements MustVerifyEmail
         }
         return !empty($user->plan) ? Plan::find($user->plan)->pos : '';
 
+    }
+
+    public function getWorkloadAttribute()
+    {
+        $project_count = $this->projects()->count();
+
+        $open_task_count = ProjectTask::whereRaw("find_in_set('".$this->id."',assign_to)")
+            ->join('task_stages', 'project_tasks.stage_id', '=', 'task_stages.id')
+            ->where('task_stages.complete', '!=', 1)
+            ->count();
+
+        return [
+            'project_count' => $project_count,
+            'open_task_count' => $open_task_count,
+        ];
     }
 
     public function clientProjects()

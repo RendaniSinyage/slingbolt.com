@@ -11,9 +11,37 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\ProductService;
 use App\Models\Vender;
+use App\Models\User;
+use App\Models\ProjectTask;
 
 class UtilityController extends Controller
 {
+    public function getWorkload(Request $request, $id)
+    {
+        $user = User::find($id);
+
+        if (!$user) {
+            return response()->json(['error' => 'User not found.'], 404);
+        }
+
+        return response()->json($user->workload);
+    }
+
+    public function getMyOpenTasks(Request $request)
+    {
+        $user = $request->user();
+
+        $tasks = ProjectTask::whereRaw("find_in_set('".$user->id."',assign_to)")
+            ->with('project') // Eager load the project relationship
+            ->join('task_stages', 'project_tasks.stage_id', '=', 'task_stages.id')
+            ->where('task_stages.complete', '!=', 1)
+            ->select('project_tasks.*') // Avoid selecting columns from the joined table
+            ->orderBy('project_tasks.end_date', 'asc')
+            ->get();
+
+        return response()->json($tasks);
+    }
+
     public function getInvoiceFormData(Request $request)
     {
         $user = $request->user();

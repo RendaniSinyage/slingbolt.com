@@ -89,6 +89,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('v1/utils/employee-form-data', [UtilityController::class, 'getEmployeeFormData']);
     Route::get('v1/utils/products', [UtilityController::class, 'getProducts']);
     Route::get('v1/utils/venders', [UtilityController::class, 'getVenders']);
+    Route::get('v1/users/{id}/workload', [UtilityController::class, 'getWorkload']);
+    Route::get('v1/me/tasks', [UtilityController::class, 'getMyOpenTasks']);
 
     // Quotes
     Route::apiResource('v1/quotes', QuoteController::class);

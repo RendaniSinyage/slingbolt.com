@@ -1,0 +1,23 @@
+{
+    "name": "nwidart/ai",
+    "description": "An AI assistant module for the ERP.",
+    "authors": [
+        {
+            "name": "Jules",
+            "email": "jules@example.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Ai\\": ""
+        }
+    }
+}
