@@ -27,6 +27,9 @@ use App\Http\Controllers\API\v1\OtherPaymentController;
 use App\Http\Controllers\API\v1\CustomerController;
 use App\Http\Controllers\API\v1\VenderController;
 use App\Http\Controllers\API\v1\ProductServiceController;
+use App\Http\Controllers\API\v1\BranchController;
+use App\Http\Controllers\API\v1\DepartmentController;
+use App\Http\Controllers\API\v1\DesignationController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -95,6 +98,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // Product & Services
     Route::apiResource('v1/productservices', ProductServiceController::class);
+
+    // HRM Core
+    Route::apiResource('v1/branches', BranchController::class);
+    Route::apiResource('v1/departments', DepartmentController::class);
+    Route::apiResource('v1/designations', DesignationController::class);
 
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
