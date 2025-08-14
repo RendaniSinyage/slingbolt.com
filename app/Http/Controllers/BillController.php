@@ -619,6 +619,8 @@ class BillController extends Controller
                 Utility::addTransactionLines($data);
             }
 
+            $pdf = \PDF::loadView('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'));
+            session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
 
 
@@ -654,6 +656,8 @@ class BillController extends Controller
                     'bill_number'   => $bill->bill,
                     'bill_url' =>$bill->url,
                 ];
+                $pdf = \PDF::loadView('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'));
+                session(['pdf' => $pdf->output()]);
                 $resp = Utility::sendEmailTemplate('bill_resent', [$vender->id => $vender->email], $billResendArr);
 
             }
