@@ -30,6 +30,9 @@ use App\Http\Controllers\API\v1\ProductServiceController;
 use App\Http\Controllers\API\v1\BranchController;
 use App\Http\Controllers\API\v1\DepartmentController;
 use App\Http\Controllers\API\v1\DesignationController;
+use App\Http\Controllers\API\v1\TaxController;
+use App\Http\Controllers\API\v1\BankAccountController;
+use App\Http\Controllers\API\v1\PaymentController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +106,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/branches', BranchController::class);
     Route::apiResource('v1/departments', DepartmentController::class);
     Route::apiResource('v1/designations', DesignationController::class);
+
+    // Financials
+    Route::apiResource('v1/taxes', TaxController::class);
+    Route::apiResource('v1/bank-accounts', BankAccountController::class);
+    Route::apiResource('v1/payments', PaymentController::class);
 
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
