@@ -5,9 +5,30 @@ use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 use Laravel\Passport\Http\Controllers\ClientController;
 use Laravel\Passport\Http\Controllers\PersonalAccessTokenController;
+use App\Http\Controllers\API\v1\DealController;
+use App\Http\Controllers\API\v1\InvoiceController;
+use App\Http\Controllers\API\v1\EmployeeController;
+use App\Http\Controllers\API\v1\UtilityController;
+use App\Http\Controllers\API\v1\QuoteController;
+use App\Http\Controllers\API\v1\BillController;
+use App\Http\Controllers\API\v1\ProjectController;
+use App\Http\Controllers\API\v1\ProjectTaskController;
+use App\Http\Controllers\API\v1\LeaveController;
+use App\Http\Controllers\API\v1\LeadController;
+use App\Http\Controllers\API\v1\MilestoneController;
+use App\Http\Controllers\API\v1\ProjectExpenseController;
+use App\Http\Controllers\API\v1\PayslipController;
+use App\Http\Controllers\API\v1\SetSalaryController;
+use App\Http\Controllers\API\v1\AllowanceController;
+use App\Http\Controllers\API\v1\CommissionController;
+use App\Http\Controllers\API\v1\LoanController;
+use App\Http\Controllers\API\v1\SaturationDeductionController;
+use App\Http\Controllers\API\v1\OtherPaymentController;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -41,6 +62,90 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('add-tracker', [ApiController::class, 'addTracker']);
     Route::post('stop-tracker', [ApiController::class, 'stopTracker']);
     Route::post('upload-photos', [ApiController::class, 'uploadImage']);
+
+    // Deals
+    Route::get('v1/deals', [DealController::class, 'index']);
+    Route::get('v1/deals/{id}', [DealController::class, 'show']);
+    Route::post('v1/deals', [DealController::class, 'store']);
+    Route::put('v1/deals/{id}', [DealController::class, 'update']);
+    Route::delete('v1/deals/{id}', [DealController::class, 'destroy']);
+
+    // Invoices
+    Route::get('v1/invoices', [InvoiceController::class, 'index']);
+    Route::get('v1/invoices/{id}', [InvoiceController::class, 'show']);
+    Route::post('v1/invoices', [InvoiceController::class, 'store']);
+    Route::put('v1/invoices/{id}', [InvoiceController::class, 'update']);
+    Route::delete('v1/invoices/{id}', [InvoiceController::class, 'destroy']);
+
+    // Employees
+    Route::get('v1/employees', [EmployeeController::class, 'index']);
+    Route::get('v1/employees/{id}', [EmployeeController::class, 'show']);
+    Route::post('v1/employees', [EmployeeController::class, 'store']);
+    Route::put('v1/employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('v1/employees/{id}', [EmployeeController::class, 'destroy']);
+
+    // Utilities
+    Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
+    Route::get('v1/utils/employee-form-data', [UtilityController::class, 'getEmployeeFormData']);
+    Route::get('v1/utils/products', [UtilityController::class, 'getProducts']);
+    Route::get('v1/utils/venders', [UtilityController::class, 'getVenders']);
+
+    // Quotes
+    Route::apiResource('v1/quotes', QuoteController::class);
+
+    // Bills
+    Route::apiResource('v1/bills', BillController::class);
+
+    // Projects
+    Route::apiResource('v1/projects', ProjectController::class);
+
+    // Project Tasks
+    Route::get('v1/projects/{projectId}/tasks', [ProjectTaskController::class, 'index']);
+    Route::post('v1/projects/{projectId}/tasks', [ProjectTaskController::class, 'store']);
+    Route::get('v1/tasks/{taskId}', [ProjectTaskController::class, 'show']); // a task can be fetched by its own id
+    Route::put('v1/tasks/{taskId}', [ProjectTaskController::class, 'update']);
+    Route::delete('v1/tasks/{taskId}', [ProjectTaskController::class, 'destroy']);
+
+    // Project Milestones
+    Route::get('v1/projects/{projectId}/milestones', [MilestoneController::class, 'index']);
+    Route::post('v1/projects/{projectId}/milestones', [MilestoneController::class, 'store']);
+    Route::put('v1/milestones/{milestoneId}', [MilestoneController::class, 'update']);
+    Route::delete('v1/milestones/{milestoneId}', [MilestoneController::class, 'destroy']);
+
+    // Project Expenses
+    Route::get('v1/projects/{projectId}/expenses', [ProjectExpenseController::class, 'index']);
+    Route::post('v1/projects/{projectId}/expenses', [ProjectExpenseController::class, 'store']);
+    Route::delete('v1/expenses/{expenseId}', [ProjectExpenseController::class, 'destroy']);
+
+    // HRM - Leave
+    Route::apiResource('v1/leaves', LeaveController::class)->except(['update']);
+    Route::post('v1/leaves/{id}/approve', [LeaveController::class, 'approve']);
+    Route::post('v1/leaves/{id}/reject', [LeaveController::class, 'reject']);
+
+    // CRM - Leads
+    Route::apiResource('v1/leads', LeadController::class);
+
+    // HRM - Payslip
+    Route::apiResource('v1/payslips', PayslipController::class);
+
+    // HRM - Set Salary
+    Route::get('v1/employees/{employeeId}/salary', [SetSalaryController::class, 'show']);
+    Route::put('v1/employees/{employeeId}/salary', [SetSalaryController::class, 'update']);
+
+    // HRM - Allowances
+    Route::apiResource('v1/allowances', AllowanceController::class);
+
+    // HRM - Commissions
+    Route::apiResource('v1/commissions', CommissionController::class);
+
+    // HRM - Loans
+    Route::apiResource('v1/loans', LoanController::class);
+
+    // HRM - Saturation Deductions
+    Route::apiResource('v1/saturation-deductions', SaturationDeductionController::class);
+
+    // HRM - Other Payments
+    Route::apiResource('v1/other-payments', OtherPaymentController::class);
 });
 
 /*

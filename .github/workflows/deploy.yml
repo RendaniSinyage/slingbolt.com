@@ -10,12 +10,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
         
-      - name: Deploy via Rsync
+      - name: Install sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+        
+      - name: Deploy via Rsync (Primary - Domain)
+        id: primary_deploy
+        continue-on-error: true
         env:
           SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
         run: |
+          echo "Attempting deployment to s1.juvo.app..."
           rsync -avz \
             --delete \
+            --timeout=30 \
             --exclude '.git*' \
             --exclude 'node_modules/' \
             --exclude 'vendor/' \
@@ -30,6 +37,41 @@ jobs:
             --exclude 'storage/framework/sessions/' \
             --exclude 'storage/framework/views/' \
             --exclude 'modules_statuses.json' \
-            -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
+            -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30" \
             ./ \
             root@s1.juvo.app:/var/www/fastuser/data/www/slingbolt.com/
+            
+      - name: Deploy via Rsync (Fallback - IP)
+        if: steps.primary_deploy.outcome == 'failure'
+        env:
+          SSH_PASSWORD: ${{ secrets.SSH_PASSWORD }}
+        run: |
+          echo "Primary deployment failed, attempting fallback to IP address..."
+          rsync -avz \
+            --delete \
+            --timeout=30 \
+            --exclude '.git*' \
+            --exclude 'node_modules/' \
+            --exclude 'vendor/' \
+            --exclude 'storage/*.log' \
+            --exclude 'storage/*/token.json' \
+            --exclude 'storage/*/credentials.json' \
+            --exclude 'storage/oauth-private.key' \
+            --exclude 'storage/oauth-public.key' \
+            --exclude 'storage/logs/' \
+            --exclude 'bootstrap/cache/' \
+            --exclude 'storage/framework/cache/' \
+            --exclude 'storage/framework/sessions/' \
+            --exclude 'storage/framework/views/' \
+            --exclude 'modules_statuses.json' \
+            -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30" \
+            ./ \
+            root@147.79.101.96:/var/www/fastuser/data/www/slingbolt.com/
+            
+      - name: Deployment Status
+        run: |
+          if [ "${{ steps.primary_deploy.outcome }}" == "success" ]; then
+            echo "✅ Deployment successful via domain (s1.juvo.app)"
+          elif [ "${{ steps.primary_deploy.outcome }}" == "failure" ]; then
+            echo "⚠️ Primary deployment failed, used fallback IP (147.79.101.96)"
+          fi
