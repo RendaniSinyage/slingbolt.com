@@ -1,12 +1,23 @@
 <?php
 
-namespace App\Http\Controllers\AiAssistant;
+namespace Modules\Ai\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Modules\Ai\Services\AiAssistantService;
 
 class ChatController extends Controller
 {
+    /**
+     * Show the chat page.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function showChatPage()
+    {
+        return view('ai::chat');
+    }
+
     /**
      * Handle the incoming chat request.
      *
@@ -14,7 +25,7 @@ class ChatController extends Controller
      * @param \Modules\Ai\Services\AiAssistantService $aiAssistant
      * @return \Illuminate\Http\JsonResponse
      */
-    public function __invoke(Request $request, AiAssistantService $aiAssistant)
+    public function chat(Request $request, AiAssistantService $aiAssistant)
     {
         $request->validate([
             'message' => 'required|string|max:1000',

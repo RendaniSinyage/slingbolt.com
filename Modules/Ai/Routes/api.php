@@ -14,6 +14,6 @@ use Modules\Ai\Http\Controllers\ChatController;
 |
 */
 
-Route::prefix('v1/ai')->group(function () {
-    Route::post('chat', ChatController::class);
+Route::prefix('v1/ai')->name('api.v1.ai.')->group(function () {
+    Route::post('chat', [ChatController::class, 'chat'])->name('chat');
 });
