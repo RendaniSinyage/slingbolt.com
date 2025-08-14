@@ -24,6 +24,9 @@ use App\Http\Controllers\API\v1\CommissionController;
 use App\Http\Controllers\API\v1\LoanController;
 use App\Http\Controllers\API\v1\SaturationDeductionController;
 use App\Http\Controllers\API\v1\OtherPaymentController;
+use App\Http\Controllers\API\v1\CustomerController;
+use App\Http\Controllers\API\v1\VenderController;
+use App\Http\Controllers\API\v1\ProductServiceController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -83,6 +86,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/employees', [EmployeeController::class, 'store']);
     Route::put('v1/employees/{id}', [EmployeeController::class, 'update']);
     Route::delete('v1/employees/{id}', [EmployeeController::class, 'destroy']);
+
+    // Customers
+    Route::apiResource('v1/customers', CustomerController::class);
+
+    // Venders
+    Route::apiResource('v1/venders', VenderController::class);
+
+    // Product & Services
+    Route::apiResource('v1/productservices', ProductServiceController::class);
 
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
