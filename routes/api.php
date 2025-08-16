@@ -39,6 +39,9 @@ use App\Http\Controllers\API\v1\ContractController;
 use App\Http\Controllers\API\v1\BillController;
 use App\Http\Controllers\API\v1\ExpenseController;
 use App\Http\Controllers\API\v1\RevenueController;
+use App\Http\Controllers\API\v1\BudgetController;
+use App\Http\Controllers\API\v1\ProjectstagesController;
+use App\Http\Controllers\API\v1\TimesheetController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -124,6 +127,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/proposals', ProposalController::class);
     Route::apiResource('v1/quotations', QuotationController::class);
     Route::apiResource('v1/contracts', ContractController::class);
+
+    // Project Management
+    Route::apiResource('v1/budgets', BudgetController::class);
+    Route::apiResource('v1/projectstages', ProjectstagesController::class);
+    Route::get('v1/projects/{project}/timesheets', [TimesheetController::class, 'index']);
+    Route::post('v1/projects/{project}/timesheets', [TimesheetController::class, 'store']);
+    Route::apiResource('v1/timesheets', TimesheetController::class)->except(['index', 'store']);
 
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
