@@ -24,10 +24,6 @@ class CompanyRefreshService
      */
     private $masterDataTables = [
         // Financial Master Data - TEMPLATE WINS (compliance, match by code)
-        'chart_of_accounts' => ['code', 'name'], // Match by code, fallback to name
-        'chart_of_account_parents' => ['name'],
-        'chart_of_account_types' => ['name'],
-        'chart_of_account_sub_types' => ['name'],
         'taxes' => ['name', 'rate'], // Template wins for compliance
 
         // Categories - USER WINS in conflicts, but merge
@@ -192,6 +188,9 @@ class CompanyRefreshService
                 // Step 3: Merge template master data with existing
                 $this->mergeTemplateMasterData();
 
+                // Step 3b: Refresh chart of accounts with specialized logic
+                $this->_refreshChartOfAccounts();
+
                 // Step 4: Update settings strategically
                 $this->mergeTemplateSettings();
 
@@ -325,6 +324,173 @@ class CompanyRefreshService
 
             Log::info("Processing table: {$tableName}");
             $this->mergeTable($tableName, $matchFields);
+        }
+    }
+
+    /**
+     * Step 3b: Refresh chart of accounts with a specialized method
+     */
+    private function _refreshChartOfAccounts()
+    {
+        Log::info("Step 3b: Refreshing chart of accounts with specialized logic");
+
+        // Mappings to track template IDs/names to user's new IDs
+        $typeMap = []; // template type name -> user type id
+        $subTypeMap = []; // template sub-type composite key -> user sub-type id
+        $accountMap = []; // template account code -> user account id
+
+        // === 1. Process Chart of Account Types ===
+        Log::info("Processing chart_of_account_types");
+        $userTypes = DB::table('chart_of_account_types')->where('created_by', $this->companyId)->get()->keyBy('name');
+        $templateTypes = DB::table('chart_of_account_types')->where('created_by', $this->templateCompanyId)->get();
+
+        foreach ($templateTypes as $templateType) {
+            $userType = $userTypes->get($templateType->name);
+            if ($userType) {
+                // Type exists, just map it
+                $typeMap[$templateType->name] = $userType->id;
+            } else {
+                // Type does not exist, create it
+                if (!$this->isDryRun) {
+                    $newTypeId = DB::table('chart_of_account_types')->insertGetId([
+                        'name' => $templateType->name,
+                        'created_by' => $this->companyId,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                    $typeMap[$templateType->name] = $newTypeId;
+                }
+                $this->transferLog[] = ['action' => 'added', 'table' => 'chart_of_account_types', 'details' => "Added type: {$templateType->name}", 'dry_run' => $this->isDryRun];
+            }
+        }
+
+        // === 2. Process Chart of Account Sub-Types ===
+        Log::info("Processing chart_of_account_sub_types");
+        $userSubTypes = DB::table('chart_of_account_sub_types as st')
+            ->join('chart_of_account_types as t', 'st.type', '=', 't.id')
+            ->where('st.created_by', $this->companyId)
+            ->select('st.*', 't.name as type_name')
+            ->get()->keyBy(fn($item) => $item->name . '|' . $item->type_name);
+
+        $templateSubTypes = DB::table('chart_of_account_sub_types as st')
+            ->join('chart_of_account_types as t', 'st.type', '=', 't.id')
+            ->where('st.created_by', $this->templateCompanyId)
+            ->select('st.*', 't.name as type_name')
+            ->get();
+
+        foreach ($templateSubTypes as $templateSubType) {
+            $compositeKey = $templateSubType->name . '|' . $templateSubType->type_name;
+            $userSubType = $userSubTypes->get($compositeKey);
+
+            if ($userSubType) {
+                $subTypeMap[$compositeKey] = $userSubType->id;
+            } else {
+                $userTypeId = $typeMap[$templateSubType->type_name] ?? null;
+                if ($userTypeId) {
+                    if (!$this->isDryRun) {
+                        $newSubTypeId = DB::table('chart_of_account_sub_types')->insertGetId([
+                            'name' => $templateSubType->name,
+                            'type' => $userTypeId,
+                            'created_by' => $this->companyId,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                        $subTypeMap[$compositeKey] = $newSubTypeId;
+                    }
+                    $this->transferLog[] = ['action' => 'added', 'table' => 'chart_of_account_sub_types', 'details' => "Added sub-type: {$templateSubType->name}", 'dry_run' => $this->isDryRun];
+                }
+            }
+        }
+
+        // === 3. Process Chart of Accounts (Create/Update) ===
+        Log::info("Processing chart_of_accounts (create/update)");
+        $userAccounts = DB::table('chart_of_accounts')->where('created_by', $this->companyId)->get()->keyBy('code');
+        $templateAccounts = DB::table('chart_of_accounts as ca')
+            ->join('chart_of_account_types as t', 'ca.type', '=', 't.id')
+            ->join('chart_of_account_sub_types as st', 'ca.sub_type', '=', 'st.id')
+            ->where('ca.created_by', $this->templateCompanyId)
+            ->select('ca.*', 't.name as type_name', 'st.name as sub_type_name')
+            ->get();
+
+        foreach ($templateAccounts as $templateAccount) {
+            $userAccount = $userAccounts->get($templateAccount->code);
+            $userTypeId = $typeMap[$templateAccount->type_name] ?? null;
+            $subTypeCompositeKey = $templateAccount->sub_type_name . '|' . $templateAccount->type_name;
+            $userSubTypeId = $subTypeMap[$subTypeCompositeKey] ?? null;
+
+            if (!$userTypeId || !$userSubTypeId) {
+                Log::warning("Skipping account code {$templateAccount->code} due to missing type/subtype mapping.");
+                continue;
+            }
+
+            if ($userAccount) {
+                // Account exists, update it
+                $updateData = [
+                    'name' => $templateAccount->name,
+                    'is_enabled' => $templateAccount->is_enabled,
+                    'type' => $userTypeId,
+                    'sub_type' => $userSubTypeId,
+                    'updated_at' => now(),
+                ];
+                if (!$this->isDryRun) {
+                    DB::table('chart_of_accounts')->where('id', $userAccount->id)->update($updateData);
+                }
+                $accountMap[$templateAccount->code] = $userAccount->id;
+                $this->transferLog[] = ['action' => 'updated', 'table' => 'chart_of_accounts', 'details' => "Updated account: {$templateAccount->code}", 'dry_run' => $this->isDryRun];
+            } else {
+                // Account does not exist, create it
+                $insertData = [
+                    'name' => $templateAccount->name,
+                    'code' => $templateAccount->code,
+                    'type' => $userTypeId,
+                    'sub_type' => $userSubTypeId,
+                    'parent' => 0, // Set parent to 0 initially
+                    'is_enabled' => $templateAccount->is_enabled,
+                    'description' => $templateAccount->description,
+                    'created_by' => $this->companyId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+                if (!$this->isDryRun) {
+                    $newAccountId = DB::table('chart_of_accounts')->insertGetId($insertData);
+                    $accountMap[$templateAccount->code] = $newAccountId;
+                }
+                $this->transferLog[] = ['action' => 'added', 'table' => 'chart_of_accounts', 'details' => "Added account: {$templateAccount->code}", 'dry_run' => $this->isDryRun];
+            }
+        }
+
+        // At this point, all user accounts that are also in the template have an entry in the accountMap
+        // Fill the map for any user accounts that were not in the template, we need them for parent mapping
+        $allUserAccounts = DB::table('chart_of_accounts')->where('created_by', $this->companyId)->get();
+        foreach($allUserAccounts as $ua) {
+            if (!isset($accountMap[$ua->code])) {
+                $accountMap[$ua->code] = $ua->id;
+            }
+        }
+
+
+        // === 4. Fix Parent Relationships ===
+        Log::info("Fixing chart_of_accounts parent relationships");
+        $templateIdToCode = DB::table('chart_of_accounts')->where('created_by', $this->templateCompanyId)->pluck('code', 'id');
+        $templateAccountsWithParents = DB::table('chart_of_accounts')
+            ->where('created_by', $this->templateCompanyId)
+            ->whereNotNull('parent')
+            ->where('parent', '!=', 0)
+            ->get(['code', 'parent']);
+
+        foreach ($templateAccountsWithParents as $templateAccount) {
+            $parentCode = $templateIdToCode->get($templateAccount->parent);
+            if ($parentCode) {
+                $userChildId = $accountMap[$templateAccount->code] ?? null;
+                $userParentId = $accountMap[$parentCode] ?? null;
+
+                if ($userChildId && $userParentId) {
+                    if (!$this->isDryRun) {
+                        DB::table('chart_of_accounts')->where('id', $userChildId)->update(['parent' => $userParentId]);
+                    }
+                    $this->transferLog[] = ['action' => 'fixed_parent_relationship', 'table' => 'chart_of_accounts', 'details' => "Set parent for {$templateAccount->code} to {$parentCode}", 'dry_run' => $this->isDryRun];
+                }
+            }
         }
     }
 
@@ -919,330 +1085,6 @@ class CompanyRefreshService
         ];
     }
 
-/**
- * Fix chart of accounts relationships after main refresh
- * Call this method at the end of your existing refreshCompany method
- */
-private function fixChartOfAccountsRelationships()
-{
-    Log::info("Fixing chart of accounts relationships...");
-
-    // Step 1: Fix chart_of_account_types (match by name)
-    $this->fixChartOfAccountTypes();
-
-    // Step 2: Fix chart_of_account_sub_types (match by name and type)
-    $this->fixChartOfAccountSubTypes();
-
-    // Step 3: Fix chart_of_accounts (match by code, update name and is_enabled)
-    $this->fixChartOfAccounts();
-
-    // Step 4: Fix parent relationships in chart_of_accounts
-    $this->fixChartOfAccountsParentRelationships();
-
-    Log::info("Chart of accounts relationships fixed");
-}
-
-/**
- * Fix chart_of_account_types - match by name
- */
-private function fixChartOfAccountTypes()
-{
-    Log::info("Fixing chart_of_account_types...");
-
-    // Get template types
-    $templateTypes = DB::table('chart_of_account_types')
-        ->where('created_by', $this->templateCompanyId)
-        ->get()
-        ->keyBy('name');
-
-    // Get user types
-    $userTypes = DB::table('chart_of_account_types')
-        ->where('created_by', $this->companyId)
-        ->get()
-        ->keyBy('name');
-
-    $updated = 0;
-    $created = 0;
-
-    foreach ($templateTypes as $name => $templateType) {
-        if ($userTypes->has($name)) {
-            // Type exists - no update needed (name is the key)
-            continue;
-        } else {
-            // Type doesn't exist - create it
-            if (!$this->isDryRun) {
-                DB::table('chart_of_account_types')->insert([
-                    'name' => $templateType->name,
-                    'created_by' => $this->companyId,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-            $created++;
-
-            $this->transferLog[] = [
-                'action' => 'created_account_type',
-                'table' => 'chart_of_account_types',
-                'details' => "Created type: {$name}",
-                'dry_run' => $this->isDryRun
-            ];
-        }
-    }
-
-    Log::info("chart_of_account_types: {$created} created, {$updated} updated");
-}
-
-/**
- * Fix chart_of_account_sub_types - match by name and type
- */
-private function fixChartOfAccountSubTypes()
-{
-    Log::info("Fixing chart_of_account_sub_types...");
-
-    // First, get type ID mappings (template name -> user type ID)
-    $userTypes = DB::table('chart_of_account_types')
-        ->where('created_by', $this->companyId)
-        ->pluck('id', 'name');
-
-    $templateTypes = DB::table('chart_of_account_types')
-        ->where('created_by', $this->templateCompanyId)
-        ->pluck('id', 'name');
-
-    // Get template sub types with type names
-    $templateSubTypes = DB::table('chart_of_account_sub_types as st')
-        ->join('chart_of_account_types as t', 'st.type', '=', 't.id')
-        ->where('st.created_by', $this->templateCompanyId)
-        ->select('st.*', 't.name as type_name')
-        ->get();
-
-    // Get user sub types for comparison
-    $userSubTypes = DB::table('chart_of_account_sub_types as st')
-        ->join('chart_of_account_types as t', 'st.type', '=', 't.id')
-        ->where('st.created_by', $this->companyId)
-        ->select('st.*', 't.name as type_name')
-        ->get()
-        ->keyBy(function($item) {
-            return $item->name . '|' . $item->type_name;
-        });
-
-    $created = 0;
-
-    foreach ($templateSubTypes as $templateSubType) {
-        $matchingKey = $templateSubType->name . '|' . $templateSubType->type_name;
-
-        if (!$userSubTypes->has($matchingKey)) {
-            // Sub type doesn't exist - create it
-            $userTypeId = $userTypes->get($templateSubType->type_name);
-
-            if ($userTypeId) {
-                if (!$this->isDryRun) {
-                    DB::table('chart_of_account_sub_types')->insert([
-                        'name' => $templateSubType->name,
-                        'type' => $userTypeId,
-                        'created_by' => $this->companyId,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
-                $created++;
-
-                $this->transferLog[] = [
-                    'action' => 'created_account_sub_type',
-                    'table' => 'chart_of_account_sub_types',
-                    'details' => "Created sub type: {$templateSubType->name} for type: {$templateSubType->type_name}",
-                    'dry_run' => $this->isDryRun
-                ];
-            }
-        }
-    }
-
-    Log::info("chart_of_account_sub_types: {$created} created");
-}
-
-/**
- * Fix chart_of_accounts - match by code, update name and is_enabled
- */
-private function fixChartOfAccounts()
-{
-    Log::info("Fixing chart_of_accounts...");
-
-    // Get type and sub_type mappings (template -> user)
-    $userTypes = DB::table('chart_of_account_types')
-        ->where('created_by', $this->companyId)
-        ->pluck('id', 'name');
-
-    $userSubTypes = DB::table('chart_of_account_sub_types as st')
-        ->join('chart_of_account_types as t', 'st.type', '=', 't.id')
-        ->where('st.created_by', $this->companyId)
-        ->select('st.id', 'st.name as sub_type_name', 't.name as type_name')
-        ->get()
-        ->keyBy(function($item) {
-            return $item->sub_type_name . '|' . $item->type_name;
-        });
-
-    // Get template accounts with type and sub_type names
-    $templateAccounts = DB::table('chart_of_accounts as ca')
-        ->join('chart_of_account_types as t', 'ca.type', '=', 't.id')
-        ->join('chart_of_account_sub_types as st', 'ca.sub_type', '=', 'st.id')
-        ->where('ca.created_by', $this->templateCompanyId)
-        ->select(
-            'ca.*',
-            't.name as type_name',
-            'st.name as sub_type_name'
-        )
-        ->get()
-        ->keyBy('code');
-
-    // Get user accounts
-    $userAccounts = DB::table('chart_of_accounts')
-        ->where('created_by', $this->companyId)
-        ->get()
-        ->keyBy('code');
-
-    $updated = 0;
-    $created = 0;
-
-    foreach ($templateAccounts as $code => $templateAccount) {
-        $userTypeId = $userTypes->get($templateAccount->type_name);
-        $userSubTypeKey = $templateAccount->sub_type_name . '|' . $templateAccount->type_name;
-        $userSubTypeId = $userSubTypes->has($userSubTypeKey) ? $userSubTypes->get($userSubTypeKey)->id : null;
-
-        if (!$userTypeId || !$userSubTypeId) {
-            Log::warning("Missing type or sub_type mapping for account code {$code}");
-            continue;
-        }
-
-        if ($userAccounts->has($code)) {
-            // Account exists - check if we need to update name or is_enabled
-            $userAccount = $userAccounts->get($code);
-            $needsUpdate = false;
-            $updateData = [];
-
-            if ($userAccount->name !== $templateAccount->name) {
-                $updateData['name'] = $templateAccount->name;
-                $needsUpdate = true;
-            }
-
-            if ($userAccount->is_enabled !== $templateAccount->is_enabled) {
-                $updateData['is_enabled'] = $templateAccount->is_enabled;
-                $needsUpdate = true;
-            }
-
-            if ($userAccount->type !== $userTypeId) {
-                $updateData['type'] = $userTypeId;
-                $needsUpdate = true;
-            }
-
-            if ($userAccount->sub_type !== $userSubTypeId) {
-                $updateData['sub_type'] = $userSubTypeId;
-                $needsUpdate = true;
-            }
-
-            if ($needsUpdate) {
-                if (!$this->isDryRun) {
-                    $updateData['updated_at'] = now();
-                    DB::table('chart_of_accounts')
-                        ->where('id', $userAccount->id)
-                        ->update($updateData);
-                }
-                $updated++;
-
-                $this->transferLog[] = [
-                    'action' => 'updated_account',
-                    'table' => 'chart_of_accounts',
-                    'details' => "Updated account code {$code}: " . implode(', ', array_keys($updateData)),
-                    'dry_run' => $this->isDryRun
-                ];
-            }
-        } else {
-            // Account doesn't exist - create it (but set parent to 0 initially)
-            if (!$this->isDryRun) {
-                DB::table('chart_of_accounts')->insert([
-                    'name' => $templateAccount->name,
-                    'code' => $templateAccount->code,
-                    'type' => $userTypeId,
-                    'sub_type' => $userSubTypeId,
-                    'parent' => 0, // Will be fixed in next step
-                    'is_enabled' => $templateAccount->is_enabled,
-                    'description' => $templateAccount->description,
-                    'created_by' => $this->companyId,
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            }
-            $created++;
-
-            $this->transferLog[] = [
-                'action' => 'created_account',
-                'table' => 'chart_of_accounts',
-                'details' => "Created account: {$templateAccount->name} (code: {$code})",
-                'dry_run' => $this->isDryRun
-            ];
-        }
-    }
-
-    Log::info("chart_of_accounts: {$created} created, {$updated} updated");
-}
-
-/**
- * Fix parent relationships in chart_of_accounts
- */
-private function fixChartOfAccountsParentRelationships()
-{
-    Log::info("Fixing chart_of_accounts parent relationships...");
-
-    // Get template accounts with parent relationships
-    $templateAccounts = DB::table('chart_of_accounts')
-        ->where('created_by', $this->templateCompanyId)
-        ->whereNotNull('parent')
-        ->where('parent', '>', 0)
-        ->get(['code', 'parent']);
-
-    // Create mapping of template parent IDs to codes
-    $templateIdToCode = DB::table('chart_of_accounts')
-        ->where('created_by', $this->templateCompanyId)
-        ->pluck('code', 'id');
-
-    // Get user accounts for code -> id mapping
-    $userCodeToId = DB::table('chart_of_accounts')
-        ->where('created_by', $this->companyId)
-        ->pluck('id', 'code');
-
-    $fixed = 0;
-
-    foreach ($templateAccounts as $templateAccount) {
-        $childCode = $templateAccount->code;
-        $parentCode = $templateIdToCode->get($templateAccount->parent);
-
-        if (!$parentCode) {
-            Log::warning("Could not find parent code for template parent ID {$templateAccount->parent}");
-            continue;
-        }
-
-        $userChildId = $userCodeToId->get($childCode);
-        $userParentId = $userCodeToId->get($parentCode);
-
-        if ($userChildId && $userParentId) {
-            if (!$this->isDryRun) {
-                DB::table('chart_of_accounts')
-                    ->where('id', $userChildId)
-                    ->update(['parent' => $userParentId, 'updated_at' => now()]);
-            }
-            $fixed++;
-
-            $this->transferLog[] = [
-                'action' => 'fixed_parent_relationship',
-                'table' => 'chart_of_accounts',
-                'details' => "Account code {$childCode} -> parent code {$parentCode}",
-                'dry_run' => $this->isDryRun
-            ];
-        } else {
-            Log::warning("Could not find user accounts for parent relationship: child code {$childCode}, parent code {$parentCode}");
-        }
-    }
-
-    Log::info("Fixed {$fixed} parent relationships in chart_of_accounts");
-}
 
 
     /**
