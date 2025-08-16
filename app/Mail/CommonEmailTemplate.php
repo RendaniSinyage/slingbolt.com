@@ -32,9 +32,8 @@ class CommonEmailTemplate extends Mailable
      */
     public function build()
     {
-        $url = $this->template->url;
-
-        if ($url) {
+        if (property_exists($this->template, 'url') && !empty($this->template->url)) {
+            $url = $this->template->url;
             $pdf = \Spatie\Browsershot\Browsershot::url($url)->pdf();
             return $this->from($this->settings['mail_from_address'], $this->template->from)->markdown('email.common_email_template')->subject($this->template->subject)->with('content', $this->template->content)->attachData($pdf, 'document.pdf');
         } else {
