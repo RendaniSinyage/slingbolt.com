@@ -774,4 +774,98 @@ class PosController extends Controller
 
     }
 
+    public function sent($id)
+    {
+        if(\Auth::user()->can('send pos'))
+        {
+            $pos            = Pos::where('id', $id)->first();
+            $pos->send_date = date('Y-m-d');
+            $pos->status    = 1;
+            $pos->save();
+
+            $customer           = Customer::where('id', $pos->customer_id)->first();
+            $pos->name     = !empty($customer) ? $customer->name : '';
+            $pos->pos = \Auth::user()->posNumberFormat($pos->pos_id);
+
+            $posId    = Crypt::encrypt($pos->id);
+            $pos->url = route('pos.pdf', $posId);
+
+            // Send Email
+            $settings = Utility::settings();
+            if($settings['pos_sent'] == 1)
+            {
+                $customer           = Customer::where('id', $pos->customer_id)->first();
+                $pos->name     = !empty($customer) ? $customer->name : '';
+                $pos->pos = \Auth::user()->posNumberFormat($pos->pos_id);
+
+                $posId    = Crypt::encrypt($pos->id);
+                $pos->url = route('pos.pdf', $posId);
+
+                $posArr = [
+                    'pos_name' => $pos->name,
+                    'pos_number' => $pos->pos,
+                    'pos_url' => $pos->url,
+
+                ];
+                $posPayment = PosPayment::where('pos_id', $pos->id)->first();
+                $pdf = \PDF::loadView('pos.templates.' . $settings['pos_template'], compact('pos', 'settings', 'customer', 'posPayment'));
+                session(['pdf' => $pdf->output()]);
+                $resp = \App\Models\Utility::sendEmailTemplate('pos_sent', [$customer->id => $customer->email], $posArr);
+                return redirect()->back()->with('success', __('POS successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
+
+            }
+
+            return redirect()->back()->with('success', __('POS successfully sent.') );
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
+    public function resent($id)
+    {
+        if(\Auth::user()->can('send pos'))
+        {
+            $pos = Pos::where('id', $id)->first();
+
+            $customer           = Customer::where('id', $pos->customer_id)->first();
+            $pos->name     = !empty($customer) ? $customer->name : '';
+            $pos->pos = \Auth::user()->posNumberFormat($pos->pos_id);
+
+            $posId    = Crypt::encrypt($pos->id);
+            $pos->url = route('pos.pdf', $posId);
+
+            // Send Email
+            $setings = Utility::settings();
+            if($setings['pos_sent'] == 1)
+            {
+                $customer           = Customer::where('id', $pos->customer_id)->first();
+                $pos->name     = !empty($customer) ? $customer->name : '';
+                $pos->pos = \Auth::user()->posNumberFormat($pos->pos_id);
+
+                $posId    = Crypt::encrypt($pos->id);
+                $pos->url = route('pos.pdf', $posId);
+
+                $posArr = [
+                    'pos_name' => $pos->name,
+                    'pos_number' => $pos->pos,
+                    'pos_url' => $pos->url,
+
+                ];
+                $pdf = \PDF::loadView('pos.templates.' . $settings['pos_template'], compact('pos', 'posPayment', 'color', 'settings', 'customer', 'img', 'font_color'));
+                session(['pdf' => $pdf->output()]);
+                $resp = \App\Models\Utility::sendEmailTemplate('pos_sent', [$customer->id => $customer->email], $posArr);
+                return redirect()->back()->with('success', __('POS successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
+
+            }
+
+            return redirect()->back()->with('success', __('POS successfully sent.') );
+        }
+        else
+        {
+            return redirect()->back()->with('error', __('Permission denied.'));
+        }
+    }
+
 }

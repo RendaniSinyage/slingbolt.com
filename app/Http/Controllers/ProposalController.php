@@ -461,6 +461,8 @@ class ProposalController extends Controller
                     'proposal_url' => $proposal->url,
 
                 ];
+                $pdf = \PDF::loadView('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
+                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('proposal_sent', [$customer->id => $customer->email], $proposalArr);
                 return redirect()->back()->with('success', __('Proposal successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
@@ -504,6 +506,8 @@ class ProposalController extends Controller
                     'proposal_url' => $proposal->url,
 
                 ];
+                $pdf = \PDF::loadView('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
+                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('proposal_sent', [$customer->id => $customer->email], $proposalArr);
                 return redirect()->back()->with('success', __('Proposal successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
