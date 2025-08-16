@@ -582,7 +582,7 @@ class InvoiceController extends Controller
                     'invoice_url' => $invoice->url,
 
                 ];
-                $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'));
+                $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer'));
                 session(['pdf' => $pdf->output()]);
                 $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 
@@ -617,7 +617,8 @@ class InvoiceController extends Controller
                 'invoice_url' => $invoice->url,
 
             ];
-            $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'));
+            $settings = Utility::settings();
+            $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer'));
             session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 
