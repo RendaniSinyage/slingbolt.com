@@ -152,6 +152,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/terminationtypes', 'TerminationTypeController');
     Route::apiResource('v1/terminations', 'TerminationController');
     Route::apiResource('v1/promotions', 'PromotionController');
+    Route::apiResource('v1/leads', 'LeadController');
+    Route::apiResource('v1/deals', 'DealController');
+    Route::apiResource('v1/lead-stages', 'LeadStageController');
+    Route::apiResource('v1/stages', 'StageController');
+    Route::apiResource('v1/task-stages', 'TaskStageController');
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
