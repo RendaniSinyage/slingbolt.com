@@ -582,7 +582,8 @@ class InvoiceController extends Controller
                     'invoice_url' => $invoice->url,
 
                 ];
-                $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer'));
+                $color      = '#' . $settings['invoice_color'];
+                $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer', 'color'));
                 session(['pdf' => $pdf->output()]);
                 $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 
@@ -618,7 +619,21 @@ class InvoiceController extends Controller
 
             ];
             $settings = Utility::settings();
-            $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer'));
+            $color      = '#' . $settings['invoice_color'];
+            $font_color = Utility::getFontColor($color);
+            $logo         = asset(Storage::url('uploads/logo/'));
+            $company_logo = Utility::getValByName('company_logo_dark');
+            $settings_data = \App\Models\Utility::settingsById($invoice->created_by);
+            $invoice_logo = $settings_data['invoice_logo'];
+            if(isset($invoice_logo) && !empty($invoice_logo))
+            {
+                $img = Utility::get_file('invoice_logo/') . $invoice_logo;
+            }
+            else{
+                $img          = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
+            }
+            $customFields = CustomField::getData($invoice, 'invoice');
+            $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer', 'color', 'img', 'font_color', 'customFields', 'color'));
             session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 

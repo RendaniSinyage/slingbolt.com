@@ -380,9 +380,8 @@ class QuotationController extends Controller
 
             $quotationId    = Crypt::encrypt($quotation->id);
             $quotation->url = route('quotation.pdf', $quotationId);
-
-            // Send Email
             $settings = Utility::settings();
+            // Send Email
             if($settings['quotation_sent'] == 1)
             {
                 $customer           = Customer::where('id', $quotation->customer_id)->first();
@@ -401,6 +400,7 @@ class QuotationController extends Controller
                 $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer'));
                 session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('quotation_sent', [$customer->id => $customer->email], $quotationArr);
+
                 return redirect()->back()->with('success', __('Quotation successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
             }

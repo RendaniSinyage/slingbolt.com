@@ -19,6 +19,8 @@ jobs:
             --exclude '.git*' \
             --exclude 'node_modules/' \
             --exclude 'vendor/' \
+            --exclude 'composer.json' \
+            --exclude 'composer.lock' \
             --exclude 'storage/*.log' \
             --exclude 'storage/*/token.json' \
             --exclude 'storage/*/credentials.json' \

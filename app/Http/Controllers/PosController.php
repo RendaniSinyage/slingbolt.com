@@ -789,9 +789,8 @@ class PosController extends Controller
 
             $posId    = Crypt::encrypt($pos->id);
             $pos->url = route('pos.pdf', $posId);
-
-            // Send Email
             $settings = Utility::settings();
+            // Send Email
             if($settings['pos_sent'] == 1)
             {
                 $customer           = Customer::where('id', $pos->customer_id)->first();
