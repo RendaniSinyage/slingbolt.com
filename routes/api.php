@@ -53,6 +53,10 @@ use App\Http\Controllers\API\v1\PermissionController;
 use App\Http\Controllers\API\v1\HolidayController;
 use App\Http\Controllers\API\v1\LeaveTypeController;
 use App\Http\Controllers\API\v1\AttendanceEmployeeController;
+use App\Http\Controllers\API\v1\AwardTypeController;
+use App\Http\Controllers\API\v1\AwardController;
+use App\Http\Controllers\API\v1\TransferController;
+use App\Http\Controllers\API\v1\ResignationController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -139,6 +143,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/attendances/clockin', [AttendanceEmployeeController::class, 'clockIn']);
     Route::post('v1/attendances/clockout', [AttendanceEmployeeController::class, 'clockOut']);
     Route::post('v1/attendances', [AttendanceEmployeeController::class, 'store']);
+
+    // HRM Employee Lifecycle
+    Route::apiResource('v1/awardtypes', AwardTypeController::class);
+    Route::apiResource('v1/awards', AwardController::class);
+    Route::apiResource('v1/transfers', TransferController::class);
+    Route::apiResource('v1/resignations', ResignationController::class);
+    Route::apiResource('v1/terminationtypes', 'TerminationTypeController');
+    Route::apiResource('v1/terminations', 'TerminationController');
+    Route::apiResource('v1/promotions', 'PromotionController');
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
