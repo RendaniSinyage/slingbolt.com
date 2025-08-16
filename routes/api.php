@@ -36,6 +36,9 @@ use App\Http\Controllers\API\v1\PaymentController;
 use App\Http\Controllers\API\v1\ProposalController;
 use App\Http\Controllers\API\v1\QuotationController;
 use App\Http\Controllers\API\v1\ContractController;
+use App\Http\Controllers\API\v1\BillController;
+use App\Http\Controllers\API\v1\ExpenseController;
+use App\Http\Controllers\API\v1\RevenueController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -114,6 +117,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/taxes', TaxController::class);
     Route::apiResource('v1/bank-accounts', BankAccountController::class);
     Route::apiResource('v1/payments', PaymentController::class);
+    Route::apiResource('v1/expenses', ExpenseController::class);
+    Route::apiResource('v1/revenues', RevenueController::class);
 
     // Sales
     Route::apiResource('v1/proposals', ProposalController::class);
