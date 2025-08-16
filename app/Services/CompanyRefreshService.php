@@ -200,8 +200,6 @@ class CompanyRefreshService
                 // Step 6: Merge role permissions (NEW!)
                             $this->mergeRolePermissions();
 
-                            $this->fixChartOfAccountsRelationships();
-
                 Log::info($this->isDryRun ? "DRY RUN completed successfully" : "ACTUAL REFRESH completed successfully");
 
                 return $this->generateSuccessResponse();
