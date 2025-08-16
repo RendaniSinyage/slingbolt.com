@@ -689,10 +689,6 @@ class ContractController extends Controller
                 'contract_start_date' => $contract->start_date,
                 'contract_end_date' => $contract->end_date,
             ];
-            $contract->customField = CustomField::getData($contract, 'contract');
-            $customFields          = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'contract')->get();
-            $pdf = \PDF::loadView('contract.template', compact('contract', 'customFields'));
-            session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('new_contract', [$client->id => $client->email], $estArr);
             return redirect()->route('contract.show', $contract->id)->with('success', __('Email Send successfully!') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
         }

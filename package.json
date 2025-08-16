@@ -16,6 +16,7 @@
         "@popperjs/core": "^2.11.8",
         "alpinejs": "^3.14.9",
         "bootstrap": "^5.3.7",
-        "lodash": "^4.17.21"
+        "lodash": "^4.17.21",
+        "puppeteer": "^22.9.0"
     }
 }

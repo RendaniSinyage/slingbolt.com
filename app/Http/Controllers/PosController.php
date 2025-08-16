@@ -807,10 +807,6 @@ class PosController extends Controller
 
                 ];
                 $posPayment = PosPayment::where('pos_id', $pos->id)->first();
-                $pos->customField = CustomField::getData($pos, 'pos');
-                $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'pos')->get();
-                $pdf = \PDF::loadView('pos.templates.' . $settings['pos_template'], compact('pos', 'settings', 'customer', 'posPayment', 'customFields'));
-                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('pos_sent', [$customer->id => $customer->email], $posArr);
                 return redirect()->back()->with('success', __('POS successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
@@ -855,10 +851,6 @@ class PosController extends Controller
 
                 ];
                 $posPayment = PosPayment::where('pos_id', $pos->id)->first();
-                $pos->customField = CustomField::getData($pos, 'pos');
-                $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'pos')->get();
-                $pdf = \PDF::loadView('pos.templates.' . $settings['pos_template'], compact('pos', 'settings', 'customer', 'posPayment', 'customFields'));
-                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('pos_sent', [$customer->id => $customer->email], $posArr);
                 return redirect()->back()->with('success', __('POS successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 

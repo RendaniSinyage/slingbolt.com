@@ -619,10 +619,6 @@ class BillController extends Controller
                 Utility::addTransactionLines($data);
             }
 
-            $bill->customField = CustomField::getData($bill, 'bill');
-            $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'bill')->get();
-            $pdf = \PDF::loadView('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'));
-            session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
 
 
@@ -658,10 +654,6 @@ class BillController extends Controller
                     'bill_number'   => $bill->bill,
                     'bill_url' =>$bill->url,
                 ];
-                $bill->customField = CustomField::getData($bill, 'bill');
-                $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'bill')->get();
-                $pdf = \PDF::loadView('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'));
-                session(['pdf' => $pdf->output()]);
                 $resp = Utility::sendEmailTemplate('bill_resent', [$vender->id => $vender->email], $billResendArr);
 
             }

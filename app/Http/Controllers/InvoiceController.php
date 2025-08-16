@@ -582,9 +582,6 @@ class InvoiceController extends Controller
                     'invoice_url' => $invoice->url,
 
                 ];
-                $color      = '#' . $settings['invoice_color'];
-                $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer', 'color'));
-                session(['pdf' => $pdf->output()]);
                 $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 
                 return redirect()->back()->with('success', __('Invoice successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
@@ -632,10 +629,6 @@ class InvoiceController extends Controller
             else{
                 $img          = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
             }
-            $invoice->customField = CustomField::getData($invoice, 'invoice');
-            $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'invoice')->get();
-            $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer', 'color', 'img', 'font_color', 'customFields', 'color'));
-            session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
 
             return redirect()->back()->with('success', __('Invoice successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
