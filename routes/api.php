@@ -50,6 +50,9 @@ use App\Http\Controllers\API\v1\DeductionOptionController;
 use App\Http\Controllers\API\v1\UserController as ApiUserController;
 use App\Http\Controllers\API\v1\RoleController;
 use App\Http\Controllers\API\v1\PermissionController;
+use App\Http\Controllers\API\v1\HolidayController;
+use App\Http\Controllers\API\v1\LeaveTypeController;
+use App\Http\Controllers\API\v1\AttendanceEmployeeController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -128,6 +131,14 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/allowanceoptions', AllowanceOptionController::class);
     Route::apiResource('v1/loanoptions', LoanOptionController::class);
     Route::apiResource('v1/deductionoptions', DeductionOptionController::class);
+
+    // HRM Time & Attendance
+    Route::apiResource('v1/holidays', HolidayController::class);
+    Route::apiResource('v1/leavetypes', LeaveTypeController::class);
+    Route::get('v1/attendances', [AttendanceEmployeeController::class, 'index']);
+    Route::post('v1/attendances/clockin', [AttendanceEmployeeController::class, 'clockIn']);
+    Route::post('v1/attendances/clockout', [AttendanceEmployeeController::class, 'clockOut']);
+    Route::post('v1/attendances', [AttendanceEmployeeController::class, 'store']);
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
