@@ -433,10 +433,6 @@ class PurchaseController extends Controller
                 'vender_bill_url' => $purchase->url,
 
             ];
-            $settings = Utility::settings();
-            $vendor = $purchase->vender;
-            $pdf = \PDF::loadView('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'settings', 'vendor'));
-            session(['pdf' => $pdf->output()]);
             $resp = \App\Models\Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
 
             return redirect()->back()->with('success', __('Purchase successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
@@ -463,7 +459,15 @@ class PurchaseController extends Controller
             $purchaseId    = Crypt::encrypt($purchase->id);
             $purchase->url = route('purchase.pdf', $purchaseId);
 
-        return redirect()->back()->with('success', __('Bill successfully sent.'));
+            $vendorArr = [
+                'vender_bill_name' => $purchase->name,
+                'vender_bill_number' =>$purchase->purchase,
+                'vender_bill_url' => $purchase->url,
+
+            ];
+            $resp = \App\Models\Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
+
+            return redirect()->back()->with('success', __('Purchase successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
         }
         else
         {

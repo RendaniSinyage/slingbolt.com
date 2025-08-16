@@ -380,9 +380,8 @@ class QuotationController extends Controller
 
             $quotationId    = Crypt::encrypt($quotation->id);
             $quotation->url = route('quotation.pdf', $quotationId);
-
-            // Send Email
             $settings = Utility::settings();
+            // Send Email
             if($settings['quotation_sent'] == 1)
             {
                 $customer           = Customer::where('id', $quotation->customer_id)->first();
@@ -398,9 +397,8 @@ class QuotationController extends Controller
                     'quotation_url' => $quotation->url,
 
                 ];
-                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer'));
-                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('quotation_sent', [$customer->id => $customer->email], $quotationArr);
+
                 return redirect()->back()->with('success', __('Quotation successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
             }
@@ -427,8 +425,8 @@ class QuotationController extends Controller
             $quotation->url = route('quotation.pdf', $quotationId);
 
             // Send Email
-            $setings = Utility::settings();
-            if($setings['quotation_sent'] == 1)
+            $settings = Utility::settings();
+            if($settings['quotation_sent'] == 1)
             {
                 $customer           = Customer::where('id', $quotation->customer_id)->first();
                 $quotation->name     = !empty($customer) ? $customer->name : '';
@@ -443,8 +441,6 @@ class QuotationController extends Controller
                     'quotation_url' => $quotation->url,
 
                 ];
-                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
-                session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('quotation_sent', [$customer->id => $customer->email], $quotationArr);
                 return redirect()->back()->with('success', __('Quotation successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
@@ -457,7 +453,6 @@ class QuotationController extends Controller
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
-
 
     public function previewQuotation($template, $color)
     {
