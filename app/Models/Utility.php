@@ -2531,7 +2531,7 @@ class Utility extends Model
                                     'mail.from.name' => $settings['mail_from_name'] ? $settings['mail_from_name'] : $setting['mail_from_name'],
                                 ]
                             );
-
+                            $content->url = !empty($obj['url']) ? $obj['url'] : '';
                             Mail::to($mailTo)->send(new CommonEmailTemplate($content, $settings));
                         } catch (\Exception $e) {
                             // $error = $e->getMessage();
