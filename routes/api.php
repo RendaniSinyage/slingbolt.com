@@ -47,6 +47,9 @@ use App\Http\Controllers\API\v1\AllowanceController;
 use App\Http\Controllers\API\v1\LoanOptionController;
 use App\Http\Controllers\API\v1\LoanController;
 use App\Http\Controllers\API\v1\DeductionOptionController;
+use App\Http\Controllers\API\v1\UserController as ApiUserController;
+use App\Http\Controllers\API\v1\RoleController;
+use App\Http\Controllers\API\v1\PermissionController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -144,6 +147,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('v1/projects/{project}/timesheets', [TimesheetController::class, 'index']);
     Route::post('v1/projects/{project}/timesheets', [TimesheetController::class, 'store']);
     Route::apiResource('v1/timesheets', TimesheetController::class)->except(['index', 'store']);
+
+    // Admin
+    Route::apiResource('v1/users', ApiUserController::class);
+    Route::apiResource('v1/roles', RoleController::class);
+    Route::get('v1/permissions', [PermissionController::class, 'index']);
 
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
