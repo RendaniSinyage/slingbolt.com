@@ -42,6 +42,11 @@ use App\Http\Controllers\API\v1\RevenueController;
 use App\Http\Controllers\API\v1\BudgetController;
 use App\Http\Controllers\API\v1\ProjectstagesController;
 use App\Http\Controllers\API\v1\TimesheetController;
+use App\Http\Controllers\API\v1\AllowanceOptionController;
+use App\Http\Controllers\API\v1\AllowanceController;
+use App\Http\Controllers\API\v1\LoanOptionController;
+use App\Http\Controllers\API\v1\LoanController;
+use App\Http\Controllers\API\v1\DeductionOptionController;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -115,6 +120,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/branches', BranchController::class);
     Route::apiResource('v1/departments', DepartmentController::class);
     Route::apiResource('v1/designations', DesignationController::class);
+
+    // HRM Payroll
+    Route::apiResource('v1/allowanceoptions', AllowanceOptionController::class);
+    Route::apiResource('v1/loanoptions', LoanOptionController::class);
+    Route::apiResource('v1/deductionoptions', DeductionOptionController::class);
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
