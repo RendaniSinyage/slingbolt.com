@@ -461,6 +461,12 @@ class ProposalController extends Controller
                     'proposal_url' => $proposal->url,
 
                 ];
+                $proposal->customField = CustomField::getData($proposal, 'proposal');
+                $customFields          = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'proposal')->get();
+                $pdf = \PDF::loadView('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
+                session(['pdf' => $pdf->output()]);
+                $proposal->customField = CustomField::getData($proposal, 'proposal');
+                $customFields          = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'proposal')->get();
                 $pdf = \PDF::loadView('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'preview', 'color', 'img', 'settings', 'customer', 'font_color', 'customFields'));
                 session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('proposal_sent', [$customer->id => $customer->email], $proposalArr);

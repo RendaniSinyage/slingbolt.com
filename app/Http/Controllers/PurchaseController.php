@@ -435,7 +435,9 @@ class PurchaseController extends Controller
             ];
             $settings = Utility::settings();
             $vendor = $purchase->vender;
-            $pdf = \PDF::loadView('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'settings', 'vendor'));
+            $purchase->customField = CustomField::getData($purchase, 'purchase');
+            $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'purchase')->get();
+            $pdf = \PDF::loadView('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'settings', 'vendor', 'customFields'));
             session(['pdf' => $pdf->output()]);
             $resp = \App\Models\Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
 
@@ -471,7 +473,9 @@ class PurchaseController extends Controller
             ];
             $settings = Utility::settings();
             $vendor = $purchase->vender;
-            $pdf = \PDF::loadView('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'settings', 'vendor'));
+            $purchase->customField = CustomField::getData($purchase, 'purchase');
+            $customFields      = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'purchase')->get();
+            $pdf = \PDF::loadView('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'settings', 'vendor', 'customFields'));
             session(['pdf' => $pdf->output()]);
             $resp = \App\Models\Utility::sendEmailTemplate('vender_bill_sent', [$vender->id => $vender->email], $vendorArr);
 

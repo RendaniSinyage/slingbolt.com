@@ -397,7 +397,9 @@ class QuotationController extends Controller
                     'quotation_url' => $quotation->url,
 
                 ];
-                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer'));
+                $quotation->customField = CustomField::getData($quotation, 'quotation');
+                $customFields          = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'quotation')->get();
+                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer', 'customFields'));
                 session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('quotation_sent', [$customer->id => $customer->email], $quotationArr);
 
@@ -443,7 +445,9 @@ class QuotationController extends Controller
                     'quotation_url' => $quotation->url,
 
                 ];
-                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer'));
+                $quotation->customField = CustomField::getData($quotation, 'quotation');
+                $customFields          = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'quotation')->get();
+                $pdf = \PDF::loadView('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'settings', 'customer', 'customFields'));
                 session(['pdf' => $pdf->output()]);
                 $resp = \App\Models\Utility::sendEmailTemplate('quotation_sent', [$customer->id => $customer->email], $quotationArr);
                 return redirect()->back()->with('success', __('Quotation successfully sent.') . (($resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));

@@ -632,7 +632,8 @@ class InvoiceController extends Controller
             else{
                 $img          = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
             }
-            $customFields = CustomField::getData($invoice, 'invoice');
+            $invoice->customField = CustomField::getData($invoice, 'invoice');
+            $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'invoice')->get();
             $pdf = \PDF::loadView('invoice.templates.' . $settings['invoice_template'], compact('invoice', 'settings', 'customer', 'color', 'img', 'font_color', 'customFields', 'color'));
             session(['pdf' => $pdf->output()]);
             $resp = Utility::sendEmailTemplate('customer_invoice_sent', [$customer->id => $customer->email], $customerArr);
