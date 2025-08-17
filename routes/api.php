@@ -160,6 +160,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/projects', 'ProjectController');
     Route::apiResource('v1/projects.tasks', 'ProjectTaskController')->shallow();
     Route::apiResource('v1/projects.milestones', 'MilestoneController')->shallow();
+    Route::apiResource('v1/invoices', 'InvoiceController');
+    Route::apiResource('v1/payments', 'PaymentController');
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
