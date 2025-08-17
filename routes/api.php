@@ -168,6 +168,26 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/announcements', 'AnnouncementController');
     Route::apiResource('v1/company-policies', 'CompanyPolicyController');
     Route::apiResource('v1/events', 'EventController');
+    Route::post('v1/aamarpay/pay', 'AamarpayController@pay')->name('api.pay.aamarpay');
+    Route::get('v1/aamarpay/success', 'AamarpayController@aamarpaySuccess')->name('api.pay.aamarpay.success');
+    Route::post('v1/authorizenet/plan/pay', 'AuthorizeNetController@planPayWithAuthorizeNet')->name('api.plan.pay.with.authorizenet');
+    Route::post('v1/authorizenet/plan/pay-data', 'AuthorizeNetController@planPayWithAuthorizeNetData')->name('api.plan.pay.with.authorizenet.data');
+    Route::apiResource('v1/bank-transfers', 'BankTransferController');
+    Route::post('v1/cashfree/payment', 'CashfreeController@cashfreePaymentStore')->name('api.cashfree.payment');
+    Route::get('v1/cashfree/payment/success', 'CashfreeController@cashfreePaymentSuccess')->name('api.cashfree.payment.success');
+    Route::post('v1/cinetpay/plan/pay', 'CinetPayController@planPayWithCinetPay')->name('api.plan.pay.with.cinetpay');
+    Route::get('v1/cinetpay/plan/return', 'CinetPayController@planCinetPayReturn')->name('api.plan.cinetpay.return');
+    Route::get('v1/cinetpay/plan/notify', 'CinetPayController@planCinetPayNotify')->name('api.plan.cinetpay.notify');
+    Route::post('v1/coingate/plan/pay', 'CoingatePaymentController@planPayWithCoingate')->name('api.plan.pay.with.coingate');
+    Route::get('v1/coingate/plan/status/{plan}', 'CoingatePaymentController@getPaymentStatus')->name('api.plan.coingate');
+    Route::post('v1/paystack/plan/pay', 'PaystackPaymentController@planPayWithPaystack')->name('api.plan.pay.with.paystack');
+    Route::get('v1/paystack/plan/status/{pay_id}/{plan}', 'PaystackPaymentController@getPaymentStatus')->name('api.plan.get.status');
+    Route::post('v1/paypal/plan/pay', 'PaypalController@planPayWithPaypal')->name('api.plan.pay.with.paypal');
+    Route::get('v1/paypal/plan/status/{plan_id}', 'PaypalController@planGetPaymentStatus')->name('api.plan.get.payment.status');
+    Route::post('v1/payfast/plan/pay', 'PayFastController@planPayWithPayfast')->name('api.plan.pay.with.payfast');
+    Route::get('v1/payfast/payment/success/{success}', 'PayFastController@getPaymentStatus')->name('api.payfast.payment.success');
+    Route::post('v1/flutterwave/plan/pay', 'FlutterwavePaymentController@planPayWithFlutterwave')->name('api.plan.pay.with.flaterwave');
+    Route::get('v1/flutterwave/plan/status/{pay_id}/{plan}', 'FlutterwavePaymentController@getPaymentStatus')->name('api.plan.flaterwave.status');
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
