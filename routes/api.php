@@ -41,6 +41,7 @@ use App\Http\Controllers\API\v1\PaymentController;
 use App\Http\Controllers\API\v1\PaypalController;
 use App\Http\Controllers\API\v1\PaystackPaymentController;
 use App\Http\Controllers\API\v1\PermissionController;
+use App\Http\Controllers\API\v1\PosApiController;
 use App\Http\Controllers\API\v1\ProductServiceController;
 use App\Http\Controllers\API\v1\ProjectController;
 use App\Http\Controllers\API\v1\ProjectTaskController;
@@ -65,6 +66,7 @@ use App\Http\Controllers\API\v1\VenderController;
 use App\Http\Controllers\API\v1\WarningController;
 use App\Http\Controllers\API\v1\AllowanceController as V1AllowanceController;
 use App\Http\Controllers\API\v1\AllowanceOptionController;
+use App\Http\Controllers\API\v1\JobApiController;
 use App\Http\Controllers\API\v1\DeductionOptionController;
 use App\Http\Controllers\API\v1\LoanController as V1LoanController;
 use App\Http\Controllers\API\v1\LoanOptionController;
@@ -102,6 +104,11 @@ Route::delete('/oauth/personal-access-tokens/{token_id}', [PersonalAccessTokenCo
 
 Route::post('login', [ApiController::class, 'login']);
 
+// Public Recruitment Routes
+Route::get('v1/jobs/career/{id}/{lang}', [JobApiController::class, 'career']);
+Route::get('v1/jobs/requirement/{code}/{lang}', [JobApiController::class, 'jobRequirement']);
+Route::post('v1/jobs/apply/{code}/{lang}', [JobApiController::class, 'jobApplyData']);
+
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('logout', [ApiController::class, 'logout']);
@@ -138,6 +145,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/venders', VenderController::class);
 
     // Product & Services
+    Route::get('v1/productservices/search', [ProductServiceController::class, 'searchProducts']);
+    Route::get('v1/productservices/{id}/warehouse', [ProductServiceController::class, 'warehouseDetail']);
     Route::apiResource('v1/productservices', ProductServiceController::class);
 
     // HRM Core
@@ -193,6 +202,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('v1/flutterwave/plan/status/{pay_id}/{plan}', [FlutterwavePaymentController::class, 'getPaymentStatus'])->name('api.plan.flaterwave.status');
     Route::post('v1/ozow/plan/pay', [OzowController::class, 'planPayWithOzow'])->name('api.plan.pay.with.ozow');
     Route::get('v1/ozow/plan/status', [OzowController::class, 'planGetOzowStatus'])->name('api.plan.ozow.status');
+    Route::apiResource('v1/appraisals', 'AppraisalController');
+    Route::apiResource('v1/overtimes', 'OvertimeController');
+    Route::apiResource('v1/payslips', 'PayslipController');
+    Route::apiResource('v1/timetrackers', 'TimeTrackerController');
+    Route::apiResource('v1/supports', 'SupportController');
+    Route::apiResource('v1/meetings', 'MeetingController');
+    Route::apiResource('v1/bank-transfer-payments', 'BankTransferPaymentController');
+    Route::apiResource('v1/benefit-payments', 'BenefitPaymentController');
+    Route::post('v1/stripe/payment', 'StripePaymentController@stripePost')->name('api.stripe.post');
 
     // Financials
     Route::apiResource('v1/taxes', TaxController::class);
@@ -282,6 +300,16 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // HRM - Other Payments
     Route::apiResource('v1/other-payments', OtherPaymentController::class);
+
+    // Recruitment
+    Route::apiResource('v1/jobs', JobApiController::class);
+
+    // POS
+    Route::get('pos', [PosApiController::class, 'index'])->name('pos.index');
+    Route::get('pos/products', [PosApiController::class, 'getProducts'])->name('pos.products');
+    Route::post('pos', [PosApiController::class, 'store'])->name('pos.store');
+    Route::get('pos/report', [PosApiController::class, 'report'])->name('pos.report');
+    Route::get('pos/{id}', [PosApiController::class, 'show'])->name('pos.show');
 });
 
 /*

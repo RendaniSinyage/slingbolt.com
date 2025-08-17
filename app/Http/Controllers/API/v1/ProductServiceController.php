@@ -102,6 +102,46 @@ class ProductServiceController extends Controller
             return response()->json($productservice->load(['category', 'unit', 'taxes']));
         }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/productservices/{id}/warehouse",
+     *     summary="Get warehouse details for a product",
+     *     tags={"ProductServices"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="id",
+     *         in="path",
+     *         required=true,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Warehouse details",
+     *         @OA\JsonContent(
+     *             type="array",
+     *             @OA\Items(ref="#/components/schemas/WarehouseProduct")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Permission denied"
+     *     )
+     * )
+     */
+    public function warehouseDetail($id)
+    {
+        if (!\Auth::user()->can('manage product & service')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $products = \App\Models\WarehouseProduct::with(['warehouse'])
+            ->where('product_id', '=', $id)
+            ->where('created_by', '=', \Auth::user()->creatorId())
+            ->get();
+
+        return response()->json($products);
+    }
+
         return response()->json(['error' => __('Permission denied.')], 403);
     }
 
@@ -164,6 +204,64 @@ class ProductServiceController extends Controller
 
             return response()->json(null, 204);
         }
+
+        return response()->json($products);
+    }
+
+    /**
+     * @OA\Get(
+     *     path="/api/v1/productservices/search",
+     *     summary="Search for products",
+     *     tags={"ProductServices"},
+     *     security={{"bearerAuth":{}}},
+     *     @OA\Parameter(
+     *         name="search",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Parameter(
+     *         name="cat_id",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="integer")
+     *     ),
+     *      @OA\Parameter(
+     *         name="type",
+     *         in="query",
+     *         required=false,
+     *         @OA\Schema(type="string")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Search results"
+     *     ),
+     *     @OA\Response(
+     *         response=403,
+     *         description="Permission denied"
+     *     )
+     * )
+     */
+    public function searchProducts(Request $request)
+    {
+        if (!\Auth::user()->can('manage product & service')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        $query = \App\Models\ProductService::where('created_by', '=', \Auth::user()->creatorId());
+
+        if ($request->has('search') && $request->search != '') {
+            $query->where('name', 'LIKE', "%{$request->search}%");
+        }
+
+        if ($request->has('cat_id') && $request->cat_id != '') {
+            $query->where('category_id', $request->cat_id);
+        }
+        if ($request->has('type') && $request->type != '') {
+            $query->where('type', $request->type);
+        }
+
+        $products = $query->with(['unit', 'category'])->get();
 
         return response()->json(['error' => __('Permission denied.')], 403);
     }
