@@ -35,6 +35,7 @@ use App\Http\Controllers\API\v1\FlutterwavePaymentController;
 use App\Http\Controllers\API\v1\HolidayController;
 use App\Http\Controllers\API\v1\InvoiceController;
 use App\Http\Controllers\API\v1\EmployeeController;
+use App\Http\Controllers\API\v1\LeadController;
 use App\Http\Controllers\API\v1\LeadStageController;
 use App\Http\Controllers\API\v1\LeaveController;
 use App\Http\Controllers\API\v1\LeaveTypeController;
