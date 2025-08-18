@@ -1,33 +1,82 @@
 <?php
 
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ApiController;
 use App\Http\Controllers\ExternalUserController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
 use Laravel\Passport\Http\Controllers\ClientController;
 use Laravel\Passport\Http\Controllers\PersonalAccessTokenController;
+use App\Http\Controllers\API\v1\AnnouncementController;
+use App\Http\Controllers\API\v1\AttendanceEmployeeController;
+use App\Http\Controllers\API\v1\AwardController;
+use App\Http\Controllers\API\v1\AwardTypeController;
+use App\Http\Controllers\API\v1\BankAccountController;
+use App\Http\Controllers\API\v1\BankTransferController;
+use App\Http\Controllers\API\v1\BillController;
+use App\Http\Controllers\API\v1\BranchController;
+use App\Http\Controllers\API\v1\BudgetController;
+use App\Http\Controllers\API\v1\CompanyPolicyController;
+use App\Http\Controllers\API\v1\ComplaintController;
+use App\Http\Controllers\API\v1\ContractController;
+use App\Http\Controllers\API\v1\CustomerController;
 use App\Http\Controllers\API\v1\DealController;
+use App\Http\Controllers\API\v1\DepartmentController;
+use App\Http\Controllers\API\v1\DesignationController;
+use App\Http\Controllers\API\v1\EventController;
+use App\Http\Controllers\API\v1\ExpenseController;
+use App\Http\Controllers\API\v1\FlutterwavePaymentController;
+use App\Http\Controllers\API\v1\HolidayController;
 use App\Http\Controllers\API\v1\InvoiceController;
 use App\Http\Controllers\API\v1\EmployeeController;
-use App\Http\Controllers\API\v1\UtilityController;
-use App\Http\Controllers\API\v1\QuoteController;
-use App\Http\Controllers\API\v1\BillController;
+use App\Http\Controllers\API\v1\LeadController;
+use App\Http\Controllers\API\v1\LeadStageController;
+use App\Http\Controllers\API\v1\LeaveController;
+use App\Http\Controllers\API\v1\LeaveTypeController;
+use App\Http\Controllers\API\v1\MilestoneController;
+use App\Http\Controllers\API\v1\OzowController;
+use App\Http\Controllers\API\v1\PayFastController;
+use App\Http\Controllers\API\v1\PaymentController;
+use App\Http\Controllers\API\v1\PaypalController;
+use App\Http\Controllers\API\v1\PaystackPaymentController;
+use App\Http\Controllers\API\v1\PermissionController;
+use App\Http\Controllers\API\v1\PosApiController;
+use App\Http\Controllers\API\v1\ProductServiceController;
 use App\Http\Controllers\API\v1\ProjectController;
 use App\Http\Controllers\API\v1\ProjectTaskController;
-use App\Http\Controllers\API\v1\LeaveController;
-use App\Http\Controllers\API\v1\LeadController;
-use App\Http\Controllers\API\v1\MilestoneController;
-use App\Http\Controllers\API\v1\ProjectExpenseController;
-use App\Http\Controllers\API\v1\PayslipController;
-use App\Http\Controllers\API\v1\SetSalaryController;
-use App\Http\Controllers\API\v1\AllowanceController;
-use App\Http\Controllers\API\v1\CommissionController;
-use App\Http\Controllers\API\v1\LoanController;
-use App\Http\Controllers\API\v1\SaturationDeductionController;
+use App\Http\Controllers\API\v1\ProjectstagesController;
+use App\Http\Controllers\API\v1\PromotionController;
+use App\Http\Controllers\API\v1\ProposalController;
+use App\Http\Controllers\API\v1\QuotationController;
+use App\Http\Controllers\API\v1\QuoteController;
+use App\Http\Controllers\API\v1\ResignationController;
+use App\Http\Controllers\API\v1\RevenueController;
+use App\Http\Controllers\API\v1\RoleController;
+use App\Http\Controllers\API\v1\StageController;
+use App\Http\Controllers\API\v1\TaskStageController;
+use App\Http\Controllers\API\v1\TaxController;
+use App\Http\Controllers\API\v1\TerminationController;
+use App\Http\Controllers\API\v1\TerminationTypeController;
+use App\Http\Controllers\API\v1\TimesheetController;
+use App\Http\Controllers\API\v1\TransferController;
+use App\Http\Controllers\API\v1\TravelController;
+use App\Http\Controllers\API\v1\UserController as ApiUserController;
+use App\Http\Controllers\API\v1\VenderController;
+use App\Http\Controllers\API\v1\WarningController;
+use App\Http\Controllers\API\v1\AllowanceController as V1AllowanceController;
+use App\Http\Controllers\API\v1\AllowanceOptionController;
+use App\Http\Controllers\API\v1\JobApiController;
+use App\Http\Controllers\API\v1\DeductionOptionController;
+use App\Http\Controllers\API\v1\LoanController as V1LoanController;
+use App\Http\Controllers\API\v1\LoanOptionController;
 use App\Http\Controllers\API\v1\OtherPaymentController;
-
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ApiController;
+use App\Http\Controllers\API\v1\PayslipController;
+use App\Http\Controllers\API\v1\SaturationDeductionController;
+use App\Http\Controllers\API\v1\SetSalaryController;
+use App\Http\Controllers\API\v1\UtilityController;
+use App\Http\Controllers\API\v1\ProjectExpenseController;
+use App\Http\Controllers\API\v1\CommissionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -54,6 +103,11 @@ Route::delete('/oauth/personal-access-tokens/{token_id}', [PersonalAccessTokenCo
 
 
 Route::post('login', [ApiController::class, 'login']);
+
+// Public Recruitment Routes
+Route::get('v1/jobs/career/{id}/{lang}', [JobApiController::class, 'career']);
+Route::get('v1/jobs/requirement/{code}/{lang}', [JobApiController::class, 'jobRequirement']);
+Route::post('v1/jobs/apply/{code}/{lang}', [JobApiController::class, 'jobApplyData']);
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
@@ -84,11 +138,111 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('v1/employees/{id}', [EmployeeController::class, 'update']);
     Route::delete('v1/employees/{id}', [EmployeeController::class, 'destroy']);
 
+    // Customers
+    Route::apiResource('v1/customers', CustomerController::class);
+
+    // Venders
+    Route::apiResource('v1/venders', VenderController::class);
+
+    // Product & Services
+    Route::get('v1/productservices/search', [ProductServiceController::class, 'searchProducts']);
+    Route::get('v1/productservices/{id}/warehouse', [ProductServiceController::class, 'warehouseDetail']);
+    Route::apiResource('v1/productservices', ProductServiceController::class);
+
+    // HRM Core
+    Route::apiResource('v1/branches', BranchController::class);
+    Route::apiResource('v1/departments', DepartmentController::class);
+    Route::apiResource('v1/designations', DesignationController::class);
+
+    // HRM Payroll
+    Route::apiResource('v1/allowanceoptions', AllowanceOptionController::class);
+    Route::apiResource('v1/loanoptions', LoanOptionController::class);
+    Route::apiResource('v1/deductionoptions', DeductionOptionController::class);
+
+    // HRM Time & Attendance
+    Route::apiResource('v1/holidays', HolidayController::class);
+    Route::apiResource('v1/leavetypes', LeaveTypeController::class);
+    Route::get('v1/attendances', [AttendanceEmployeeController::class, 'index']);
+    Route::post('v1/attendances/clockin', [AttendanceEmployeeController::class, 'clockIn']);
+    Route::post('v1/attendances/clockout', [AttendanceEmployeeController::class, 'clockOut']);
+    Route::post('v1/attendances', [AttendanceEmployeeController::class, 'store']);
+
+    // HRM Employee Lifecycle
+    Route::apiResource('v1/awardtypes', AwardTypeController::class);
+    Route::apiResource('v1/awards', AwardController::class);
+    Route::apiResource('v1/transfers', TransferController::class);
+    Route::apiResource('v1/resignations', ResignationController::class);
+    Route::apiResource('v1/terminationtypes', TerminationTypeController::class);
+    Route::apiResource('v1/terminations', TerminationController::class);
+    Route::apiResource('v1/promotions', PromotionController::class);
+    Route::apiResource('v1/leads', LeadController::class);
+    Route::apiResource('v1/deals', DealController::class);
+    Route::apiResource('v1/lead-stages', LeadStageController::class);
+    Route::apiResource('v1/stages', StageController::class);
+    Route::apiResource('v1/task-stages', TaskStageController::class);
+    Route::apiResource('v1/projects', ProjectController::class);
+    Route::apiResource('v1/projects.tasks', ProjectTaskController::class)->shallow();
+    Route::apiResource('v1/projects.milestones', MilestoneController::class)->shallow();
+    Route::apiResource('v1/invoices', InvoiceController::class);
+    Route::apiResource('v1/payments', PaymentController::class);
+    Route::apiResource('v1/complaints', ComplaintController::class);
+    Route::apiResource('v1/warnings', WarningController::class);
+    Route::apiResource('v1/travels', TravelController::class);
+    Route::apiResource('v1/announcements', AnnouncementController::class);
+    Route::apiResource('v1/company-policies', CompanyPolicyController::class);
+    Route::apiResource('v1/events', EventController::class);
+    Route::apiResource('v1/bank-transfers', BankTransferController::class);
+    Route::post('v1/paystack/plan/pay', [PaystackPaymentController::class, 'planPayWithPaystack'])->name('api.plan.pay.with.paystack');
+    Route::get('v1/paystack/plan/status/{pay_id}/{plan}', [PaystackPaymentController::class, 'getPaymentStatus'])->name('api.plan.get.status');
+    Route::post('v1/paypal/plan/pay', [PaypalController::class, 'planPayWithPaypal'])->name('api.plan.pay.with.paypal');
+    Route::get('v1/paypal/plan/status/{plan_id}', [PaypalController::class, 'planGetPaymentStatus'])->name('api.plan.get.payment.status');
+    Route::post('v1/payfast/plan/pay', [PayFastController::class, 'planPayWithPayfast'])->name('api.plan.pay.with.payfast');
+    Route::get('v1/payfast/payment/success/{success}', [PayFastController::class, 'getPaymentStatus'])->name('api.payfast.payment.success');
+    Route::post('v1/flutterwave/plan/pay', [FlutterwavePaymentController::class, 'planPayWithFlutterwave'])->name('api.plan.pay.with.flaterwave');
+    Route::get('v1/flutterwave/plan/status/{pay_id}/{plan}', [FlutterwavePaymentController::class, 'getPaymentStatus'])->name('api.plan.flaterwave.status');
+    Route::post('v1/ozow/plan/pay', [OzowController::class, 'planPayWithOzow'])->name('api.plan.pay.with.ozow');
+    Route::get('v1/ozow/plan/status', [OzowController::class, 'planGetOzowStatus'])->name('api.plan.ozow.status');
+    Route::apiResource('v1/appraisals', 'AppraisalController');
+    Route::apiResource('v1/overtimes', 'OvertimeController');
+    Route::apiResource('v1/payslips', 'PayslipController');
+    Route::apiResource('v1/timetrackers', 'TimeTrackerController');
+    Route::apiResource('v1/supports', 'SupportController');
+    Route::apiResource('v1/meetings', 'MeetingController');
+    Route::apiResource('v1/bank-transfer-payments', 'BankTransferPaymentController');
+    Route::apiResource('v1/benefit-payments', 'BenefitPaymentController');
+    Route::post('v1/stripe/payment', 'StripePaymentController@stripePost')->name('api.stripe.post');
+
+    // Financials
+    Route::apiResource('v1/taxes', TaxController::class);
+    Route::apiResource('v1/bank-accounts', BankAccountController::class);
+    Route::apiResource('v1/payments', PaymentController::class);
+    Route::apiResource('v1/expenses', ExpenseController::class);
+    Route::apiResource('v1/revenues', RevenueController::class);
+
+    // Sales
+    Route::apiResource('v1/proposals', ProposalController::class);
+    Route::apiResource('v1/quotations', QuotationController::class);
+    Route::apiResource('v1/contracts', ContractController::class);
+
+    // Project Management
+    Route::apiResource('v1/budgets', BudgetController::class);
+    Route::apiResource('v1/projectstages', ProjectstagesController::class);
+    Route::get('v1/projects/{project}/timesheets', [TimesheetController::class, 'index']);
+    Route::post('v1/projects/{project}/timesheets', [TimesheetController::class, 'store']);
+    Route::apiResource('v1/timesheets', TimesheetController::class)->except(['index', 'store']);
+
+    // Admin
+    Route::apiResource('v1/users', ApiUserController::class);
+    Route::apiResource('v1/roles', RoleController::class);
+    Route::get('v1/permissions', [PermissionController::class, 'index']);
+
     // Utilities
     Route::get('v1/utils/invoice-form-data', [UtilityController::class, 'getInvoiceFormData']);
     Route::get('v1/utils/employee-form-data', [UtilityController::class, 'getEmployeeFormData']);
     Route::get('v1/utils/products', [UtilityController::class, 'getProducts']);
     Route::get('v1/utils/venders', [UtilityController::class, 'getVenders']);
+    Route::get('v1/users/{id}/workload', [UtilityController::class, 'getWorkload']);
+    Route::get('v1/me/tasks', [UtilityController::class, 'getMyOpenTasks']);
 
     // Quotes
     Route::apiResource('v1/quotes', QuoteController::class);
@@ -133,19 +287,29 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('v1/employees/{employeeId}/salary', [SetSalaryController::class, 'update']);
 
     // HRM - Allowances
-    Route::apiResource('v1/allowances', AllowanceController::class);
+    Route::apiResource('v1/allowances', V1AllowanceController::class);
 
     // HRM - Commissions
     Route::apiResource('v1/commissions', CommissionController::class);
 
     // HRM - Loans
-    Route::apiResource('v1/loans', LoanController::class);
+    Route::apiResource('v1/loans', V1LoanController::class);
 
     // HRM - Saturation Deductions
     Route::apiResource('v1/saturation-deductions', SaturationDeductionController::class);
 
     // HRM - Other Payments
     Route::apiResource('v1/other-payments', OtherPaymentController::class);
+
+    // Recruitment
+    Route::apiResource('v1/jobs', JobApiController::class);
+
+    // POS
+    Route::get('pos', [PosApiController::class, 'index'])->name('pos.index');
+    Route::get('pos/products', [PosApiController::class, 'getProducts'])->name('pos.products');
+    Route::post('pos', [PosApiController::class, 'store'])->name('pos.store');
+    Route::get('pos/report', [PosApiController::class, 'report'])->name('pos.report');
+    Route::get('pos/{id}', [PosApiController::class, 'show'])->name('pos.show');
 });
 
 /*
