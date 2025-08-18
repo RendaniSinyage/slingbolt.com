@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BugStatusResource extends JsonResource
+class CustomFieldResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,9 @@ class BugStatusResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'order' => $this->order,
+            'name' => $this->name,
+            'type' => $this->type,
+            'module' => $this->module,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BugStatusResource extends JsonResource
+class FormResponseResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,8 @@ class BugStatusResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'order' => $this->order,
+            'form_id' => $this->form_id,
+            'response' => json_decode($this->response),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

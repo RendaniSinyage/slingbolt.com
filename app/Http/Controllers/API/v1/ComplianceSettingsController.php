@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ComplianceSettingsResource;
 use App\Models\ComplianceSetting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ class ComplianceSettingsController extends Controller
 
         if ($user->type == 'super admin') {
             $settings = ComplianceSetting::whereNull('company_id')->first();
-            return response()->json($settings);
+            return new ComplianceSettingsResource($settings);
         }
 
         return response()->json(['error' => 'Permission denied.'], 403);
@@ -39,6 +40,6 @@ class ComplianceSettingsController extends Controller
             $validatedData
         );
 
-        return response()->json(['message' => 'Default compliance settings saved successfully.', 'data' => $settings]);
+        return new ComplianceSettingsResource($settings);
     }
 }

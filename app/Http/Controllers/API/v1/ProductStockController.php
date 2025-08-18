@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProductStockResource;
 use App\Models\ProductService;
 use App\Models\Utility;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class ProductStockController extends Controller
                 ->where('type', '=', 'product')
                 ->get();
 
-            return response()->json($productServices);
+            return ProductStockResource::collection($productServices);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -50,7 +51,7 @@ class ProductStockController extends Controller
                     0
                 );
 
-                return response()->json($productService);
+                return new ProductStockResource($productService);
             } else {
                 return response()->json(['error' => __('Product not found or permission denied.')], 404);
             }

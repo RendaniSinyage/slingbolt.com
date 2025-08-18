@@ -10,7 +10,7 @@ class ClientResource extends JsonResource
      * Transform the resource into an array.
      *
      * @param  \Illuminate\Http\Request  $request
-     * @return array
+     * @return array|\Illuminate\Contracts\Support\Arrayable|\JsonSerializable
      */
     public function toArray($request)
     {
@@ -18,8 +18,8 @@ class ClientResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
-            'avatar' => $this->avatar,
-            'type' => $this->type,
+            'job_title' => $this->job_title,
+            'is_enable_login' => $this->is_enable_login,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

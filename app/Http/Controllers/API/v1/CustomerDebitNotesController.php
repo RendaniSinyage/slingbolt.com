@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CustomerDebitNotesResource;
 use App\Models\Bill;
 use App\Models\CustomerDebitNotes;
 use Illuminate\Http\Request;
@@ -17,7 +18,7 @@ class CustomerDebitNotesController extends Controller
             $customDebitNotes = CustomerDebitNotes::whereHas('bills', function ($query) {
                 $query->where('created_by', Auth::user()->creatorId());
             })->with(['bills'])->get();
-            return response()->json($customDebitNotes);
+            return CustomerDebitNotesResource::collection($customDebitNotes);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -59,7 +60,7 @@ class CustomerDebitNotesController extends Controller
             $debit->description = $request->description;
             $debit->save();
 
-            return response()->json($debit, 201);
+            return new CustomerDebitNotesResource($debit);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -73,7 +74,7 @@ class CustomerDebitNotesController extends Controller
             })->first();
 
             if ($debitNote) {
-                return response()->json($debitNote);
+                return new CustomerDebitNotesResource($debitNote);
             } else {
                 return response()->json(['error' => __('Debit note not found.')], 404);
             }
@@ -116,7 +117,7 @@ class CustomerDebitNotesController extends Controller
             $debit->description = $request->description;
             $debit->save();
 
-            return response()->json($debit);
+            return new CustomerDebitNotesResource($debit);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }

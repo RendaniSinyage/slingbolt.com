@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DucumentUploadResource;
 use App\Models\DucumentUpload;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
-use Spatie\Permission\Models\Role;
 
 class DucumentUploadController extends Controller
 {
@@ -27,7 +26,7 @@ class DucumentUploadController extends Controller
                               ->orWhere('role', '0');
                     })->get();
             }
-            return response()->json($documents);
+            return DucumentUploadResource::collection($documents);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -62,7 +61,7 @@ class DucumentUploadController extends Controller
             $document->created_by = Auth::user()->creatorId();
             $document->save();
 
-            return response()->json($document, 201);
+            return new DucumentUploadResource($document);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -73,7 +72,7 @@ class DucumentUploadController extends Controller
         if (Auth::user()->can('manage document')) {
             $document = DucumentUpload::where('created_by', Auth::user()->creatorId())->find($id);
             if ($document) {
-                return response()->json($document);
+                return new DucumentUploadResource($document);
             }
             return response()->json(['error' => 'Document not found.'], 404);
         } else {
@@ -107,8 +106,6 @@ class DucumentUploadController extends Controller
                 $fileName = time() . "_" . $request->document->getClientOriginalName();
                 $path = Utility::upload_file($request, 'document', $fileName, 'uploads/documentUpload', []);
                 if ($path['flag'] == 1) {
-                    // Optionally delete old file
-                    // Storage::delete($document->document);
                     $document->document = $path['url'];
                 } else {
                     return response()->json(['error' => __($path['msg'])], 500);
@@ -116,7 +113,7 @@ class DucumentUploadController extends Controller
             }
 
             $document->save();
-            return response()->json($document);
+            return new DucumentUploadResource($document);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -129,9 +126,6 @@ class DucumentUploadController extends Controller
             if (!$document || $document->created_by != Auth::user()->creatorId()) {
                 return response()->json(['error' => 'Document not found or permission denied.'], 404);
             }
-
-            // Optionally delete file from storage
-            // Storage::delete($document->document);
 
             $document->delete();
             return response()->json(null, 204);

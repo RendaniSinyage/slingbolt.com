@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BugStatusResource extends JsonResource
+class ReferralSettingResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,10 @@ class BugStatusResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'order' => $this->order,
+            'percentage' => $this->percentage,
+            'minimum_threshold_amount' => $this->minimum_threshold_amount,
+            'is_enable' => $this->is_enable,
+            'guideline' => $this->guideline,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ReferralSettingResource;
+use App\Http\Resources\ReferralTransactionResource;
+use App\Http\Resources\TransactionOrderResource;
 use App\Models\ReferralSetting;
 use App\Models\ReferralTransaction;
 use App\Models\TransactionOrder;
@@ -17,14 +20,14 @@ class ReferralProgramController extends Controller
     public function adminIndex()
     {
         if (Auth::user()->type == 'super admin') {
-            $setting = ReferralSetting::first(); // Assuming single setting for the platform
+            $setting = ReferralSetting::first();
             $payRequests = TransactionOrder::where('status', 1)->with('user')->get();
             $transactions = ReferralTransaction::with('user')->get();
 
             return response()->json([
-                'settings' => $setting,
-                'payment_requests' => $payRequests,
-                'transactions' => $transactions,
+                'settings' => new ReferralSettingResource($setting),
+                'payment_requests' => TransactionOrderResource::collection($payRequests),
+                'transactions' => ReferralTransactionResource::collection($transactions),
             ]);
         }
         return response()->json(['error' => 'Permission Denied.'], 403);
@@ -50,7 +53,7 @@ class ReferralProgramController extends Controller
             $setting->guideline = $request->guideline;
             $setting->save();
 
-            return response()->json($setting);
+            return new ReferralSettingResource($setting);
         }
         return response()->json(['error' => 'Permission Denied.'], 403);
     }
@@ -83,11 +86,11 @@ class ReferralProgramController extends Controller
         $paymentRequest = $transactionsOrder->where('status', 1)->first();
 
         return response()->json([
-            'settings' => $setting,
-            'transactions' => $transactions,
+            'settings' => new ReferralSettingResource($setting),
+            'transactions' => ReferralTransactionResource::collection($transactions),
             'paid_amount' => $paidAmount,
-            'payment_requests' => $transactionsOrder,
-            'active_payment_request' => $paymentRequest,
+            'payment_requests' => TransactionOrderResource::collection($transactionsOrder),
+            'active_payment_request' => $paymentRequest ? new TransactionOrderResource($paymentRequest) : null,
             'net_commission' => $user->commission_amount - $paidAmount,
         ]);
     }
@@ -112,7 +115,7 @@ class ReferralProgramController extends Controller
         $order->date = now();
         $order->save();
 
-        return response()->json($order, 201);
+        return new TransactionOrderResource($order);
     }
 
     public function requestAmountCancel(Request $request, $id)

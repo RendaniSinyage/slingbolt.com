@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BugStatusResource;
 use App\Models\BugStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -13,7 +14,7 @@ class BugStatusController extends Controller
     public function index()
     {
         $bugStatus = BugStatus::where('created_by', '=', Auth::user()->creatorId())->orderBy('order')->get();
-        return response()->json($bugStatus);
+        return BugStatusResource::collection($bugStatus);
     }
 
     public function store(Request $request)
@@ -36,14 +37,14 @@ class BugStatusController extends Controller
         $status->order = (!empty($all_status) ? ($all_status->order + 1) : 0);
         $status->save();
 
-        return response()->json($status, 201);
+        return new BugStatusResource($status);
     }
 
     public function show($id)
     {
         $bugStatus = BugStatus::where('created_by', Auth::user()->creatorId())->find($id);
         if ($bugStatus) {
-            return response()->json($bugStatus);
+            return new BugStatusResource($bugStatus);
         }
         return response()->json(['error' => __('Bug status not found.')], 404);
     }
@@ -69,7 +70,7 @@ class BugStatusController extends Controller
         $bugstatus->title = $request->title;
         $bugstatus->save();
 
-        return response()->json($bugstatus);
+        return new BugStatusResource($bugstatus);
     }
 
     public function destroy($id)

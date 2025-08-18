@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CustomFieldResource;
 use App\Models\CustomField;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,7 @@ class CustomFieldController extends Controller
     {
         if (Auth::user()->can('manage constant custom field')) {
             $custom_fields = CustomField::where('created_by', '=', Auth::user()->creatorId())->get();
-            return response()->json($custom_fields);
+            return CustomFieldResource::collection($custom_fields);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }
@@ -43,7 +44,7 @@ class CustomFieldController extends Controller
             $custom_field->created_by = Auth::user()->creatorId();
             $custom_field->save();
 
-            return response()->json($custom_field, 201);
+            return new CustomFieldResource($custom_field);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }
@@ -52,7 +53,7 @@ class CustomFieldController extends Controller
     public function show(CustomField $customField)
     {
         if (Auth::user()->can('manage constant custom field') && $customField->created_by == Auth::user()->creatorId()) {
-            return response()->json($customField);
+            return new CustomFieldResource($customField);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }
@@ -75,7 +76,7 @@ class CustomFieldController extends Controller
             $customField->name = $request->name;
             $customField->save();
 
-            return response()->json($customField);
+            return new CustomFieldResource($customField);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }

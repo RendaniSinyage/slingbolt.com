@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
-use App\Models\warehouse;
+use App\Http\Resources\WarehouseTransferResource;
 use App\Models\WarehouseProduct;
 use App\Models\WarehouseTransfer;
 use App\Models\Utility;
@@ -19,7 +19,7 @@ class WarehouseTransferController extends Controller
             $warehouse_transfers = WarehouseTransfer::where('created_by', Auth::user()->creatorId())
                 ->with(['product', 'fromWarehouse', 'toWarehouse'])
                 ->get();
-            return response()->json($warehouse_transfers);
+            return WarehouseTransferResource::collection($warehouse_transfers);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -58,7 +58,7 @@ class WarehouseTransferController extends Controller
 
             Utility::warehouse_transfer_qty($request->from_warehouse_id, $request->to_warehouse_id, $request->product_id, $request->quantity);
 
-            return response()->json($warehouse_transfer, 201);
+            return new WarehouseTransferResource($warehouse_transfer);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -68,7 +68,7 @@ class WarehouseTransferController extends Controller
     {
         if (Auth::user()->can('manage warehouse transfer') && $warehouseTransfer->created_by == Auth::user()->creatorId()) {
             $warehouseTransfer->load(['product', 'fromWarehouse', 'toWarehouse']);
-            return response()->json($warehouseTransfer);
+            return new WarehouseTransferResource($warehouseTransfer);
         } else {
             return response()->json(['error' => __('Permission denied or transfer not found.')], 403);
         }

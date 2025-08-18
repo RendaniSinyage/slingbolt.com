@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CouponResource;
 use App\Models\Coupon;
 use App\Models\Plan;
 use App\Models\UserCoupon;
-use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -17,7 +17,7 @@ class CouponController extends Controller
     {
         if (Auth::user()->can('manage coupon')) {
             $coupons = Coupon::get();
-            return response()->json($coupons);
+            return CouponResource::collection($coupons);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -46,7 +46,7 @@ class CouponController extends Controller
             $coupon->code = strtoupper($request->code);
             $coupon->save();
 
-            return response()->json($coupon, 201);
+            return new CouponResource($coupon);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -55,8 +55,7 @@ class CouponController extends Controller
     public function show(Coupon $coupon)
     {
         if (Auth::user()->can('manage coupon')) {
-            $userCoupons = UserCoupon::where('coupon', $coupon->id)->with('userDetail')->get();
-            return response()->json(['coupon' => $coupon, 'used_by' => $userCoupons]);
+            return new CouponResource($coupon);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -84,7 +83,7 @@ class CouponController extends Controller
             $coupon->code = $request->code;
             $coupon->save();
 
-            return response()->json($coupon);
+            return new CouponResource($coupon);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanResource;
 use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class PlanController extends Controller
             } else {
                 $plans = Plan::where('is_disable', 1)->get();
             }
-            return response()->json($plans);
+            return PlanResource::collection($plans);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -54,7 +55,7 @@ class PlanController extends Controller
             }
 
             $plan = Plan::create($post);
-            return response()->json($plan, 201);
+            return new PlanResource($plan);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -63,7 +64,7 @@ class PlanController extends Controller
     public function show(Plan $plan)
     {
         if (Auth::user()->can('manage plan')) {
-            return response()->json($plan);
+            return new PlanResource($plan);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -90,7 +91,7 @@ class PlanController extends Controller
             }
 
             $plan->update($post);
-            return response()->json($plan);
+            return new PlanResource($plan);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }

@@ -4,7 +4,7 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class BugStatusResource extends JsonResource
+class PlanRequestResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -16,8 +16,11 @@ class BugStatusResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'title' => $this->title,
-            'order' => $this->order,
+            'user_id' => $this->user_id,
+            'plan_id' => $this->plan_id,
+            'duration' => $this->duration,
+            'user' => new UserResource($this->whenLoaded('user')),
+            'plan' => new PlanResource($this->whenLoaded('plan')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

@@ -3,12 +3,12 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ClientResource;
 use App\Models\User;
 use App\Models\Plan;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
@@ -20,7 +20,7 @@ class ClientController extends Controller
         $user = Auth::user();
         if ($user->can('manage client')) {
             $clients = User::where('created_by', '=', $user->creatorId())->where('type', '=', 'client')->get();
-            return response()->json($clients);
+            return ClientResource::collection($clients);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }
@@ -72,7 +72,7 @@ class ClientController extends Controller
                     Utility::sendEmailTemplate('new_client', [$client->email], $clientArr);
                 }
 
-                return response()->json($client, 201);
+                return new ClientResource($client);
             } else {
                 return response()->json(['error' => __('Your user limit is over, Please upgrade plan.')], 403);
             }
@@ -85,7 +85,7 @@ class ClientController extends Controller
     {
         $user = Auth::user();
         if ($user->can('show client') && $client->created_by == $user->creatorId()) {
-            return response()->json($client);
+            return new ClientResource($client);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }
@@ -111,7 +111,7 @@ class ClientController extends Controller
             }
             $client->save();
 
-            return response()->json($client);
+            return new ClientResource($client);
         } else {
             return response()->json(['error' => __('Permission Denied.')], 403);
         }

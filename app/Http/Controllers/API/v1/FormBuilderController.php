@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\FormBuilderResource;
+use App\Http\Resources\FormFieldResource;
+use App\Http\Resources\FormResponseResource;
 use App\Models\FormBuilder;
 use App\Models\FormField;
-use App\Models\FormFieldResponse;
 use App\Models\FormResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +20,7 @@ class FormBuilderController extends Controller
     {
         if (Auth::user()->can('manage form builder')) {
             $forms = FormBuilder::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($forms);
+            return FormBuilderResource::collection($forms);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
     }
@@ -36,7 +38,7 @@ class FormBuilderController extends Controller
                 'is_active' => $request->input('is_active', 0),
                 'created_by' => Auth::user()->creatorId(),
             ]);
-            return response()->json($form, 201);
+            return new FormBuilderResource($form);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
     }
@@ -44,8 +46,8 @@ class FormBuilderController extends Controller
     public function show(FormBuilder $formBuilder)
     {
         if (Auth::user()->can('manage form builder') && $formBuilder->created_by == Auth::user()->creatorId()) {
-            $formBuilder->load('form_field');
-            return response()->json($formBuilder);
+            $formBuilder->load(['form_field', 'responses']);
+            return new FormBuilderResource($formBuilder);
         }
         return response()->json(['error' => __('Permission Denied.')], 403);
     }
@@ -58,7 +60,7 @@ class FormBuilderController extends Controller
                 return response()->json(['error' => $validator->errors()->first()], 422);
             }
             $formBuilder->update($request->only('name', 'is_active'));
-            return response()->json($formBuilder);
+            return new FormBuilderResource($formBuilder);
         }
         return response()->json(['error' => __('Permission Denied.')], 403);
     }
@@ -77,7 +79,7 @@ class FormBuilderController extends Controller
     // Form Field Management
     public function getFields(FormBuilder $form)
     {
-        return response()->json($form->form_field);
+        return FormFieldResource::collection($form->form_field);
     }
 
     public function addField(Request $request, FormBuilder $form)
@@ -94,7 +96,7 @@ class FormBuilderController extends Controller
             'type' => $request->type,
             'created_by' => Auth::user()->creatorId(),
         ]);
-        return response()->json($field, 201);
+        return new FormFieldResource($field);
     }
 
     // Form Submission & Responses
@@ -105,7 +107,6 @@ class FormBuilderController extends Controller
         $fields = $form->form_field()->pluck('name', 'id')->all();
         $rules = [];
         foreach ($form->form_field as $field) {
-            // Basic validation, can be enhanced
             $rules['field.' . $field->id] = 'required';
         }
 
@@ -120,12 +121,12 @@ class FormBuilderController extends Controller
             $response_data[$field_name] = $value;
         }
 
-        FormResponse::create([
+        $response = FormResponse::create([
             'form_id' => $form->id,
             'response' => json_encode($response_data),
         ]);
 
-        return response()->json(['message' => 'Form submitted successfully.']);
+        return new FormResponseResource($response);
     }
 
     public function getResponses(FormBuilder $form)
@@ -133,6 +134,6 @@ class FormBuilderController extends Controller
         if ($form->created_by != Auth::user()->creatorId()) {
             return response()->json(['error' => 'Permission denied'], 403);
         }
-        return response()->json($form->responses);
+        return FormResponseResource::collection($form->responses);
     }
 }

@@ -3,11 +3,9 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CustomerCreditNotesResource;
 use App\Models\CustomerCreditNotes;
 use App\Models\Invoice;
-use App\Models\InvoiceProduct;
-use App\Models\ProductService;
-use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
@@ -20,7 +18,7 @@ class CustomerCreditNotesController extends Controller
             $customcreditNotes = CustomerCreditNotes::whereHas('invoices', function ($query) {
                 $query->where('created_by', Auth::user()->creatorId());
             })->with(['invoices'])->get();
-            return response()->json($customcreditNotes);
+            return CustomerCreditNotesResource::collection($customcreditNotes);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -61,7 +59,7 @@ class CustomerCreditNotesController extends Controller
             $credit->description = $request->description;
             $credit->save();
 
-            return response()->json($credit, 201);
+            return new CustomerCreditNotesResource($credit);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }
@@ -75,7 +73,7 @@ class CustomerCreditNotesController extends Controller
             })->first();
 
             if ($creditNote) {
-                return response()->json($creditNote);
+                return new CustomerCreditNotesResource($creditNote);
             } else {
                 return response()->json(['error' => __('Credit note not found.')], 404);
             }
@@ -118,7 +116,7 @@ class CustomerCreditNotesController extends Controller
             $credit->description = $request->description;
             $credit->save();
 
-            return response()->json($credit);
+            return new CustomerCreditNotesResource($credit);
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);
         }

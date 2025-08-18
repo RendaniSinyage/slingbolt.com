@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PlanRequestResource;
 use App\Models\Order;
 use App\Models\Plan;
 use App\Models\PlanRequest;
@@ -16,7 +17,7 @@ class PlanRequestController extends Controller
     {
         if (Auth::user()->type == 'super admin') {
             $plan_requests = PlanRequest::with(['user', 'plan'])->get();
-            return response()->json($plan_requests);
+            return PlanRequestResource::collection($plan_requests);
         }
         return response()->json(['error' => __('Permission Denied.')], 403);
     }
@@ -41,7 +42,7 @@ class PlanRequestController extends Controller
 
         $user->update(['requested_plan' => $plan->id]);
 
-        return response()->json($planRequest, 201);
+        return new PlanRequestResource($planRequest);
     }
 
     public function update(Request $request, $id)
@@ -99,6 +100,6 @@ class PlanRequestController extends Controller
         $user->update(['requested_plan' => '0']);
         PlanRequest::where('user_id', $user->id)->delete();
 
-        return response()->json(['message' => __('Request Canceled Successfully.')]);
+        return response()->json(null, 204);
     }
 }
