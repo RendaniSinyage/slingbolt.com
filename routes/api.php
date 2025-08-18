@@ -61,14 +61,14 @@ use App\Http\Controllers\API\v1\TerminationTypeController;
 use App\Http\Controllers\API\v1\TimesheetController;
 use App\Http\Controllers\API\v1\TransferController;
 use App\Http\Controllers\API\v1\TravelController;
-use App\Http\Controllers\API\v1\UserController as ApiUserController;
+use App\Http\Controllers\API\v1\UserController;
 use App\Http\Controllers\API\v1\VenderController;
 use App\Http\Controllers\API\v1\WarningController;
-use App\Http\Controllers\API\v1\AllowanceController as V1AllowanceController;
+use App\Http\Controllers\API\v1\AllowanceController;
 use App\Http\Controllers\API\v1\AllowanceOptionController;
 use App\Http\Controllers\API\v1\JobApiController;
 use App\Http\Controllers\API\v1\DeductionOptionController;
-use App\Http\Controllers\API\v1\LoanController as V1LoanController;
+use App\Http\Controllers\API\v1\LoanController;
 use App\Http\Controllers\API\v1\LoanOptionController;
 use App\Http\Controllers\API\v1\OtherPaymentController;
 use App\Http\Controllers\API\v1\PayslipController;
@@ -250,7 +250,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/timesheets', TimesheetController::class)->except(['index', 'store']);
 
     // Admin
-    Route::apiResource('v1/users', ApiUserController::class);
+    Route::apiResource('v1/users', UserController::class);
     Route::apiResource('v1/roles', RoleController::class);
     Route::get('v1/permissions', [PermissionController::class, 'index']);
 
@@ -305,13 +305,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('v1/employees/{employeeId}/salary', [SetSalaryController::class, 'update']);
 
     // HRM - Allowances
-    Route::apiResource('v1/allowances', V1AllowanceController::class);
+    Route::apiResource('v1/allowances', AllowanceController::class);
 
     // HRM - Commissions
     Route::apiResource('v1/commissions', CommissionController::class);
 
     // HRM - Loans
-    Route::apiResource('v1/loans', V1LoanController::class);
+    Route::apiResource('v1/loans', LoanController::class);
 
     // HRM - Saturation Deductions
     Route::apiResource('v1/saturation-deductions', SaturationDeductionController::class);
