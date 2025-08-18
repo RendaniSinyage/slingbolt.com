@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AwardTypeResource;
 use App\Models\AwardType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class AwardTypeController extends Controller
     {
         if (Auth::user()->can('manage award type')) {
             $awardtypes = AwardType::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($awardtypes);
+            return AwardTypeResource::collection($awardtypes);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -44,7 +45,7 @@ class AwardTypeController extends Controller
             $awardtype->created_by = Auth::user()->creatorId();
             $awardtype->save();
 
-            return response()->json($awardtype, 201);
+            return new AwardTypeResource($awardtype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -59,7 +60,7 @@ class AwardTypeController extends Controller
     public function show(AwardType $awardtype)
     {
         if (Auth::user()->can('manage award type') && $awardtype->created_by == Auth::user()->creatorId()) {
-            return response()->json($awardtype);
+            return new AwardTypeResource($awardtype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -84,7 +85,7 @@ class AwardTypeController extends Controller
             $awardtype->name = $request->name;
             $awardtype->save();
 
-            return response()->json($awardtype);
+            return new AwardTypeResource($awardtype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

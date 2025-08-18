@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AwardResource;
 use App\Models\Award;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class AwardController extends Controller
             }
 
             $awards = $query->with(['employee', 'awardType'])->get();
-            return response()->json($awards);
+            return AwardResource::collection($awards);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -61,7 +62,7 @@ class AwardController extends Controller
             $award->created_by = Auth::user()->creatorId();
             $award->save();
 
-            return response()->json($award, 201);
+            return new AwardResource($award);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -76,7 +77,7 @@ class AwardController extends Controller
     public function show(Award $award)
     {
         if (Auth::user()->can('manage award') && $award->created_by == Auth::user()->creatorId()) {
-            return response()->json($award->load(['employee', 'awardType']));
+            return new AwardResource($award->load(['employee', 'awardType']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -111,7 +112,7 @@ class AwardController extends Controller
             $award->description = $request->description;
             $award->save();
 
-            return response()->json($award);
+            return new AwardResource($award);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

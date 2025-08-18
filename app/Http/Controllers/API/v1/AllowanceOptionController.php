@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AllowanceOptionResource;
 use App\Models\AllowanceOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class AllowanceOptionController extends Controller
     {
         if (Auth::user()->can('manage allowance option')) {
             $allowanceoptions = AllowanceOption::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($allowanceoptions);
+            return AllowanceOptionResource::collection($allowanceoptions);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -44,7 +45,7 @@ class AllowanceOptionController extends Controller
             $allowanceoption->created_by = Auth::user()->creatorId();
             $allowanceoption->save();
 
-            return response()->json($allowanceoption, 201);
+            return new AllowanceOptionResource($allowanceoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -59,7 +60,7 @@ class AllowanceOptionController extends Controller
     public function show(AllowanceOption $allowanceoption)
     {
         if (Auth::user()->can('manage allowance option') && $allowanceoption->created_by == Auth::user()->creatorId()) {
-            return response()->json($allowanceoption);
+            return new AllowanceOptionResource($allowanceoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -84,7 +85,7 @@ class AllowanceOptionController extends Controller
             $allowanceoption->name = $request->name;
             $allowanceoption->save();
 
-            return response()->json($allowanceoption);
+            return new AllowanceOptionResource($allowanceoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

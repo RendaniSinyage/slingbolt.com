@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AttendanceEmployeeResource;
 use App\Models\AttendanceEmployee;
 use App\Models\Employee;
 use App\Models\IpRestrict;
@@ -33,7 +34,7 @@ class AttendanceEmployeeController extends Controller
             }
 
             $attendances = $query->with('employee')->get();
-            return response()->json($attendances);
+            return AttendanceEmployeeResource::collection($attendances);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -69,7 +70,7 @@ class AttendanceEmployeeController extends Controller
             $employeeAttendance->created_by = Auth::user()->creatorId();
             $employeeAttendance->save();
 
-            return response()->json($employeeAttendance, 201);
+            return new AttendanceEmployeeResource($employeeAttendance);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
     }
@@ -124,7 +125,7 @@ class AttendanceEmployeeController extends Controller
             'created_by' => Auth::user()->creatorId(),
         ]);
 
-        return response()->json(['message' => 'Clocked in successfully.', 'data' => $attendance], 201);
+        return response()->json(['message' => 'Clocked in successfully.', 'data' => new AttendanceEmployeeResource($attendance)], 201);
     }
 
     /**
@@ -176,6 +177,6 @@ class AttendanceEmployeeController extends Controller
             'overtime' => $overtime,
         ]);
 
-        return response()->json(['message' => 'Clocked out successfully.', 'data' => $attendance]);
+        return response()->json(['message' => 'Clocked out successfully.', 'data' => new AttendanceEmployeeResource($attendance)]);
     }
 }

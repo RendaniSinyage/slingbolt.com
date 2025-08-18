@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AllowanceResource;
 use App\Models\Allowance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class AllowanceController extends Controller
             }
 
             $allowances = $query->with(['employee', 'allowance_option'])->get();
-            return response()->json($allowances);
+            return AllowanceResource::collection($allowances);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -61,7 +62,7 @@ class AllowanceController extends Controller
             $allowance->created_by = Auth::user()->creatorId();
             $allowance->save();
 
-            return response()->json($allowance, 201);
+            return new AllowanceResource($allowance);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -76,7 +77,7 @@ class AllowanceController extends Controller
     public function show(Allowance $allowance)
     {
         if (Auth::user()->can('manage allowance') && $allowance->created_by == Auth::user()->creatorId()) {
-            return response()->json($allowance->load(['employee', 'allowance_option']));
+            return new AllowanceResource($allowance->load(['employee', 'allowance_option']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -109,7 +110,7 @@ class AllowanceController extends Controller
             $allowance->type = $request->type;
             $allowance->save();
 
-            return response()->json($allowance);
+            return new AllowanceResource($allowance);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
