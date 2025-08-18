@@ -79,7 +79,7 @@ use App\Http\Controllers\API\v1\ProjectExpenseController;
 use App\Http\Controllers\API\v1\CommissionController;
 use App\Http\Controllers\API\v1\BiometricAttendanceController;
 use App\Http\Controllers\API\v1\BugStatusController;
-use App\Http\Controllers\API\v1\ClientController;
+use App\Http\Controllers\API\v1\ClientController as ApiClientController;
 use App\Http\Controllers\API\v1\ComplianceSettingsController;
 use App\Http\Controllers\API\v1\CouponController;
 use App\Http\Controllers\API\v1\CustomFieldController;
@@ -339,8 +339,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/bug-status/order', [BugStatusController::class, 'order']);
 
     // Clients
-    Route::apiResource('v1/clients', ClientController::class);
-    Route::post('v1/clients/{id}/reset-password', [ClientController::class, 'resetPassword']);
+    Route::apiResource('v1/clients', ApiClientController::class);
+    Route::post('v1/clients/{id}/reset-password', [ApiClientController::class, 'resetPassword']);
 
     // Compliance Settings
     Route::get('v1/compliance-settings', [ComplianceSettingsController::class, 'index']);
