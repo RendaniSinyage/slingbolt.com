@@ -59,6 +59,7 @@ use App\Http\Controllers\API\v1\TaskStageController;
 use App\Http\Controllers\API\v1\TaxController;
 use App\Http\Controllers\API\v1\TerminationController;
 use App\Http\Controllers\API\v1\TerminationTypeController;
+use App\Http\Controllers\API\v1\TimeTrackerController;
 use App\Http\Controllers\API\v1\TimesheetController;
 use App\Http\Controllers\API\v1\TransferController;
 use App\Http\Controllers\API\v1\TravelController;
@@ -114,9 +115,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('logout', [LoginController::class, 'logout']);
     Route::get('get-projects', [ProjectController::class, 'index']);
-    Route::post('add-tracker', [ApiController::class, 'addTracker']);
-    Route::post('stop-tracker', [ApiController::class, 'stopTracker']);
-    Route::post('upload-photos', [ApiController::class, 'uploadImage']);
+
+    // Time Tracker
+    Route::post('v1/timetrackers/start', [TimeTrackerController::class, 'start']);
+    Route::post('v1/timetrackers/stop', [TimeTrackerController::class, 'stop']);
+    Route::post('v1/timetrackers/upload-image', [TimeTrackerController::class, 'uploadImage']);
 
     // Deals
     Route::get('v1/deals', [DealController::class, 'index']);
