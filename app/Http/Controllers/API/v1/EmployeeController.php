@@ -159,4 +159,25 @@ class EmployeeController extends Controller
 
         return $latest->employee_id + 1;
     }
+
+    public function json(Request $request)
+    {
+        $employees = User::where('type', '=', 'employee')->where('created_by', '=', \Auth::user()->creatorId())->get();
+        return response()->json($employees);
+    }
+
+    public function lastLogin()
+    {
+        $users = User::where('created_by', \Auth::user()->creatorId())->get();
+        $lastLogins = [];
+        foreach($users as $user) {
+            $lastLogins[] = [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'last_login' => $user->last_login,
+            ];
+        }
+        return response()->json($lastLogins);
+    }
 }

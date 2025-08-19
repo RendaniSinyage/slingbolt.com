@@ -192,4 +192,159 @@ class InvoiceController extends Controller
 
         return $latest->invoice_id + 1;
     }
+
+    public function createPayment(Request $request, Invoice $invoice)
+    {
+        if (Gate::denies('create payment invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $validator = \Validator::make(
+            $request->all(), [
+                'amount' => 'required|numeric|min:0',
+                'date' => 'required|date',
+                'payment_id' => 'required',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $invoicePayment = new \App\Models\InvoicePayment();
+        $invoicePayment->invoice_id = $invoice->id;
+        $invoicePayment->date = $request->date;
+        $invoicePayment->amount = $request->amount;
+        $invoicePayment->payment_id = $request->payment_id;
+        $invoicePayment->notes = $request->notes;
+        $invoicePayment->save();
+
+        if($invoice->getDue() == 0)
+        {
+            $invoice->status = 4; // Paid
+            $invoice->save();
+        }
+
+        return (new InvoiceResource($invoice->fresh()->load('payments')))->additional(['message' => 'Payment successfully created.']);
+    }
+
+    public function paymentDestroy(Invoice $invoice, \App\Models\InvoicePayment $payment)
+    {
+        if (Gate::denies('delete payment invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $payment->delete();
+
+        if($invoice->getDue() > 0)
+        {
+            $invoice->status = 3; // Partially Paid
+            $invoice->save();
+        }
+
+        return (new InvoiceResource($invoice->fresh()->load('payments')))->additional(['message' => 'Payment successfully deleted.']);
+    }
+
+    public function duplicate(Invoice $invoice)
+    {
+        if (Gate::denies('create invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $new_invoice = $invoice->replicate();
+        $new_invoice->invoice_id = $this->invoiceNumber();
+        $new_invoice->status = 0;
+        $new_invoice->save();
+
+        foreach($invoice->items as $item) {
+            $new_item = $item->replicate();
+            $new_item->invoice_id = $new_invoice->id;
+            $new_item->save();
+        }
+
+        return (new InvoiceResource($new_invoice->load('items')))->additional(['message' => 'Invoice successfully duplicated.']);
+    }
+
+    public function paymentReminder(Invoice $invoice)
+    {
+        if (Gate::denies('send invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        try {
+            $invoice->sendPaymentReminder();
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'E-Mail has been not sent due to SMTP configuration.'], 500);
+        }
+
+        return response()->json(['message' => 'Payment reminder successfully sent.']);
+    }
+
+    public function sent(Invoice $invoice)
+    {
+        if (Gate::denies('send invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        try {
+            $invoice->sendStatus();
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'E-Mail has been not sent due to SMTP configuration.'], 500);
+        }
+
+        $invoice->status = 1; // Sent
+        $invoice->save();
+
+        return (new InvoiceResource($invoice->fresh()->load('customer')))->additional(['message' => 'Invoice successfully sent.']);
+    }
+
+    public function resent(Invoice $invoice)
+    {
+        if (Gate::denies('send invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($invoice->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        try {
+            $invoice->sendInvoice();
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'E-Mail has been not sent due to SMTP configuration.'], 500);
+        }
+
+        return response()->json(['message' => 'Invoice successfully resent.']);
+    }
+
+    public function productDestroy(Request $request)
+    {
+        if (Gate::denies('delete invoice')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        InvoiceProduct::where('id', '=', $request->id)->delete();
+
+        return response()->json(['message' => 'Invoice product successfully deleted.']);
+    }
 }

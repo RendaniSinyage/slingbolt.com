@@ -176,4 +176,142 @@ class BillController extends Controller
         $latest = Bill::where('created_by', Auth::user()->creatorId())->latest('bill_id')->first();
         return ($latest ? $latest->bill_id : 0) + 1;
     }
+
+    public function createPayment(Request $request, Bill $bill)
+    {
+        if (Auth::user()->can('create payment bill')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($bill->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $validator = \Validator::make(
+            $request->all(), [
+                'amount' => 'required|numeric|min:0',
+                'date' => 'required|date',
+                'account_id' => 'required|exists:bank_accounts,id',
+            ]
+        );
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 400);
+        }
+
+        $billPayment = new \App\Models\BillPayment();
+        $billPayment->bill_id = $bill->id;
+        $billPayment->date = $request->date;
+        $billPayment->amount = $request->amount;
+        $billPayment->account_id = $request->account_id;
+        $billPayment->payment_method = $request->payment_method ?? 0;
+        $billPayment->reference = $request->reference;
+        $billPayment->description = $request->description;
+        $billPayment->save();
+
+        if($bill->getDue() == 0)
+        {
+            $bill->status = 4; // Paid
+            $bill->save();
+        }
+
+        return new BillResource($bill->fresh()->load('payments'));
+    }
+
+    public function paymentDestroy(Bill $bill, \App\Models\BillPayment $payment)
+    {
+        if (Auth::user()->can('delete payment bill')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($bill->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $payment->delete();
+
+        if($bill->getDue() > 0)
+        {
+            $bill->status = 3; // Partially Paid
+            $bill->save();
+        }
+
+        return new BillResource($bill->fresh()->load('payments'));
+    }
+
+    public function duplicate(Bill $bill)
+    {
+        if (Auth::user()->can('create bill')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($bill->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $new_bill = $bill->replicate();
+        $new_bill->bill_id = $this->billNumber();
+        $new_bill->status = 0;
+        $new_bill->save();
+
+        foreach($bill->items as $item) {
+            $new_item = $item->replicate();
+            $new_item->bill_id = $new_bill->id;
+            $new_item->save();
+        }
+
+        return new BillResource($new_bill->load('items'));
+    }
+
+    public function sent(Bill $bill)
+    {
+        if (Auth::user()->can('send bill')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($bill->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        try {
+            $bill->sendStatus();
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'E-Mail has been not sent due to SMTP configuration.'], 500);
+        }
+
+        $bill->status = 1; // Sent
+        $bill->save();
+
+        return new BillResource($bill->fresh()->load('vender'));
+    }
+
+    public function resent(Bill $bill)
+    {
+        if (Auth::user()->can('send bill')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        if ($bill->created_by != Auth::user()->creatorId()) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        try {
+            $bill->sendBill();
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'E-Mail has been not sent due to SMTP configuration.'], 500);
+        }
+
+        return response()->json(['message' => 'Bill successfully resent.']);
+    }
+
+    public function productDestroy(Request $request)
+    {
+        if (Auth::user()->can('delete bill')) {
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+
+        BillProduct::where('id', '=', $request->id)->delete();
+
+        return response()->json(['message' => 'Bill product successfully deleted.']);
+    }
 }

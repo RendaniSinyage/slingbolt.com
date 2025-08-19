@@ -204,6 +204,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/lead-stages', LeadStageController::class);
     Route::apiResource('v1/stages', StageController::class);
     Route::apiResource('v1/task-stages', TaskStageController::class);
+    Route::post('v1/bills/products/destroy', [BillController::class, 'productDestroy']);
     Route::apiResource('v1/projects', ProjectController::class);
     Route::post('v1/projects/{project}/invite', [ProjectController::class, 'inviteProjectUserMember']);
     Route::delete('v1/projects/{project}/users/{user}', [ProjectController::class, 'destroyProjectUser']);
@@ -221,8 +222,15 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/projects/{project}/bugs/{bug}/files', [ProjectController::class, 'bugCommentStoreFile']);
     Route::post('v1/projects/{project}/copy', [ProjectController::class, 'copyProject']);
     Route::apiResource('v1/projects.tasks', ProjectTaskController::class)->shallow();
+    Route::post('v1/invoices/products/destroy', [InvoiceController::class, 'productDestroy']);
     Route::apiResource('v1/projects.milestones', MilestoneController::class)->shallow();
     Route::apiResource('v1/invoices', InvoiceController::class);
+    Route::post('v1/invoices/{invoice}/payments', [InvoiceController::class, 'createPayment']);
+    Route::delete('v1/invoices/{invoice}/payments/{payment}', [InvoiceController::class, 'paymentDestroy']);
+    Route::post('v1/invoices/{invoice}/duplicate', [InvoiceController::class, 'duplicate']);
+    Route::post('v1/invoices/{invoice}/payment-reminder', [InvoiceController::class, 'paymentReminder']);
+    Route::post('v1/invoices/{invoice}/sent', [InvoiceController::class, 'sent']);
+    Route::post('v1/invoices/{invoice}/resent', [InvoiceController::class, 'resent']);
     Route::apiResource('v1/payments', PaymentController::class);
     Route::apiResource('v1/complaints', ComplaintController::class);
     Route::apiResource('v1/warnings', WarningController::class);
@@ -256,6 +264,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/bank-accounts', BankAccountController::class);
     Route::apiResource('v1/payments', PaymentController::class);
     Route::apiResource('v1/expenses', ExpenseController::class);
+    Route::get('v1/employees/json', [EmployeeController::class, 'json']);
+    Route::get('v1/employees/lastlogin', [EmployeeController::class, 'lastLogin']);
     Route::apiResource('v1/revenues', RevenueController::class);
 
     // Sales
@@ -265,6 +275,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // Project Management
     Route::apiResource('v1/budgets', BudgetController::class);
+    Route::post('v1/bills/{bill}/payments', [BillController::class, 'createPayment']);
+    Route::delete('v1/bills/{bill}/payments/{payment}', [BillController::class, 'paymentDestroy']);
+    Route::post('v1/bills/{bill}/duplicate', [BillController::class, 'duplicate']);
+    Route::post('v1/bills/{bill}/sent', [BillController::class, 'sent']);
+    Route::post('v1/bills/{bill}/resent', [BillController::class, 'resent']);
     Route::apiResource('v1/projectstages', ProjectstagesController::class);
     Route::get('v1/projects/{project}/timesheets', [TimesheetController::class, 'index']);
     Route::post('v1/projects/{project}/timesheets', [TimesheetController::class, 'store']);
