@@ -61,14 +61,14 @@ use App\Http\Controllers\API\v1\TerminationTypeController;
 use App\Http\Controllers\API\v1\TimesheetController;
 use App\Http\Controllers\API\v1\TransferController;
 use App\Http\Controllers\API\v1\TravelController;
-use App\Http\Controllers\API\v1\UserController;
+use App\Http\Controllers\API\v1\UserController as ApiUserController;
 use App\Http\Controllers\API\v1\VenderController;
 use App\Http\Controllers\API\v1\WarningController;
-use App\Http\Controllers\API\v1\AllowanceController;
+use App\Http\Controllers\API\v1\AllowanceController as V1AllowanceController;
 use App\Http\Controllers\API\v1\AllowanceOptionController;
 use App\Http\Controllers\API\v1\JobApiController;
 use App\Http\Controllers\API\v1\DeductionOptionController;
-use App\Http\Controllers\API\v1\LoanController;
+use App\Http\Controllers\API\v1\LoanController as V1LoanController;
 use App\Http\Controllers\API\v1\LoanOptionController;
 use App\Http\Controllers\API\v1\OtherPaymentController;
 use App\Http\Controllers\API\v1\PayslipController;
@@ -77,24 +77,6 @@ use App\Http\Controllers\API\v1\SetSalaryController;
 use App\Http\Controllers\API\v1\UtilityController;
 use App\Http\Controllers\API\v1\ProjectExpenseController;
 use App\Http\Controllers\API\v1\CommissionController;
-use App\Http\Controllers\API\v1\BiometricAttendanceController;
-use App\Http\Controllers\API\v1\BugStatusController;
-use App\Http\Controllers\API\v1\ClientController as ApiClientController;
-use App\Http\Controllers\API\v1\ComplianceSettingsController;
-use App\Http\Controllers\API\v1\CouponController;
-use App\Http\Controllers\API\v1\CustomFieldController;
-use App\Http\Controllers\API\v1\CustomerCreditNotesController;
-use App\Http\Controllers\API\v1\CustomerDebitNotesController;
-use App\Http\Controllers\API\v1\DashboardController;
-use App\Http\Controllers\API\v1\DoubleEntryReportController;
-use App\Http\Controllers\API\v1\DucumentUploadController;
-use App\Http\Controllers\API\v1\FormBuilderController;
-use App\Http\Controllers\API\v1\PlanController;
-use App\Http\Controllers\API\v1\PlanRequestController;
-use App\Http\Controllers\API\v1\ProductStockController;
-use App\Http\Controllers\API\v1\ProjectReportController;
-use App\Http\Controllers\API\v1\ReferralProgramController;
-use App\Http\Controllers\API\v1\WarehouseTransferController;
 
 /*
 |--------------------------------------------------------------------------
@@ -250,7 +232,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/timesheets', TimesheetController::class)->except(['index', 'store']);
 
     // Admin
-    Route::apiResource('v1/users', UserController::class);
+    Route::apiResource('v1/users', ApiUserController::class);
     Route::apiResource('v1/roles', RoleController::class);
     Route::get('v1/permissions', [PermissionController::class, 'index']);
 
@@ -296,6 +278,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     // CRM - Leads
     Route::apiResource('v1/leads', LeadController::class);
+    Route::post('v1/leads/{lead}/discussion', [LeadController::class, 'discussionStore']);
+    Route::post('v1/leads/{lead}/calls', [LeadController::class, 'callStore']);
+    Route::post('v1/leads/{lead}/emails', [LeadController::class, 'emailStore']);
+    Route::post('v1/leads/order', [LeadController::class, 'order']);
+    Route::post('v1/leads/{lead}/convert-to-deal', [LeadController::class, 'convertToDeal']);
 
     // HRM - Payslip
     Route::apiResource('v1/payslips', PayslipController::class);
@@ -305,13 +292,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('v1/employees/{employeeId}/salary', [SetSalaryController::class, 'update']);
 
     // HRM - Allowances
-    Route::apiResource('v1/allowances', AllowanceController::class);
+    Route::apiResource('v1/allowances', V1AllowanceController::class);
 
     // HRM - Commissions
     Route::apiResource('v1/commissions', CommissionController::class);
 
     // HRM - Loans
-    Route::apiResource('v1/loans', LoanController::class);
+    Route::apiResource('v1/loans', V1LoanController::class);
 
     // HRM - Saturation Deductions
     Route::apiResource('v1/saturation-deductions', SaturationDeductionController::class);
@@ -328,101 +315,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('pos', [PosApiController::class, 'store'])->name('pos.store');
     Route::get('pos/report', [PosApiController::class, 'report'])->name('pos.report');
     Route::get('pos/{id}', [PosApiController::class, 'show'])->name('pos.show');
-
-    // Biometric Attendance
-    Route::get('v1/biometric-attendance', [BiometricAttendanceController::class, 'index']);
-    Route::post('v1/biometric-attendance', [BiometricAttendanceController::class, 'store']);
-    Route::post('v1/biometric-attendance/sync', [BiometricAttendanceController::class, 'syncAll']);
-
-    // Bug Status
-    Route::apiResource('v1/bug-status', BugStatusController::class);
-    Route::post('v1/bug-status/order', [BugStatusController::class, 'order']);
-
-    // Clients
-    Route::apiResource('v1/clients', ApiClientController::class);
-    Route::post('v1/clients/{id}/reset-password', [ApiClientController::class, 'resetPassword']);
-
-    // Compliance Settings
-    Route::get('v1/compliance-settings', [ComplianceSettingsController::class, 'index']);
-    Route::post('v1/compliance-settings', [ComplianceSettingsController::class, 'store']);
-
-    // Coupons
-    Route::apiResource('v1/coupons', CouponController::class);
-    Route::post('v1/coupons/apply', [CouponController::class, 'apply']);
-
-    // Custom Fields
-    Route::apiResource('v1/custom-fields', CustomFieldController::class);
-
-    // Customer Credit Notes
-    Route::apiResource('v1/customer-credit-notes', CustomerCreditNotesController::class);
-    Route::post('v1/credit-invoice/items', [CustomerCreditNotesController::class, 'getItems']);
-    Route::post('v1/credit-invoice/item-price', [CustomerCreditNotesController::class, 'getItemPrice']);
-
-    // Customer Debit Notes
-    Route::apiResource('v1/customer-debit-notes', CustomerDebitNotesController::class);
-    Route::post('v1/debit-bill/items', [CustomerDebitNotesController::class, 'getItems']);
-    Route::post('v1/debit-bill/item-price', [CustomerDebitNotesController::class, 'getItemPrice']);
-
-    // Dashboard
-    Route::get('v1/dashboard/account', [DashboardController::class, 'account_dashboard']);
-    Route::get('v1/dashboard/project', [DashboardController::class, 'project_dashboard']);
-    Route::get('v1/dashboard/hrm', [DashboardController::class, 'hrm_dashboard']);
-    Route::get('v1/dashboard/crm', [DashboardController::class, 'crm_dashboard']);
-    Route::get('v1/dashboard/pos', [DashboardController::class, 'pos_dashboard']);
-    Route::post('v1/dashboard/stop-tracker', [DashboardController::class, 'stopTracker']);
-
-    // Double Entry Reports
-    Route::get('v1/reports/ledger', [DoubleEntryReportController::class, 'ledger']);
-    Route::get('v1/reports/balance-sheet', [DoubleEntryReportController::class, 'balanceSheet']);
-    Route::get('v1/reports/profit-loss', [DoubleEntryReportController::class, 'profitLoss']);
-    Route::get('v1/reports/trial-balance', [DoubleEntryReportController::class, 'trialBalance']);
-    Route::get('v1/reports/sales', [DoubleEntryReportController::class, 'salesReport']);
-    Route::get('v1/reports/assets-register', [DoubleEntryReportController::class, 'assetsRegister']);
-    Route::get('v1/reports/receivables', [DoubleEntryReportController::class, 'receivablesReport']);
-    Route::get('v1/reports/payables', [DoubleEntryReportController::class, 'payablesReport']);
-
-    // Document Uploads
-    Route::apiResource('v1/document-uploads', DucumentUploadController::class);
-
-    // Form Builder
-    Route::apiResource('v1/forms', FormBuilderController::class);
-    Route::get('v1/forms/{form}/fields', [FormBuilderController::class, 'getFields']);
-    Route::post('v1/forms/{form}/fields', [FormBuilderController::class, 'addField']);
-    Route::post('v1/forms/{code}/submit', [FormBuilderController::class, 'submitForm']);
-    Route::get('v1/forms/{form}/responses', [FormBuilderController::class, 'getResponses']);
-
-    // Plans
-    Route::apiResource('v1/plans', PlanController::class);
-    Route::post('v1/plans/{plan}/assign', [PlanController::class, 'assign']);
-    Route::post('v1/plans/{plan}/trial', [PlanController::class, 'trial']);
-    Route::post('v1/plans/{plan}/disable', [PlanController::class, 'disable']);
-
-    // Plan Requests
-    Route::get('v1/plan-requests', [PlanRequestController::class, 'index']);
-    Route::post('v1/plan-requests', [PlanRequestController::class, 'store']);
-    Route::put('v1/plan-requests/{id}', [PlanRequestController::class, 'update']);
-    Route::delete('v1/plan-requests', [PlanRequestController::class, 'destroy']);
-
-    // Product Stock
-    Route::get('v1/product-stock', [ProductStockController::class, 'index']);
-    Route::put('v1/product-stock/{id}', [ProductStockController::class, 'update']);
-
-    // Project Reports
-    Route::get('v1/project-reports', [ProjectReportController::class, 'index']);
-    Route::get('v1/project-reports/{id}', [ProjectReportController::class, 'show']);
-
-    // Referral Program
-    Route::prefix('v1/admin')->middleware(['auth.superadmin'])->group(function () {
-        Route::get('referral-program', [ReferralProgramController::class, 'adminIndex']);
-        Route::post('referral-program/settings', [ReferralProgramController::class, 'adminStore']);
-        Route::put('referral-program/requests/{id}', [ReferralProgramController::class, 'handleRequest']);
-    });
-    Route::get('v1/referral-program', [ReferralProgramController::class, 'companyIndex']);
-    Route::post('v1/referral-program/requests', [ReferralProgramController::class, 'requestAmountStore']);
-    Route::delete('v1/referral-program/requests/{id}', [ReferralProgramController::class, 'requestAmountCancel']);
-
-    // Warehouse Transfers
-    Route::apiResource('v1/warehouse-transfers', WarehouseTransferController::class);
 });
 
 /*
