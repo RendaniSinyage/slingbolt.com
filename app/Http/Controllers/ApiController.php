@@ -24,35 +24,6 @@ class ApiController extends Controller
     //
     use ApiResponser;
 
-    public function login(Request $request)
-    {
-
-        $attr = $request->validate([
-            'email' => 'required|string|email|',
-            'password' => 'required|string'
-        ]);
-
-        if (!Auth::attempt($attr)) {
-            return $this->error('Credentials not match', 401);
-        }
-
-        $settings              = Utility::settings(auth()->user()->id);
-
-        $settings = [
-            'shot_time'=> isset($settings['interval_time'])?$settings['interval_time']:0.5,
-        ];
-
-        return $this->success([
-            'token' => auth()->user()->createToken('API Token')->plainTextToken,
-            'user'=> auth()->user()->id,
-            'settings' =>$settings,
-        ],'Login successfully.');
-    }
-    public function logout()
-    {
-        auth()->user()->tokens()->delete();
-        return $this->success([],'Tokens Revoked');
-    }
 
 
     public function getProjects(Request $request)

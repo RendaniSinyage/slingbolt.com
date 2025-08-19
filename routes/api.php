@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
+use App\Http\Controllers\API\v1\Auth\LoginController;
 use App\Http\Controllers\ExternalUserController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
@@ -102,7 +103,7 @@ Route::post('/oauth/personal-access-tokens', [PersonalAccessTokenController::cla
 Route::delete('/oauth/personal-access-tokens/{token_id}', [PersonalAccessTokenController::class, 'destroy'])->name('passport.personal.tokens.destroy');
 
 
-Route::post('login', [ApiController::class, 'login']);
+Route::post('login', [LoginController::class, 'login']);
 
 // Public Recruitment Routes
 Route::get('v1/jobs/career/{id}/{lang}', [JobApiController::class, 'career']);
@@ -111,7 +112,7 @@ Route::post('v1/jobs/apply/{code}/{lang}', [JobApiController::class, 'jobApplyDa
 
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
-    Route::post('logout', [ApiController::class, 'logout']);
+    Route::post('logout', [LoginController::class, 'logout']);
     Route::get('get-projects', [ApiController::class, 'getProjects']);
     Route::post('add-tracker', [ApiController::class, 'addTracker']);
     Route::post('stop-tracker', [ApiController::class, 'stopTracker']);
