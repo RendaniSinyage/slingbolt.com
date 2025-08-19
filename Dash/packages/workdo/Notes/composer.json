@@ -1,0 +1,25 @@
+{
+    "name": "workdo/notes",
+    "description": "Description for notes package",
+    "type": "library",
+    "license": "MIT",
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "Workdo\\Notes\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "WorkDo",
+            "email": "support@workdo.io"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Workdo\\Notes\\Providers\\NotesServiceProvider"
+            ]
+        }
+    }
+}
