@@ -4,6 +4,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\ApiController;
 use App\Http\Controllers\API\v1\Auth\LoginController;
+use App\Http\Controllers\API\v1\Auth\RegisterController;
+use App\Http\Controllers\API\v1\Auth\ForgotPasswordController;
+use App\Http\Controllers\API\v1\Auth\ResetPasswordController;
 use App\Http\Controllers\ExternalUserController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
@@ -104,7 +107,10 @@ Route::post('/oauth/personal-access-tokens', [PersonalAccessTokenController::cla
 Route::delete('/oauth/personal-access-tokens/{token_id}', [PersonalAccessTokenController::class, 'destroy'])->name('passport.personal.tokens.destroy');
 
 
+Route::post('v1/register', [RegisterController::class, 'register']);
 Route::post('login', [LoginController::class, 'login']);
+Route::post('v1/password/email', [ForgotPasswordController::class, 'sendResetLinkEmail']);
+Route::post('v1/password/reset', [ResetPasswordController::class, 'reset']);
 
 // Public Recruitment Routes
 Route::get('v1/jobs/career/{id}/{lang}', [JobApiController::class, 'career']);
