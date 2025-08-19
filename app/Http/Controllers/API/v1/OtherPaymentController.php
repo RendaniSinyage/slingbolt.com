@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\OtherPaymentResource;
 use Illuminate\Http\Request;
 use App\Models\OtherPayment;
 use App\Models\Employee;
@@ -19,7 +20,7 @@ class OtherPaymentController extends Controller
             $payments->where('employee_id', $request->employee_id);
         }
 
-        return response()->json($payments->get());
+        return OtherPaymentResource::collection($payments->get());
     }
 
     public function store(Request $request)
@@ -43,7 +44,7 @@ class OtherPaymentController extends Controller
         $payment->created_by = Auth::user()->creatorId();
         $payment->save();
 
-        return response()->json(['message' => 'Other Payment successfully created.', 'data' => $payment], 201);
+        return new OtherPaymentResource($payment);
     }
 
     public function show($id)
@@ -52,7 +53,7 @@ class OtherPaymentController extends Controller
         if (!$payment || $payment->created_by != Auth::user()->creatorId()) {
             return response()->json(['error' => 'Other Payment not found.'], 404);
         }
-        return response()->json($payment);
+        return new OtherPaymentResource($payment);
     }
 
     public function update(Request $request, $id)
@@ -77,7 +78,7 @@ class OtherPaymentController extends Controller
         $payment->type = $request->type;
         $payment->save();
 
-        return response()->json(['message' => 'Other Payment successfully updated.', 'data' => $payment]);
+        return new OtherPaymentResource($payment);
     }
 
     public function destroy($id)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BillResource;
 use App\Models\Bill;
 use App\Models\BillProduct;
 use App\Models\Utility;
@@ -30,7 +31,7 @@ class BillController extends Controller
             }
 
             $bills = $query->with(['vender', 'category'])->get();
-            return response()->json($bills);
+            return BillResource::collection($bills);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -91,7 +92,7 @@ class BillController extends Controller
                 Utility::addProductStock($billProduct->product_id, $billProduct->quantity, 'bill', $description, $bill->id);
             }
 
-            return response()->json($bill->load('items'), 201);
+            return new BillResource($bill->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -106,7 +107,7 @@ class BillController extends Controller
     public function show(Bill $bill)
     {
         if (Auth::user()->can('show bill') && $bill->created_by == Auth::user()->creatorId()) {
-            return response()->json($bill->load(['items.product', 'vender', 'category', 'payments']));
+            return new BillResource($bill->load(['items.product', 'vender', 'category', 'payments']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -142,7 +143,7 @@ class BillController extends Controller
 
             // Note: For simplicity, this update does not handle line item updates.
 
-            return response()->json($bill);
+            return new BillResource($bill);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

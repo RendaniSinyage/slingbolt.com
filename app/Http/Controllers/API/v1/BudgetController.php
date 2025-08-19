@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BudgetResource;
 use App\Models\Budget;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class BudgetController extends Controller
     {
         if (Auth::user()->can('manage budget plan')) {
             $budgets = Budget::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($budgets);
+            return BudgetResource::collection($budgets);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -54,7 +55,7 @@ class BudgetController extends Controller
             $budget->created_by = Auth::user()->creatorId();
             $budget->save();
 
-            return response()->json($budget, 201);
+            return new BudgetResource($budget);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -69,10 +70,7 @@ class BudgetController extends Controller
     public function show(Budget $budget)
     {
         if (Auth::user()->can('view budget plan') && $budget->created_by == Auth::user()->creatorId()) {
-            // Decode the JSON data for the response
-            $budget->income_data = json_decode($budget->income_data);
-            $budget->expense_data = json_decode($budget->expense_data);
-            return response()->json($budget);
+            return new BudgetResource($budget);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -107,7 +105,7 @@ class BudgetController extends Controller
             $budget->expense_data = json_encode($request->expense_data ?? []);
             $budget->save();
 
-            return response()->json($budget);
+            return new BudgetResource($budget);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

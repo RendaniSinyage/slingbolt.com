@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\LeaveTypeResource;
 use App\Models\LeaveType;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class LeaveTypeController extends Controller
     {
         if (Auth::user()->can('manage leave type')) {
             $leavetypes = LeaveType::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($leavetypes);
+            return LeaveTypeResource::collection($leavetypes);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -48,7 +49,7 @@ class LeaveTypeController extends Controller
             $leavetype->created_by = Auth::user()->creatorId();
             $leavetype->save();
 
-            return response()->json($leavetype, 201);
+            return new LeaveTypeResource($leavetype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -63,7 +64,7 @@ class LeaveTypeController extends Controller
     public function show(LeaveType $leavetype)
     {
         if (Auth::user()->can('manage leave type') && $leavetype->created_by == Auth::user()->creatorId()) {
-            return response()->json($leavetype);
+            return new LeaveTypeResource($leavetype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -92,7 +93,7 @@ class LeaveTypeController extends Controller
             $leavetype->days = $request->days;
             $leavetype->save();
 
-            return response()->json($leavetype);
+            return new LeaveTypeResource($leavetype);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

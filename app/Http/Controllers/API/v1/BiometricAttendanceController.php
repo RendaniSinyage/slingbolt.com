@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\AttendanceEmployeeResource;
 use App\Models\AttendanceEmployee;
 use App\Models\Employee;
 use App\Models\Utility;
@@ -125,7 +126,7 @@ class BiometricAttendanceController extends Controller
                     'overtime' => $overtime
                 ]);
 
-                return response()->json(['message' => __('Employee successfully clocked out.'), 'data' => $attendance]);
+                return response()->json(['message' => __('Employee successfully clocked out.'), 'data' => new AttendanceEmployeeResource($attendance)]);
             } else {
                 // Clock In
                 $lastClockOutEntry = AttendanceEmployee::where('employee_id', $employee->id)
@@ -155,7 +156,7 @@ class BiometricAttendanceController extends Controller
                     'created_by' => $user->creatorId(),
                 ]);
 
-                return response()->json(['message' => __('Employee successfully clocked in.'), 'data' => $new_attendance], 201);
+                return response()->json(['message' => __('Employee successfully clocked in.'), 'data' => new AttendanceEmployeeResource($new_attendance)], 201);
             }
         } else {
             return response()->json(['error' => __('Permission denied.')], 403);

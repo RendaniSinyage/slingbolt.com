@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\LeaveResource;
 use App\Models\Leave;
 use App\Models\LeaveType;
 use App\Models\Employee;
@@ -26,7 +27,7 @@ class LeaveController extends Controller
                 $employee = Employee::where('user_id', $user->id)->first();
                 $leaves = Leave::where('employee_id', $employee->id)->with(['leaveType', 'employees'])->get();
             }
-            return response()->json($leaves);
+            return LeaveResource::collection($leaves);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -80,7 +81,7 @@ class LeaveController extends Controller
             $leave->created_by = Auth::user()->creatorId();
             $leave->save();
 
-            return response()->json($leave, 201);
+            return new LeaveResource($leave);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -95,7 +96,7 @@ class LeaveController extends Controller
     public function show(Leave $leave)
     {
         if (Auth::user()->can('manage leave') && $leave->created_by == Auth::user()->creatorId()) {
-            return response()->json($leave->load(['leaveType', 'employees']));
+            return new LeaveResource($leave->load(['leaveType', 'employees']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -116,7 +117,7 @@ class LeaveController extends Controller
         if (Auth::user()->can('edit leave') && $leave->created_by == Auth::user()->creatorId()) {
             $leave->status = 'Approved';
             $leave->save();
-            return response()->json(['message' => 'Leave approved successfully.', 'data' => $leave]);
+            return response()->json(['message' => 'Leave approved successfully.', 'data' => new LeaveResource($leave)]);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
     }
@@ -126,7 +127,7 @@ class LeaveController extends Controller
         if (Auth::user()->can('edit leave') && $leave->created_by == Auth::user()->creatorId()) {
             $leave->status = 'Rejected';
             $leave->save();
-            return response()->json(['message' => 'Leave rejected successfully.', 'data' => $leave]);
+            return response()->json(['message' => 'Leave rejected successfully.', 'data' => new LeaveResource($leave)]);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
     }

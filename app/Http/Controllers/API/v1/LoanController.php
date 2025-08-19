@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\LoanResource;
 use App\Models\Loan;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class LoanController extends Controller
             }
 
             $loans = $query->with(['employee', 'loan_option'])->get();
-            return response()->json($loans);
+            return LoanResource::collection($loans);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -63,7 +64,7 @@ class LoanController extends Controller
             $loan->created_by = Auth::user()->creatorId();
             $loan->save();
 
-            return response()->json($loan, 201);
+            return new LoanResource($loan);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -78,7 +79,7 @@ class LoanController extends Controller
     public function show(Loan $loan)
     {
         if (Auth::user()->can('manage loan') && $loan->created_by == Auth::user()->creatorId()) {
-            return response()->json($loan->load(['employee', 'loan_option']));
+            return new LoanResource($loan->load(['employee', 'loan_option']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -113,7 +114,7 @@ class LoanController extends Controller
             $loan->type = $request->type;
             $loan->save();
 
-            return response()->json($loan);
+            return new LoanResource($loan);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

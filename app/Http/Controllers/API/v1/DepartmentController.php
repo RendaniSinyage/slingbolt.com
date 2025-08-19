@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DepartmentResource;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
@@ -20,7 +21,7 @@ class DepartmentController extends Controller
     {
         if (Auth::user()->can('manage department')) {
             $departments = Department::where('created_by', Auth::user()->creatorId())->with('branch')->get();
-            return response()->json($departments);
+            return DepartmentResource::collection($departments);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -50,7 +51,7 @@ class DepartmentController extends Controller
             $department->created_by = Auth::user()->creatorId();
             $department->save();
 
-            return response()->json($department, 201);
+            return new DepartmentResource($department);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -65,7 +66,7 @@ class DepartmentController extends Controller
     public function show(Department $department)
     {
         if (Auth::user()->can('manage department') && $department->created_by == Auth::user()->creatorId()) {
-            return response()->json($department->load('branch'));
+            return new DepartmentResource($department->load('branch'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -94,7 +95,7 @@ class DepartmentController extends Controller
             $department->name = $request->name;
             $department->save();
 
-            return response()->json($department);
+            return new DepartmentResource($department);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

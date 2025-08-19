@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\JobResource;
 use App\Models\Job;
 use App\Models\JobApplication;
 use App\Models\JobApplicationNote;
@@ -38,7 +39,7 @@ class JobApiController extends Controller
         }
 
         $jobs = Job::where('created_by', '=', Auth::user()->creatorId())->with(['branches', 'createdBy'])->get();
-        return response()->json($jobs);
+        return JobResource::collection($jobs);
     }
 
     /**
@@ -104,7 +105,7 @@ class JobApiController extends Controller
         $job->created_by = Auth::user()->creatorId();
         $job->save();
 
-        return response()->json($job, 201);
+        return new JobResource($job);
     }
 
     /**
@@ -140,7 +141,7 @@ class JobApiController extends Controller
             return response()->json(['error' => __('Permission denied.')], 403);
         }
 
-        return response()->json($job->load(['branches', 'createdBy']));
+        return new JobResource($job->load(['branches', 'createdBy']));
     }
 
     /**
@@ -209,7 +210,7 @@ class JobApiController extends Controller
         $job->custom_question = !empty($request->custom_question) ? implode(',', $request->custom_question) : '';
         $job->save();
 
-        return response()->json($job);
+        return new JobResource($job);
     }
 
     /**
@@ -278,7 +279,7 @@ class JobApiController extends Controller
 
         $jobs = Job::where('created_by', $id)->where('status', 'active')->with(['branches'])->get();
 
-        return response()->json($jobs);
+        return JobResource::collection($jobs);
     }
 
     /**
@@ -315,7 +316,7 @@ class JobApiController extends Controller
             return response()->json(['error' => __('Job not found')], 404);
         }
 
-        return response()->json($job);
+        return new JobResource($job);
     }
 
     /**

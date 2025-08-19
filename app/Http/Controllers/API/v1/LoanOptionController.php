@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\LoanOptionResource;
 use App\Models\LoanOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class LoanOptionController extends Controller
     {
         if (Auth::user()->can('manage loan option')) {
             $loanoptions = LoanOption::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($loanoptions);
+            return LoanOptionResource::collection($loanoptions);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -44,7 +45,7 @@ class LoanOptionController extends Controller
             $loanoption->created_by = Auth::user()->creatorId();
             $loanoption->save();
 
-            return response()->json($loanoption, 201);
+            return new LoanOptionResource($loanoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -59,7 +60,7 @@ class LoanOptionController extends Controller
     public function show(LoanOption $loanoption)
     {
         if (Auth::user()->can('manage loan option') && $loanoption->created_by == Auth::user()->creatorId()) {
-            return response()->json($loanoption);
+            return new LoanOptionResource($loanoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -84,7 +85,7 @@ class LoanOptionController extends Controller
             $loanoption->name = $request->name;
             $loanoption->save();
 
-            return response()->json($loanoption);
+            return new LoanOptionResource($loanoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BankAccountResource;
 use App\Models\BankAccount;
 use App\Models\Revenue;
 use App\Models\InvoicePayment;
@@ -24,7 +25,7 @@ class BankAccountController extends Controller
     {
         if (Auth::user()->can('manage bank account')) {
             $accounts = BankAccount::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($accounts);
+            return BankAccountResource::collection($accounts);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -65,7 +66,7 @@ class BankAccountController extends Controller
             $account->created_by = Auth::user()->creatorId();
             $account->save();
 
-            return response()->json($account, 201);
+            return new BankAccountResource($account);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -80,7 +81,7 @@ class BankAccountController extends Controller
     public function show(BankAccount $bankAccount)
     {
         if (Auth::user()->can('manage bank account') && $bankAccount->created_by == Auth::user()->creatorId()) {
-            return response()->json($bankAccount);
+            return new BankAccountResource($bankAccount);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -113,7 +114,7 @@ class BankAccountController extends Controller
 
             $bankAccount->update($request->all());
 
-            return response()->json($bankAccount);
+            return new BankAccountResource($bankAccount);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

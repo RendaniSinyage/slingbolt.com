@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\EmployeeResource;
 use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -16,7 +17,7 @@ class EmployeeController extends Controller
         $user = $request->user();
         $employees = Employee::where('created_by', '=', $user->creatorId())->with(['designation', 'branch', 'department'])->get();
 
-        return response()->json($employees);
+        return EmployeeResource::collection($employees);
     }
 
     public function show($id)
@@ -30,7 +31,7 @@ class EmployeeController extends Controller
             return response()->json(['error' => 'Employee not found or you do not have permission to view it'], 404);
         }
 
-        return response()->json($employee);
+        return new EmployeeResource($employee);
     }
 
     public function store(Request $request)
@@ -84,7 +85,7 @@ class EmployeeController extends Controller
         $employee->created_by = $ownerId;
         $employee->save();
 
-        return response()->json($employee, 201);
+        return new EmployeeResource($employee);
     }
 
     public function update(Request $request, $id)
@@ -128,7 +129,7 @@ class EmployeeController extends Controller
         $employee->company_doj = $request->company_doj;
         $employee->save();
 
-        return response()->json($employee);
+        return new EmployeeResource($employee);
     }
 
     public function destroy($id)

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BillResource;
 use App\Models\Bill;
 use App\Models\BillProduct;
 use App\Models\BillPayment;
@@ -35,7 +36,7 @@ class ExpenseController extends Controller
             }
 
             $expenses = $query->with(['category'])->get();
-            return response()->json($expenses);
+            return BillResource::collection($expenses);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -100,7 +101,7 @@ class ExpenseController extends Controller
             }
             Utility::bankAccountBalance($request->account_id, $request->totalAmount, 'debit');
 
-            return response()->json($expense->load('items', 'payments'), 201);
+            return new BillResource($expense->load('items', 'payments'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -117,7 +118,7 @@ class ExpenseController extends Controller
         if (Auth::user()->can('show bill')) {
             $expense = Bill::where('type', 'Expense')->where('created_by', Auth::user()->creatorId())->find($id);
             if($expense){
-                 return response()->json($expense->load(['items.product', 'payments']));
+                 return new BillResource($expense->load(['items.product', 'payments']));
             }
             return response()->json(['error' => __('Expense not found.')], 404);
         }

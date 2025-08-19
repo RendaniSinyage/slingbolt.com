@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DesignationResource;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
@@ -20,7 +21,7 @@ class DesignationController extends Controller
     {
         if (Auth::user()->can('manage designation')) {
             $designations = Designation::where('created_by', Auth::user()->creatorId())->with(['department', 'branch'])->get();
-            return response()->json($designations);
+            return DesignationResource::collection($designations);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -56,7 +57,7 @@ class DesignationController extends Controller
             $designation->created_by = Auth::user()->creatorId();
             $designation->save();
 
-            return response()->json($designation, 201);
+            return new DesignationResource($designation);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -71,7 +72,7 @@ class DesignationController extends Controller
     public function show(Designation $designation)
     {
         if (Auth::user()->can('manage designation') && $designation->created_by == Auth::user()->creatorId()) {
-            return response()->json($designation->load(['department', 'branch']));
+            return new DesignationResource($designation->load(['department', 'branch']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -106,7 +107,7 @@ class DesignationController extends Controller
             $designation->branch_id = $department->branch_id;
             $designation->save();
 
-            return response()->json($designation);
+            return new DesignationResource($designation);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

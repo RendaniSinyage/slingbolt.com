@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\DeductionOptionResource;
 use App\Models\DeductionOption;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,7 +19,7 @@ class DeductionOptionController extends Controller
     {
         if (Auth::user()->can('manage deduction option')) {
             $deductionoptions = DeductionOption::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($deductionoptions);
+            return DeductionOptionResource::collection($deductionoptions);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -44,7 +45,7 @@ class DeductionOptionController extends Controller
             $deductionoption->created_by = Auth::user()->creatorId();
             $deductionoption->save();
 
-            return response()->json($deductionoption, 201);
+            return new DeductionOptionResource($deductionoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -59,7 +60,7 @@ class DeductionOptionController extends Controller
     public function show(DeductionOption $deductionoption)
     {
         if (Auth::user()->can('manage deduction option') && $deductionoption->created_by == Auth::user()->creatorId()) {
-            return response()->json($deductionoption);
+            return new DeductionOptionResource($deductionoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -84,7 +85,7 @@ class DeductionOptionController extends Controller
             $deductionoption->name = $request->name;
             $deductionoption->save();
 
-            return response()->json($deductionoption);
+            return new DeductionOptionResource($deductionoption);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

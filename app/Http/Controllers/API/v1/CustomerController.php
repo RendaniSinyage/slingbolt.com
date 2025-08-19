@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CustomerResource;
 use App\Models\Customer;
 use App\Models\Plan;
 use App\Models\User;
@@ -21,7 +22,7 @@ class CustomerController extends Controller
     {
         if (Auth::user()->can('manage customer')) {
             $customers = Customer::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($customers);
+            return CustomerResource::collection($customers);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -89,7 +90,7 @@ class CustomerController extends Controller
             $customer->balance = $request->balance ?? 0;
             $customer->save();
 
-            return response()->json($customer, 201);
+            return new CustomerResource($customer);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -104,7 +105,7 @@ class CustomerController extends Controller
     public function show(Customer $customer)
     {
         if (Auth::user()->can('show customer') && $customer->created_by == Auth::user()->creatorId()) {
-            return response()->json($customer);
+            return new CustomerResource($customer);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -140,7 +141,7 @@ class CustomerController extends Controller
 
             $customer->update($request->all());
 
-            return response()->json($customer);
+            return new CustomerResource($customer);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

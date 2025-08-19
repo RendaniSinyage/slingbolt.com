@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ContractResource;
 use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,7 @@ class ContractController extends Controller
             }
 
             $contracts = $query->with(['clients', 'projects', 'types'])->get();
-            return response()->json($contracts);
+            return ContractResource::collection($contracts);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -65,7 +66,7 @@ class ContractController extends Controller
             $contract->created_by = Auth::user()->creatorId();
             $contract->save();
 
-            return response()->json($contract, 201);
+            return new ContractResource($contract);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -80,11 +81,11 @@ class ContractController extends Controller
     public function show(Contract $contract)
     {
         if (Auth::user()->can('show contract') && $contract->created_by == Auth::user()->creatorId()) {
-            return response()->json($contract->load(['clients', 'projects', 'types']));
+            return new ContractResource($contract->load(['clients', 'projects', 'types']));
         }
 
         if (Auth::user()->type == 'client' && $contract->client_name == Auth::user()->id){
-            return response()->json($contract->load(['clients', 'projects', 'types']));
+            return new ContractResource($contract->load(['clients', 'projects', 'types']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -116,7 +117,7 @@ class ContractController extends Controller
 
             $contract->update($request->all());
 
-            return response()->json($contract);
+            return new ContractResource($contract);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

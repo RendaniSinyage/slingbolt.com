@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\BranchResource;
 use App\Models\Branch;
 use App\Models\Department;
 use App\Models\Designation;
@@ -21,7 +22,7 @@ class BranchController extends Controller
     {
         if (Auth::user()->can('manage branch')) {
             $branches = Branch::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($branches);
+            return BranchResource::collection($branches);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -47,7 +48,7 @@ class BranchController extends Controller
             $branch->created_by = Auth::user()->creatorId();
             $branch->save();
 
-            return response()->json($branch, 201);
+            return new BranchResource($branch);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -62,7 +63,7 @@ class BranchController extends Controller
     public function show(Branch $branch)
     {
         if (Auth::user()->can('manage branch') && $branch->created_by == Auth::user()->creatorId()) {
-            return response()->json($branch);
+            return new BranchResource($branch);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -87,7 +88,7 @@ class BranchController extends Controller
             $branch->name = $request->name;
             $branch->save();
 
-            return response()->json($branch);
+            return new BranchResource($branch);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

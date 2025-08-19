@@ -1,8 +1,9 @@
 <?php
 
-namespace App\Http\Controllers\Api\API\v1;
+namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\CommissionResource;
 use Illuminate\Http\Request;
 use App\Models\Commission;
 use App\Models\Employee;
@@ -19,7 +20,7 @@ class CommissionController extends Controller
             $commissions->where('employee_id', $request->employee_id);
         }
 
-        return response()->json($commissions->get());
+        return CommissionResource::collection($commissions->get());
     }
 
     public function store(Request $request)
@@ -43,7 +44,7 @@ class CommissionController extends Controller
         $commission->created_by = Auth::user()->creatorId();
         $commission->save();
 
-        return response()->json(['message' => 'Commission successfully created.', 'data' => $commission], 201);
+        return new CommissionResource($commission);
     }
 
     public function show($id)
@@ -52,7 +53,7 @@ class CommissionController extends Controller
         if (!$commission || $commission->created_by != Auth::user()->creatorId()) {
             return response()->json(['error' => 'Commission not found.'], 404);
         }
-        return response()->json($commission);
+        return new CommissionResource($commission);
     }
 
     public function update(Request $request, $id)
@@ -77,7 +78,7 @@ class CommissionController extends Controller
         $commission->amount = $request->amount;
         $commission->save();
 
-        return response()->json(['message' => 'Commission successfully updated.', 'data' => $commission]);
+        return new CommissionResource($commission);
     }
 
     public function destroy($id)

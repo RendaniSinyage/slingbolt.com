@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\HolidayResource;
 use App\Models\Holiday;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,7 +29,7 @@ class HolidayController extends Controller
             }
 
             $holidays = $query->get();
-            return response()->json($holidays);
+            return HolidayResource::collection($holidays);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -60,7 +61,7 @@ class HolidayController extends Controller
             $holiday->created_by = Auth::user()->creatorId();
             $holiday->save();
 
-            return response()->json($holiday, 201);
+            return new HolidayResource($holiday);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -75,7 +76,7 @@ class HolidayController extends Controller
     public function show(Holiday $holiday)
     {
         if (Auth::user()->can('manage holiday') && $holiday->created_by == Auth::user()->creatorId()) {
-            return response()->json($holiday);
+            return new HolidayResource($holiday);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -106,7 +107,7 @@ class HolidayController extends Controller
             $holiday->occasion = $request->occasion;
             $holiday->save();
 
-            return response()->json($holiday);
+            return new HolidayResource($holiday);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
