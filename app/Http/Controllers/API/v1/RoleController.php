@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\RoleResource;
+use App\Http\Resources\RoleResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Role;
@@ -19,7 +21,7 @@ class RoleController extends Controller
     {
         if (Auth::user()->can('manage role')) {
             $roles = Role::where('created_by', Auth::user()->creatorId())->with('permissions')->get();
-            return response()->json($roles);
+            return RoleResource::collection($roles);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -52,7 +54,7 @@ class RoleController extends Controller
                 $role->syncPermissions($request->permissions);
             }
 
-            return response()->json($role->load('permissions'), 201);
+            return new RoleResource($role->load('permissions'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -69,7 +71,7 @@ class RoleController extends Controller
         if (Auth::user()->can('manage role')) {
             $role = Role::where('id', $id)->where('created_by', Auth::user()->creatorId())->with('permissions')->first();
             if($role) {
-                 return response()->json($role);
+                 return new RoleResource($role);
             }
             return response()->json(['error' => __('Role not found.')], 404);
         }
@@ -110,7 +112,7 @@ class RoleController extends Controller
                 $role->syncPermissions([]);
             }
 
-            return response()->json($role->load('permissions'));
+            return new RoleResource($role->load('permissions'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

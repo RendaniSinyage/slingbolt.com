@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TransferResource;
 use App\Models\Transfer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ class TransferController extends Controller
             } else {
                 $transfers = Transfer::where('created_by', Auth::user()->creatorId())->with(['employee', 'branch', 'department'])->get();
             }
-            return response()->json($transfers);
+            return TransferResource::collection($transfers);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -59,7 +60,7 @@ class TransferController extends Controller
             $transfer->created_by = Auth::user()->creatorId();
             $transfer->save();
 
-            return response()->json($transfer, 201);
+            return new TransferResource($transfer);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -74,7 +75,7 @@ class TransferController extends Controller
     public function show(Transfer $transfer)
     {
         if (Auth::user()->can('manage transfer') && $transfer->created_by == Auth::user()->creatorId()) {
-            return response()->json($transfer->load(['employee', 'branch', 'department']));
+            return new TransferResource($transfer->load(['employee', 'branch', 'department']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -109,7 +110,7 @@ class TransferController extends Controller
             $transfer->description = $request->description;
             $transfer->save();
 
-            return response()->json($transfer);
+            return new TransferResource($transfer);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

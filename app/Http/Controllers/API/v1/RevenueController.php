@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\RevenueResource;
 use App\Models\Revenue;
 use App\Models\Customer;
 use App\Models\BankAccount;
@@ -36,7 +37,7 @@ class RevenueController extends Controller
             }
 
             $revenues = $query->with(['bankAccount', 'customer', 'category'])->get();
-            return response()->json($revenues);
+            return RevenueResource::collection($revenues);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -89,7 +90,7 @@ class RevenueController extends Controller
             // Update bank account balance
             Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
 
-            return response()->json($revenue, 201);
+            return new RevenueResource($revenue);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -104,7 +105,7 @@ class RevenueController extends Controller
     public function show(Revenue $revenue)
     {
         if (Auth::user()->can('manage revenue') && $revenue->created_by == Auth::user()->creatorId()) {
-            return response()->json($revenue->load(['bankAccount', 'customer', 'category']));
+            return new RevenueResource($revenue->load(['bankAccount', 'customer', 'category']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -158,7 +159,7 @@ class RevenueController extends Controller
             Utility::updateUserBalance('customer', $request->customer_id, $request->amount, 'debit');
             Utility::bankAccountBalance($request->account_id, $request->amount, 'credit');
 
-            return response()->json($revenue);
+            return new RevenueResource($revenue);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Models\Plan;
 use App\Models\Utility;
@@ -29,7 +30,7 @@ class UserController extends Controller
             } else {
                 $users = User::where('created_by', $user->creatorId())->where('type', '!=', 'client')->get();
             }
-            return response()->json($users);
+            return UserResource::collection($users);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -83,7 +84,7 @@ class UserController extends Controller
                 Utility::employeeDetails($newUser->id, $user->creatorId());
             }
 
-            return response()->json($newUser, 201);
+            return new UserResource($newUser);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -99,7 +100,7 @@ class UserController extends Controller
     {
         $currentUser = Auth::user();
         if ($currentUser->can('manage user') && ($user->created_by == $currentUser->creatorId() || $currentUser->type == 'super admin')) {
-            return response()->json($user);
+            return new UserResource($user);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -138,7 +139,7 @@ class UserController extends Controller
 
             $user->syncRoles([$role->id]);
 
-            return response()->json($user);
+            return new UserResource($user);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

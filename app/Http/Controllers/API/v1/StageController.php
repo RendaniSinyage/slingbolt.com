@@ -143,4 +143,30 @@ class StageController extends Controller
 
         return response()->json(['message' => 'Deal Stage successfully deleted.']);
     }
+
+    public function order(Request $request)
+    {
+        if (Gate::denies('edit stage')) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $validator = \Validator::make($request->all(), [
+            'order' => 'required|array',
+            'order.*' => 'integer|exists:stages,id',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        foreach ($request->order as $key => $item) {
+            $stage = Stage::where('id', '=', $item)->first();
+            if ($stage && $stage->created_by == Auth::user()->ownerId()) {
+                $stage->order = $key;
+                $stage->save();
+            }
+        }
+
+        return response()->json(['message' => __('Deal Stage order successfully updated.')]);
+    }
 }

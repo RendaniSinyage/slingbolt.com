@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\PermissionResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Spatie\Permission\Models\Permission;
@@ -21,7 +22,7 @@ class PermissionController extends Controller
             // as they are often globally defined by the application.
             // We will return all permissions.
             $permissions = Permission::all();
-            return response()->json($permissions);
+            return PermissionResource::collection($permissions);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

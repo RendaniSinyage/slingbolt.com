@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\ProposalResource;
 use App\Models\Proposal;
 use App\Models\ProposalProduct;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class ProposalController extends Controller
             }
 
             $proposals = $query->with(['customer', 'category'])->get();
-            return response()->json($proposals);
+            return ProposalResource::collection($proposals);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -80,7 +81,7 @@ class ProposalController extends Controller
                 $proposalProduct->save();
             }
 
-            return response()->json($proposal->load('items'), 201);
+            return new ProposalResource($proposal->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -95,7 +96,7 @@ class ProposalController extends Controller
     public function show(Proposal $proposal)
     {
         if (Auth::user()->can('show proposal') && $proposal->created_by == Auth::user()->creatorId()) {
-            return response()->json($proposal->load(['items.product', 'customer', 'category']));
+            return new ProposalResource($proposal->load(['items.product', 'customer', 'category']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -130,7 +131,7 @@ class ProposalController extends Controller
             // Note: For simplicity, this update does not handle line item updates.
             // A full implementation would require logic to add/update/delete line items.
 
-            return response()->json($proposal);
+            return new ProposalResource($proposal);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

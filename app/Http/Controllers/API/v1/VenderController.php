@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\VenderResource;
 use App\Models\Vender;
 use App\Models\Plan;
 use App\Models\User;
@@ -21,7 +22,7 @@ class VenderController extends Controller
     {
         if (Auth::user()->can('manage vender')) {
             $venders = Vender::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($venders);
+            return VenderResource::collection($venders);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -87,7 +88,7 @@ class VenderController extends Controller
             $vender->balance = $request->balance ?? 0;
             $vender->save();
 
-            return response()->json($vender, 201);
+            return new VenderResource($vender);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -102,7 +103,7 @@ class VenderController extends Controller
     public function show(Vender $vender)
     {
         if (Auth::user()->can('show vender') && $vender->created_by == Auth::user()->creatorId()) {
-            return response()->json($vender);
+            return new VenderResource($vender);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -138,7 +139,7 @@ class VenderController extends Controller
 
             $vender->update($request->all());
 
-            return response()->json($vender);
+            return new VenderResource($vender);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

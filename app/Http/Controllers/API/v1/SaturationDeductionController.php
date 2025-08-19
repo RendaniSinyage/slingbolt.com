@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\SaturationDeductionResource;
 use App\Models\SaturationDeduction;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ class SaturationDeductionController extends Controller
             }
 
             $deductions = $query->with(['employee', 'deduction_option'])->get();
-            return response()->json($deductions);
+            return SaturationDeductionResource::collection($deductions);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -61,7 +62,7 @@ class SaturationDeductionController extends Controller
             $deduction->created_by = Auth::user()->creatorId();
             $deduction->save();
 
-            return response()->json($deduction, 201);
+            return new SaturationDeductionResource($deduction);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -76,7 +77,7 @@ class SaturationDeductionController extends Controller
     public function show(SaturationDeduction $saturationdeduction)
     {
         if (Auth::user()->can('manage saturation deduction') && $saturationdeduction->created_by == Auth::user()->creatorId()) {
-            return response()->json($saturationdeduction->load(['employee', 'deduction_option']));
+            return new SaturationDeductionResource($saturationdeduction->load(['employee', 'deduction_option']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -109,7 +110,7 @@ class SaturationDeductionController extends Controller
             $saturationdeduction->type = $request->type;
             $saturationdeduction->save();
 
-            return response()->json($saturationdeduction);
+            return new SaturationDeductionResource($saturationdeduction);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

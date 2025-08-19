@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\TaxResource;
 use App\Models\Tax;
 use App\Models\ProposalProduct;
 use App\Models\BillProduct;
@@ -22,7 +23,7 @@ class TaxController extends Controller
     {
         if (Auth::user()->can('manage constant tax')) {
             $taxes = Tax::where('created_by', Auth::user()->creatorId())->get();
-            return response()->json($taxes);
+            return TaxResource::collection($taxes);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -52,7 +53,7 @@ class TaxController extends Controller
             $tax->created_by = Auth::user()->creatorId();
             $tax->save();
 
-            return response()->json($tax, 201);
+            return new TaxResource($tax);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -67,7 +68,7 @@ class TaxController extends Controller
     public function show(Tax $tax)
     {
         if (Auth::user()->can('manage constant tax') && $tax->created_by == Auth::user()->creatorId()) {
-            return response()->json($tax);
+            return new TaxResource($tax);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -96,7 +97,7 @@ class TaxController extends Controller
             $tax->rate = $request->rate;
             $tax->save();
 
-            return response()->json($tax);
+            return new TaxResource($tax);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
