@@ -26,32 +26,6 @@ class ApiController extends Controller
 
 
 
-    public function getProjects(Request $request)
-    {
-
-        $user = auth()->user();
-
-        if($user->type!='company')
-        {
-            $assign_pro_ids = ProjectUser::where('user_id',$user->id)->pluck('project_id');
-
-
-            $project_s      = Project::with('tasks')->whereIn('id', $assign_pro_ids)->get()->toArray();
-
-        }
-        else
-        {
-
-
-            $project_s = Project::with('tasks')->where('created_by', $user->id)->get()->toArray();
-
-
-        }
-
-        return $this->success([
-            'projects' => $project_s,
-        ],'Get Project List successfully.');
-    }
 
 
     public function addTracker(Request $request){

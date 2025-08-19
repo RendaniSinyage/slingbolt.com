@@ -113,7 +113,7 @@ Route::post('v1/jobs/apply/{code}/{lang}', [JobApiController::class, 'jobApplyDa
 Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('logout', [LoginController::class, 'logout']);
-    Route::get('get-projects', [ApiController::class, 'getProjects']);
+    Route::get('get-projects', [ProjectController::class, 'index']);
     Route::post('add-tracker', [ApiController::class, 'addTracker']);
     Route::post('stop-tracker', [ApiController::class, 'stopTracker']);
     Route::post('upload-photos', [ApiController::class, 'uploadImage']);

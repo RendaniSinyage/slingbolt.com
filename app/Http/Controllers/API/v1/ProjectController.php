@@ -25,13 +25,16 @@ class ProjectController extends Controller
         }
 
         $user = Auth::user();
-        if ($user->type == 'client') {
+
+        if ($user->type == 'company') {
+            $projects = Project::with('tasks')->where('created_by', $user->id)->get();
+        } elseif ($user->type == 'client') {
             $user_projects = Project::where('client_id', $user->id)->pluck('id', 'id')->toArray();
+            $projects = Project::with('tasks')->whereIn('id', array_keys($user_projects))->get();
         } else {
             $user_projects = $user->projects()->pluck('project_id', 'project_id')->toArray();
+            $projects = Project::with('tasks')->whereIn('id', array_keys($user_projects))->get();
         }
-
-        $projects = Project::whereIn('id', array_keys($user_projects))->get();
 
         return ProjectResource::collection($projects);
     }
