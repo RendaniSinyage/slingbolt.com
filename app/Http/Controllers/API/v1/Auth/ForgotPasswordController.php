@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponser;
+use App\Models\Utility;
 
 class ForgotPasswordController extends Controller
 {
@@ -15,22 +16,25 @@ class ForgotPasswordController extends Controller
     public function sendResetLinkEmail(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'email' => 'required|string|email|exists:users',
+            'email' => 'required|email|exists:users',
         ]);
 
         if ($validator->fails()) {
             return $this->error('Validation failed.', 422, $validator->errors());
         }
 
-        // We will send the password reset link to this user.
-        $response = Password::broker()->sendResetLink(
-            $request->only('email')
-        );
+        try {
+            Utility::smtpDetail(1);
+            $status = Password::sendResetLink($request->only('email'));
 
-        if ($response == Password::RESET_LINK_SENT) {
-            return $this->success(null, 'Reset link sent successfully.');
-        } else {
-            return $this->error('Failed to send reset link.', 500);
+            if ($status == Password::RESET_LINK_SENT) {
+                return $this->success(null, __($status));
+            } else {
+                return $this->error(__($status), 400);
+            }
+        } catch (\Exception $e) {
+            \Log::error('API Forgot Password: SMTP email sending failed.', ['error' => $e->getMessage()]);
+            return $this->error('E-Mail could not be sent due to a server error.', 500);
         }
     }
 }

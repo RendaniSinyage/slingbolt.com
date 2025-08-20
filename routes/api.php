@@ -7,6 +7,8 @@ use App\Http\Controllers\API\v1\Auth\LoginController;
 use App\Http\Controllers\API\v1\Auth\RegisterController;
 use App\Http\Controllers\API\v1\Auth\ForgotPasswordController;
 use App\Http\Controllers\API\v1\Auth\ResetPasswordController;
+use App\Http\Controllers\API\v1\Auth\EmailVerificationNotificationController;
+use App\Http\Controllers\API\v1\Auth\VerifyEmailController;
 use App\Http\Controllers\ExternalUserController;
 use Laravel\Passport\Http\Controllers\AccessTokenController;
 use Laravel\Passport\Http\Controllers\AuthorizedAccessTokenController;
@@ -112,6 +114,10 @@ Route::post('login', [LoginController::class, 'login']);
 Route::post('v1/password/email', [ForgotPasswordController::class, 'sendResetLinkEmail']);
 Route::post('v1/password/reset', [ResetPasswordController::class, 'reset']);
 
+Route::get('v1/email/verify/{id}/{hash}', [VerifyEmailController::class, '__invoke'])
+    ->middleware(['signed', 'throttle:6,1'])
+    ->name('verification.verify.api');
+
 // Public Recruitment Routes
 Route::get('v1/jobs/career/{id}/{lang}', [JobApiController::class, 'career']);
 Route::get('v1/jobs/requirement/{code}/{lang}', [JobApiController::class, 'jobRequirement']);
@@ -121,6 +127,11 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
 
     Route::post('logout', [LoginController::class, 'logout']);
     Route::get('get-projects', [ProjectController::class, 'index']);
+
+    // Email Verification
+    Route::post('v1/email/verification-notification', [EmailVerificationNotificationController::class, 'store'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
 
     // Time Tracker
     Route::post('v1/timetrackers/start', [TimeTrackerController::class, 'start']);

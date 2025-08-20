@@ -12,18 +12,32 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Spatie\Permission\Models\Role;
+use Illuminate\Validation\Rules;
 
 class RegisterController extends Controller
 {
     use ApiResponser;
 
-    public function register(Request $request)
+    public function store(Request $request)
     {
+        // Rate limiting checks (simplified for API)
+        $userEmail = $request->email;
+        $recentEmailAttempts = User::where('email', $userEmail)->where('created_at', '>', now()->subHour())->count();
+        if ($recentEmailAttempts >= 1) {
+            return $this->error('A verification email was already sent to this address. Please check your email.', 429);
+        }
+
+        $userIP = $request->ip();
+        $recentRegistrations = User::where('registration_ip', $userIP)->where('created_at', '>', now()->subHour())->count();
+        if ($recentRegistrations >= 3) {
+            return $this->error('Too many registration attempts. Please try again later.', 429);
+        }
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'company_name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'string', 'min:8', 'confirmed', Rules\Password::defaults()],
+            'company_name' => 'required|string|max:255',
             'plan_id' => 'nullable|integer|exists:plans,id',
         ]);
 
@@ -31,37 +45,40 @@ class RegisterController extends Controller
             return $this->error('Validation failed.', 422, $validator->errors());
         }
 
-        // --- Plan Selection & Trial Logic ---
-        $selectedPlanId = 1; // Default free plan
+        // Plan selection and trial assignment
+        $selectedPlanId = 1;
         $trialPlanId = 0;
         $trialExpireDate = null;
         $planExpireDate = null;
-        $paymentRequired = false;
+        $plan = null;
 
-        $plan = Plan::find($request->plan_id);
-
-        if ($plan && $plan->is_disable == 1) {
-            $selectedPlanId = $plan->id;
-            // If plan has a price, it's a trial. If not, it's a free plan.
-            if($plan->price > 0) {
+        if ($request->has('plan_id') && !empty($request->plan_id)) {
+            $plan = Plan::find($request->plan_id);
+            if ($plan && $plan->is_disable == 1) { // Assuming is_disable=1 means enabled
+                $selectedPlanId = $plan->id;
+                if ($plan->price > 0) {
+                    $trialPlanId = $plan->id;
+                    $trialDays = $plan->trial_days > 0 ? $plan->trial_days : 14;
+                    $trialExpireDate = now()->addDays($trialDays)->toDateString();
+                    $planExpireDate = $trialExpireDate;
+                }
+            }
+        } else {
+            $defaultTrialPlan = Plan::find(3);
+            if ($defaultTrialPlan && $defaultTrialPlan->is_disable == 1) {
+                $plan = $defaultTrialPlan;
+                $selectedPlanId = $plan->id;
                 $trialPlanId = $plan->id;
                 $trialDays = $plan->trial_days > 0 ? $plan->trial_days : 14;
                 $trialExpireDate = now()->addDays($trialDays)->toDateString();
                 $planExpireDate = $trialExpireDate;
             }
-        } else {
-            // Default to trial of plan 3 if no valid plan is provided
-            $defaultTrialPlan = Plan::find(3);
-            if ($defaultTrialPlan && $defaultTrialPlan->is_disable == 1) {
-                $selectedPlanId = $defaultTrialPlan->id;
-                $trialPlanId = $defaultTrialPlan->id;
-                $trialDays = $defaultTrialPlan->trial_days > 0 ? $defaultTrialPlan->trial_days : 14;
-                $trialExpireDate = now()->addDays($trialDays)->toDateString();
-                $planExpireDate = $trialExpireDate;
-            }
         }
 
-        // --- User Creation ---
+        do {
+            $code = rand(100000, 999999);
+        } while (User::where('referral_code', $code)->exists());
+
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
@@ -72,46 +89,42 @@ class RegisterController extends Controller
             'trial_plan' => $trialPlanId,
             'trial_expire_date' => $trialExpireDate,
             'lang' => Utility::getValByName('default_language') ?? 'en',
-            'created_by' => 1, // Super admin
+            'created_by' => 1,
             'registration_ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'referral_code'=> $code,
         ]);
 
-        // --- Post-Registration Actions ---
         $role_r = Role::findByName('company');
         $user->assignRole($role_r);
-
         $user->cloneCompanyDefaults($user->id);
 
-        DB::table('settings')->insert([
-            'name' => 'company_name',
-            'value' => $request->company_name,
-            'created_by' => $user->id,
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+        DB::table('settings')->updateOrInsert(
+            ['name' => 'company_name', 'created_by' => $user->id],
+            ['value' => $request->company_name, 'created_at' => now(), 'updated_at' => now()]
+        );
 
         $settings = Utility::settings();
-        if ($settings['email_verification'] == 'on') {
+        if (isset($settings['email_verification']) && $settings['email_verification'] == 'on') {
             try {
                 $user->sendEmailVerificationNotification();
             } catch (\Exception $e) {
-                // Log error, but don't block registration
+                // Do not block registration, but log the error
+                \Log::error('API Registration: SMTP email sending failed.', ['error' => $e->getMessage()]);
             }
+        } else {
+            $user->email_verified_at = now();
+            $user->save();
         }
 
-        // --- Token and Response ---
         $token = $user->createToken('API Token')->plainTextToken;
-
-        // Check if payment is needed (plan exists and has a price)
-        if ($plan && $plan->price > 0) {
-            $paymentRequired = true;
-        }
+        $paymentRequired = ($plan && $plan->price > 0);
 
         return $this->success([
             'user' => $user->fresh(),
             'token' => $token,
             'payment_required' => $paymentRequired,
-            'plan' => $plan,
+            'plan_details' => $plan,
         ], 'Registration successful.');
     }
 }

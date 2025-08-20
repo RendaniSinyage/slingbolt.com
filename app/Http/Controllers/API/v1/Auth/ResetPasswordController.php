@@ -8,6 +8,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Validator;
 use App\Traits\ApiResponser;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Support\Str;
 
 class ResetPasswordController extends Controller
 {
@@ -25,18 +27,22 @@ class ResetPasswordController extends Controller
             return $this->error('Validation failed.', 422, $validator->errors());
         }
 
-        $response = Password::broker()->reset(
+        $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->password = Hash::make($password);
-                $user->save();
+            function ($user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
             }
         );
 
-        if ($response == Password::PASSWORD_RESET) {
-            return $this->success(null, 'Password reset successfully.');
+        if ($status == Password::PASSWORD_RESET) {
+            return $this->success(null, __($status));
         } else {
-            return $this->error('Failed to reset password. Invalid token.', 400);
+            return $this->error(__($status), 400);
         }
     }
 }
