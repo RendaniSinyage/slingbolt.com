@@ -160,6 +160,14 @@ class PosController extends Controller
     private function invoicePosNumber()
     {
         $latest = Pos::where('created_by', '=', Auth::user()->creatorId())->latest('pos_id')->first();
-        return $latest ? $latest->pos_id + 1 : 1;
+
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            $pos_starting_number = isset($setting['pos_starting_number']) ? (int)$setting['pos_starting_number'] : 1;
+            return $pos_starting_number;
+        }
+
+        return $latest->pos_id + 1;
     }
 }

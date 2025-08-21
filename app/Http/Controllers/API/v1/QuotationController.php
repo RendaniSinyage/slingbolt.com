@@ -157,6 +157,11 @@ class QuotationController extends Controller
     private function quotationNumber()
     {
         $latest = Quotation::where('created_by', Auth::user()->creatorId())->latest('quotation_id')->first();
-        return ($latest ? $latest->quotation_id : 0) + 1;
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['quotation_starting_number']) ? $setting['quotation_starting_number'] : 1);
+        }
+        return $latest->quotation_id + 1;
     }
 }
