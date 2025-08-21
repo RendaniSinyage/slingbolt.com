@@ -259,10 +259,13 @@ class CustomerController extends Controller
 
     function customerNumber()
     {
+        $settings = Utility::settings();
+        $customer_starting_number = isset($settings['customer_starting_number']) ? (int)$settings['customer_starting_number'] : 1;
+
         $latest = Customer::where('created_by', '=', \Auth::user()->creatorId())->latest('customer_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $customer_starting_number;
         }
 
         return $latest->customer_id + 1;

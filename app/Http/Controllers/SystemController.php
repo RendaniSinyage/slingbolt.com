@@ -13,6 +13,18 @@ use App\Models\NOC;
 use App\Models\User;
 use App\Models\Utility;
 use App\Models\WebhookSetting;
+use App\Models\Invoice;
+use App\Models\Proposal;
+use App\Models\Bill;
+use App\Models\Customer;
+use App\Models\Vender;
+use App\Models\Quotation;
+use App\Models\Purchase;
+use App\Models\Pos;
+use App\Models\JournalEntry;
+use App\Models\Expense;
+use App\Models\Employee;
+use App\Models\Contract;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
@@ -328,6 +340,37 @@ class SystemController extends Controller
         if (\Auth::user()->can('manage company settings')) {
             $user = \Auth::user();
 
+            $prefix_map = [
+                'customer_starting_number' => ['model' => \App\Models\Customer::class, 'name' => 'Customer'],
+                'vender_starting_number' => ['model' => \App\Models\Vender::class, 'name' => 'Vendor'],
+                'proposal_starting_number' => ['model' => \App\Models\Proposal::class, 'name' => 'Proposal'],
+                'invoice_starting_number' => ['model' => \App\Models\Invoice::class, 'name' => 'Invoice'],
+                'bill_starting_number' => ['model' => \App\Models\Bill::class, 'name' => 'Bill'],
+                'quotation_starting_number' => ['model' => \App\Models\Quotation::class, 'name' => 'Quotation'],
+                'purchase_starting_number' => ['model' => \App\Models\Purchase::class, 'name' => 'Purchase'],
+                'pos_starting_number' => ['model' => \App\Models\Pos::class, 'name' => 'POS'],
+                'journal_starting_number' => ['model' => \App\Models\JournalEntry::class, 'name' => 'Journal'],
+                'expense_starting_number' => ['model' => \App\Models\Expense::class, 'name' => 'Expense'],
+                'employee_starting_number' => ['model' => \App\Models\Employee::class, 'name' => 'Employee'],
+                'contract_starting_number' => ['model' => \App\Models\Contract::class, 'name' => 'Contract'],
+            ];
+
+            $current_settings = Utility::settings();
+
+            foreach ($request->all() as $key => $value) {
+                if (array_key_exists($key, $prefix_map)) {
+                    $modelClass = $prefix_map[$key]['model'];
+                    $name = $prefix_map[$key]['name'];
+
+                    if (isset($current_settings[$key]) && $current_settings[$key] != $value) {
+                        if ($modelClass::where('created_by', \Auth::user()->creatorId())->count() > 0) {
+                            return redirect()->back()->with('error', __("You cannot change the starting number for {$name} because records already exist."));
+                        }
+                    }
+                }
+            }
+
+
             $post = $request->all();
 
             unset($post['_token']);
@@ -543,6 +586,24 @@ class SystemController extends Controller
 
         $setting = Utility::settingsById(\Auth::user()->id);
         $comSetting = DB::table('settings')->where('created_by', '=', \Auth::user()->id)->pluck('value', 'name')->toArray();
+
+        $starting_number_prefixes = [
+            'customer', 'vender', 'proposal', 'invoice', 'bill', 'quotation', 'purchase', 'pos', 'journal', 'expense', 'employee', 'contract'
+        ];
+
+        foreach ($starting_number_prefixes as $prefix) {
+            $setting_name = $prefix . '_starting_number';
+            if (!isset($setting[$setting_name])) {
+                \DB::table('settings')->insert([
+                    'name' => $setting_name,
+                    'value' => 1,
+                    'created_by' => \Auth::user()->creatorId(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+                $setting[$setting_name] = 1;
+            }
+        }
 
         $timezones = config('timezones');
         $company_payment_setting = Utility::getCompanyPaymentSetting(\Auth::user()->creatorId());

@@ -298,10 +298,13 @@ class QuotationController extends Controller
 
     function quotationNumber()
     {
+        $settings = Utility::settings();
+        $quotation_starting_number = isset($settings['quotation_starting_number']) ? (int)$settings['quotation_starting_number'] : 1;
+
         $latest = Quotation::where('created_by', '=', \Auth::user()->creatorId())->latest('quotation_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $quotation_starting_number;
         }
 
         return $latest->quotation_id + 1;

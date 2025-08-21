@@ -856,113 +856,139 @@
                                     </select>
                                 </div>
 
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('customer_prefix', __('Customer Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('customer_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Customer Prefix')]) }}
-                                    @error('customer_prefix')
-                                        <span class="invalid-customer_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('vender_prefix', __('Vendor Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('vender_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Vendor Prifix')]) }}
-                                    @error('vender_prefix')
-                                        <span class="invalid-vender_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('proposal_prefix', __('Proposal Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('proposal_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Proposal Prifix')]) }}
-                                    @error('proposal_prefix')
-                                        <span class="invalid-proposal_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('invoice_prefix', __('Invoice Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('invoice_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Invoice Prifix')]) }}
-                                    @error('invoice_prefix')
-                                        <span class="invalid-invoice_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('bill_prefix', __('Bill Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('bill_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Bill Prifix')]) }}
-                                    @error('bill_prefix')
-                                        <span class="invalid-bill_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('quotation_prefix', __('Quotation Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('quotation_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Quotation Prifix')]) }}
-                                    @error('quotation_prefix')
-                                        <span class="invalid-quotation_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('purchase_prefix', __('Purchase Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('purchase_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Purchase Prifix')]) }}
-                                    @error('purchase_prefix')
-                                        <span class="invalid-purchase_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('pos_prefix', __('Pos Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('pos_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Pos Prifix')]) }}
-                                    @error('pos_prefix')
-                                        <span class="invalid-pos_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('journal_prefix', __('Journal Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('journal_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Journal Prifix')]) }}
-                                    @error('journal_prefix')
-                                        <span class="invalid-journal_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('expense_prefix', __('Expense Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('expense_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Expense Prifix')]) }}
-                                    @error('expense_prefix')
-                                        <span class="invalid-expense_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('employee_prefix', __('Employee Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('employee_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Employee Prifix')]) }}
-                                    @error('employee_prefix')
-                                        <span class="invalid-employee_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
-                                </div>
-                                <div class="form-group col-md-6">
-                                    {{ Form::label('contract_prefix', __('Contract Prefix'), ['class' => 'form-label']) }}
-                                    {{ Form::text('contract_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Contract Prifix')]) }}
-                                    @error('contract_prefix')
-                                        <span class="invalid-contract_prefix" role="alert">
-                                            <strong class="text-danger">{{ $message }}</strong>
-                                        </span>
-                                    @enderror
+                                <div class="row">
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('customer_prefix', __('Customer Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('customer_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Customer Prefix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $customer_count = \App\Models\Customer::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('customer_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('customer_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($customer_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('vender_prefix', __('Vendor Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('vender_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Vendor Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $vender_count = \App\Models\Vender::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('vender_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('vender_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($vender_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('proposal_prefix', __('Proposal Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('proposal_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Proposal Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $proposal_count = \App\Models\Proposal::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('proposal_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('proposal_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($proposal_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('invoice_prefix', __('Invoice Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('invoice_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Invoice Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $invoice_count = \App\Models\Invoice::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('invoice_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('invoice_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($invoice_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('bill_prefix', __('Bill Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('bill_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Bill Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $bill_count = \App\Models\Bill::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('bill_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('bill_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($bill_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('quotation_prefix', __('Quotation Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('quotation_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Quotation Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $quotation_count = \App\Models\Quotation::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('quotation_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('quotation_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($quotation_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('purchase_prefix', __('Purchase Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('purchase_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Purchase Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $purchase_count = \App\Models\Purchase::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('purchase_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('purchase_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($purchase_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('pos_prefix', __('Pos Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('pos_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Pos Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $pos_count = \App\Models\Pos::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('pos_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('pos_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($pos_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('journal_prefix', __('Journal Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('journal_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Journal Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $journal_count = \App\Models\JournalEntry::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('journal_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('journal_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($journal_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('expense_prefix', __('Expense Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('expense_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Expense Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $expense_count = \App\Models\Expense::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('expense_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('expense_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($expense_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('employee_prefix', __('Employee Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('employee_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Employee Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $employee_count = \App\Models\Employee::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('employee_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('employee_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($employee_count > 0)]) }}
+                                    </div>
+                                    <div class="form-group col-md-4">
+                                        {{ Form::label('contract_prefix', __('Contract Prefix'), ['class' => 'form-label']) }}
+                                        {{ Form::text('contract_prefix', null, ['class' => 'form-control', 'placeholder' => __('Enter Contract Prifix')]) }}
+                                    </div>
+                                    <div class="form-group col-md-2">
+                                        @php
+                                            $contract_count = \App\Models\Contract::where('created_by', \Auth::user()->creatorId())->count();
+                                        @endphp
+                                        {{ Form::label('contract_starting_number', __('Starting Number'), ['class' => 'form-label']) }}
+                                        {{ Form::number('contract_starting_number', null, ['class' => 'form-control', 'placeholder' => __('Enter Starting Number'), 'disabled' => ($contract_count > 0)]) }}
+                                    </div>
                                 </div>
                                 <div class="form-group col-md-6">
                                     {{ Form::label('shipping_display', __('Display Shipping in Proposal / Invoice / Bill'), ['class' => 'form-label']) }}

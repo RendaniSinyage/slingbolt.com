@@ -36,9 +36,12 @@ class ExpenseController extends Controller
 
     public function expenseNumber()
     {
+        $settings = Utility::settings();
+        $expense_starting_number = isset($settings['expense_starting_number']) ? (int)$settings['expense_starting_number'] : 1;
+
         $latest = Bill::where('created_by', '=', \Auth::user()->creatorId())->where('type', '=', 'Expense')->latest('bill_id')->first();
         if (!$latest) {
-            return 1;
+            return $expense_starting_number;
         }
 
         return $latest->bill_id + 1;

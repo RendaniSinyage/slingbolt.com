@@ -253,10 +253,13 @@ class VenderController extends Controller
 
     function venderNumber()
     {
+        $settings = Utility::settings();
+        $vender_starting_number = isset($settings['vender_starting_number']) ? (int)$settings['vender_starting_number'] : 1;
+
         $latest = Vender::where('created_by', '=', \Auth::user()->creatorId())->latest('vender_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $vender_starting_number;
         }
 
         return $latest->vender_id + 1;

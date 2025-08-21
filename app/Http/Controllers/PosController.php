@@ -324,9 +324,17 @@ class PosController extends Controller
     public function invoicePosNumber()
     {
         if (Auth::user()->can('manage pos')) {
+            $settings = Utility::settings();
+            $pos_starting_number = isset($settings['pos_starting_number']) ? (int)$settings['pos_starting_number'] : 1;
+
             $latest = Pos::where('created_by', '=', \Auth::user()->creatorId())->latest('pos_id')->first();
 
-            return $latest ? $latest->pos_id + 1 : 1;
+            if(!$latest)
+            {
+                return $pos_starting_number;
+            }
+
+            return $latest->pos_id + 1;
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
