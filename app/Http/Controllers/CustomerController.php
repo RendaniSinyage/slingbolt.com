@@ -82,6 +82,9 @@ class CustomerController extends Controller
             if($validator->fails())
             {
                 $messages = $validator->getMessageBag();
+                if ($request->ajax()) {
+                    return response()->json(['error' => $messages->first()], 422);
+                }
                 return redirect()->route('customer.index')->with('error', $messages->first());
             }
 
@@ -140,11 +143,24 @@ class CustomerController extends Controller
                 Utility::send_twilio_msg($request->contact,'new_customer', $customerNotificationArr);
             }
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Customer successfully created.'),
+                    'customer' => [
+                        'id' => $customer->id,
+                        'name' => $customer->name,
+                    ]
+                ]);
+            }
 
             return redirect()->route('customer.index')->with('success', __('Customer successfully created.'));
         }
         else
         {
+            if ($request->ajax()) {
+                return response()->json(['error' => __('Permission denied.')], 403);
+            }
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }

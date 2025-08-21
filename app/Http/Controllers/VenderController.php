@@ -81,7 +81,9 @@ class VenderController extends Controller
             if($validator->fails())
             {
                 $messages = $validator->getMessageBag();
-
+                if ($request->ajax()) {
+                    return response()->json(['error' => $messages->first()], 422);
+                }
                 return redirect()->route('vender.index')->with('error', $messages->first());
             }
                 $objVendor    = \Auth::user();
@@ -137,10 +139,24 @@ class VenderController extends Controller
                 Utility::send_twilio_msg($request->contact,'new_vendor', $vendorNotificationArr);
             }
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Vendor successfully created.'),
+                    'vender' => [
+                        'id' => $vender->id,
+                        'name' => $vender->name,
+                    ]
+                ]);
+            }
+
             return redirect()->route('vender.index')->with('success', __('Vendor successfully created.'));
         }
         else
         {
+            if ($request->ajax()) {
+                return response()->json(['error' => __('Permission denied.')], 403);
+            }
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }

@@ -55,7 +55,9 @@ class ProductServiceCategoryController extends Controller
             );
             if ($validator->fails()) {
                 $messages = $validator->getMessageBag();
-
+                if ($request->ajax()) {
+                    return response()->json(['error' => $messages->first()], 422);
+                }
                 return redirect()->back()->with('error', $messages->first());
             }
 
@@ -67,8 +69,22 @@ class ProductServiceCategoryController extends Controller
             $category->created_by = \Auth::user()->creatorId();
             $category->save();
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Category successfully created.'),
+                    'category' => [
+                        'id' => $category->id,
+                        'name' => $category->name,
+                    ]
+                ]);
+            }
+
             return redirect()->route('product-category.index')->with('success', __('Category successfully created.'));
         } else {
+            if ($request->ajax()) {
+                return response()->json(['error' => __('Permission denied.')], 403);
+            }
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }

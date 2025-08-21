@@ -1,4 +1,4 @@
-{{Form::open(array('url'=>'customer','method'=>'post', 'class'=>'needs-validation', 'novalidate'))}}
+{{Form::open(array('url'=>'customer','method'=>'post', 'class'=>'needs-validation', 'novalidate', 'id'=>'ajax-customer-form'))}}
 <div class="modal-body">
 
     <h5 class="sub-title">{{__('Basic Info')}}</h5>

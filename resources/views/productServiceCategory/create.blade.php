@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'product-category', 'class'=>'needs-validation', 'novalidate')) }}
+{{ Form::open(array('url' => 'product-category', 'class'=>'needs-validation', 'novalidate', 'id'=>'ajax-category-form')) }}
 <div class="modal-body">
     <div class="row">
         <div class="form-group col-md-12">
