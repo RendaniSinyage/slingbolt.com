@@ -863,7 +863,7 @@ class ProposalController extends Controller
             $font_color = Utility::getFontColor($color);
 
             $html = view('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'))->render();
-            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->pdf();
+            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
 
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',

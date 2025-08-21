@@ -334,7 +334,7 @@ class PaySlipController extends Controller
         $payslipDetail = Utility::employeePayslipDetail($id,$month);
 
         $html = view('payslip.pdf', compact('payslip', 'employee', 'payslipDetail'))->render();
-        $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->pdf();
+        $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
 
         return response($pdf, 200, [
             'Content-Type' => 'application/pdf',

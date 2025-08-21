@@ -754,7 +754,7 @@ class QuotationController extends Controller
             $font_color = Utility::getFontColor($color);
 
             $html = view('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'color', 'settings', 'customer', 'img', 'font_color'))->render();
-            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->pdf();
+            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
 
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',

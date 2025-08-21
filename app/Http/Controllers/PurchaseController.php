@@ -583,7 +583,7 @@ class PurchaseController extends Controller
             $font_color = Utility::getFontColor($color);
 
             $html = view('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'color', 'settings', 'vendor', 'img', 'font_color'))->render();
-            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->pdf();
+            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
 
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',

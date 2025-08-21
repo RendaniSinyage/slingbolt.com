@@ -32,6 +32,7 @@ jobs:
             --exclude 'storage/framework/sessions/' \
             --exclude 'storage/framework/views/' \
             --exclude 'modules_statuses.json' \
+            --exclude '.env*' \
             -e "sshpass -p '$SSH_PASSWORD' ssh -o StrictHostKeyChecking=no" \
             ./ \
             root@s1.juvo.app:/var/www/fastuser/data/www/slingbolt.com/
