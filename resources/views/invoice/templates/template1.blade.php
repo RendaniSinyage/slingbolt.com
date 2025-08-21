@@ -10,12 +10,177 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="{{ asset('css/invoice.css') }}" type="text/css">
-    <style>
+    <style type="text/css">
         :root {
-            --theme-color: {{ $color }};
+            --theme-color: {{$color}};
             --white: #ffffff;
             --black: #000000;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+        }
+
+        p,
+        li,
+        ul,
+        ol {
+            margin: 0;
+            padding: 0;
+            list-style: none;
+            line-height: 1.5;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table tr th {
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        table tr td {
+            padding: 0.75rem;
+            text-align: left;
+        }
+
+        table th small {
+            display: block;
+            font-size: 12px;
+        }
+
+        .invoice-preview-main {
+            max-width: 700px;
+            width: 100%;
+            margin: 0 auto;
+            background: #ffff;
+            box-shadow: 0 0 10px #ddd;
+        }
+
+        .invoice-logo {
+            max-width: 200px;
+            width: 100%;
+        }
+
+        .invoice-header table td {
+            padding: 15px 30px;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .no-space tr td {
+            padding: 0;
+            white-space: nowrap;
+        }
+
+        .vertical-align-top td {
+            vertical-align: top;
+        }
+
+        .view-qrcode {
+            max-width: 139px;
+            height: 139px;
+            width: 100%;
+            margin-left: auto;
+            margin-top: 15px;
+            background: var(--white);
+            padding: 13px;
+            border-radius: 10px;
+        }
+
+        .view-qrcode img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .invoice-body {
+            padding: 30px 25px 0;
+        }
+
+
+
+        table.add-border tr {
+            border-top: 1px solid var(--theme-color);
+        }
+
+        tfoot tr:first-of-type {
+            border-bottom: 1px solid var(--theme-color);
+        }
+
+        .total-table tr:first-of-type td {
+            padding-top: 0;
+        }
+
+        .total-table tr:first-of-type {
+            border-top: 0;
+        }
+
+        .sub-total {
+            padding-right: 0;
+            padding-left: 0;
+        }
+
+        .border-0 {
+            border: none !important;
+        }
+
+        .invoice-summary td,
+        .invoice-summary th {
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+@media (max-width: 426px) {
+    .invoice-summary td,
+        .invoice-summary th {
+            font-size: 10px;
+            padding: 5px
+        }
+
+        .no-space tr td {
+            font-size: 10px
+        }
+        .invoice-header table td{
+            padding: 15px 10px
+        }
+
+        .company-detail {
+            font-size: 10px
+        }
+
+}
+
+        .total-table td:last-of-type {
+            width: 146px;
+        }
+
+        .invoice-footer {
+            padding: 15px 20px;
+        }
+
+        .itm-description td {
+            padding-top: 0;
+        }
+        html[dir="rtl"] table tr td,
+        html[dir="rtl"] table tr th{
+            text-align: right;
+        }
+        html[dir="rtl"]  .text-right{
+            text-align: left;
+        }
+        html[dir="rtl"] .view-qrcode{
+            margin-left: 0;
+            margin-right: auto;
         }
     </style>
 
