@@ -417,23 +417,29 @@
                             <td>{{__('Total')}}:</td>
                             <td>{{Utility::priceFormat($settings,$invoice->getSubTotal()-$invoice->getTotalDiscount()+$invoice->getTotalTax())}}</td>
                         </tr>
-                        <tr>
-                            <td>{{__('Paid')}}:</td>
-                            <td>{{Utility::priceFormat($settings,($invoice->getTotal()-$invoice->getDue())-($invoice->invoiceTotalCreditNote()))}}</td>
-                        </tr>
-                        <tr>
-                            <td>{{__('Credit Note')}}:</td>
-                            <td>{{Utility::priceFormat($settings,($invoice->invoiceTotalCreditNote()))}}</td>
-                        </tr>
-                        <tr>
-                            <td>{{__('Due Amount')}}:</td>
-                            <td>{{Utility::priceFormat($settings,$invoice->getDue())}}</td>
-                        </tr>
                     </table>
                 </td>
             </tr>
             </tfoot>
         </table>
+        <div style="text-align: right; margin-top: 10px;">
+            <table class="total-table" style="width: auto; margin-left: auto;">
+                <tbody>
+                    <tr>
+                        <td>{{__('Paid')}}:</td>
+                        <td>{{Utility::priceFormat($settings,($invoice->getTotal()-$invoice->getDue())-($invoice->invoiceTotalCreditNote()))}}</td>
+                    </tr>
+                    <tr>
+                        <td>{{__('Credit Note')}}:</td>
+                        <td>{{Utility::priceFormat($settings,($invoice->invoiceTotalCreditNote()))}}</td>
+                    </tr>
+                    <tr>
+                        <td>{{__('Due Amount')}}:</td>
+                        <td>{{Utility::priceFormat($settings,$invoice->getDue())}}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         <div class="invoice-footer">
             <b>{{$settings['footer_title']}}</b> <br>
             {!! $settings['footer_notes'] !!}

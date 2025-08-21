@@ -190,7 +190,7 @@
                                 {{ __('PURCHASE') }}</h3>
                             @if ($settings['pos_purchase_qr_display'] == 'on')
                                 <div class="view-qrcode" style="margin-top: 5px; margin-left: 0; margin-right: 0;">
-                                    <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('purchase.link.copy', \Crypt::encrypt($purchase->purchase_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                                    {!! DNS2D::getBarcodeSVG(route('purchase.link.copy', \Crypt::encrypt($purchase->purchase_id)), 'QRCODE', 2, 2) !!}
                                 </div>
                             @endif
                         </td>
