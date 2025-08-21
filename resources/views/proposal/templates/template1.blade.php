@@ -382,7 +382,7 @@
 
 </div>
 @if(!isset($preview))
-    @include('proposal.script');
+    {{-- @include('proposal.script'); --}}
 @endif
 
 </body>

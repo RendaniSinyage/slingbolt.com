@@ -369,7 +369,7 @@
 
 </div>
 @if(!isset($preview))
-    @include('quotation.script');
+    {{-- @include('quotation.script'); --}}
 @endif
 
 </body>

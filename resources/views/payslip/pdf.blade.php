@@ -245,7 +245,6 @@
     </div>
 </div>
 
-<script type="text/javascript" src="{{ asset('js/html2pdf.bundle.min.js') }}"></script>
 <script>
 
     var filename = $('#filename').val()
@@ -259,6 +258,6 @@
             html2canvas: {scale: 2, dpi: 72, letterRendering: true},
             jsPDF: {unit: 'in', format: 'A4'}
         };
-        html2pdf().set(opt).from(element).save();
+        // html2pdf().set(opt).from(element).save();
     }
 </script>

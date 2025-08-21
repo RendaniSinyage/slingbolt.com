@@ -435,7 +435,7 @@
 
 </div>
 @if(!isset($preview))
-    @include('invoice.script');
+    {{-- @include('invoice.script'); --}}
 @endif
 
 </body>

@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Mail;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Browsershot\Browsershot;
 
 class PaySlipController extends Controller
 {
@@ -332,8 +333,13 @@ class PaySlipController extends Controller
 
         $payslipDetail = Utility::employeePayslipDetail($id,$month);
 
+        $html = view('payslip.pdf', compact('payslip', 'employee', 'payslipDetail'))->render();
+        $pdf = Browsershot::html($html)->pdf();
 
-        return view('payslip.pdf', compact('payslip', 'employee', 'payslipDetail'));
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $employee->name . ' ' . $month . '.pdf"',
+        ]);
     }
 
     public function send($id, $month)

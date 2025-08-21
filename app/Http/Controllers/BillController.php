@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Browsershot\Browsershot;
 
 class BillController extends Controller
 {
@@ -1302,7 +1303,13 @@ class BillController extends Controller
             $color      = '#' . $settings['bill_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'));
+            $html = view('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'))->render();
+            $pdf = Browsershot::html($html)->pdf();
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . Utility::billNumberFormat($settings,$bill->bill_id) . '.pdf"',
+            ]);
         }
         else
         {

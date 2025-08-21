@@ -22,6 +22,7 @@ use App\Models\warehouse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Browsershot\Browsershot;
 
 class PurchaseController extends Controller
 {
@@ -581,7 +582,13 @@ class PurchaseController extends Controller
             $color      = '#' . $settings['purchase_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'color', 'settings', 'vendor', 'img', 'font_color'));
+            $html = view('purchase.templates.' . $settings['purchase_template'], compact('purchase', 'color', 'settings', 'vendor', 'img', 'font_color'))->render();
+            $pdf = Browsershot::html($html)->pdf();
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . Utility::purchaseNumberFormat($settings,$purchase->purchase_id) . '.pdf"',
+            ]);
         }
         else
         {

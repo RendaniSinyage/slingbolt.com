@@ -630,7 +630,7 @@
     </div>
 </div>
 @if(!isset($preview))
-    @include('estimations.script');
+    {{-- @include('estimations.script'); --}}
 @endif
 </body>
 </html>

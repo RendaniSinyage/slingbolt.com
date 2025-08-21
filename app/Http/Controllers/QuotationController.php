@@ -17,6 +17,7 @@ use Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Storage;
 use DB;
+use Spatie\Browsershot\Browsershot;
 
 class QuotationController extends Controller
 {
@@ -752,7 +753,14 @@ class QuotationController extends Controller
             $color = '#' . $settings['quotation_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'color', 'settings', 'customer', 'img', 'font_color'));
+            $html = view('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'color', 'settings', 'customer', 'img', 'font_color'))->render();
+            $pdf = Browsershot::html($html)->pdf();
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . Utility::quotationNumberFormat($settings,$quotation->quotation_id) . '.pdf"',
+            ]);
+
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }

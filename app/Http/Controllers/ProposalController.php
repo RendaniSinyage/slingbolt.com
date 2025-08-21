@@ -25,6 +25,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\Browsershot\Browsershot;
 
 class ProposalController extends Controller
 {
@@ -861,7 +862,13 @@ class ProposalController extends Controller
             $color      = '#' . $settings['proposal_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'));
+            $html = view('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'))->render();
+            $pdf = Browsershot::html($html)->pdf();
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . Utility::proposalNumberFormat($settings,$proposal->proposal_id) . '.pdf"',
+            ]);
         }
         else
         {

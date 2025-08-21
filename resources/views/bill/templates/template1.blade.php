@@ -397,7 +397,7 @@
 
 </div>
 @if(!isset($preview))
-    @include('bill.script');
+    {{-- @include('bill.script'); --}}
 @endif
 
 </body>

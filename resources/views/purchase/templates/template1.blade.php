@@ -385,7 +385,7 @@
 
 </div>
 @if(!isset($preview))
-    @include('purchase.script');
+    {{-- @include('purchase.script'); --}}
 @endif
 
 </body>
