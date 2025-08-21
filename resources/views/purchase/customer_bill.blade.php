@@ -187,7 +187,7 @@
                                 @endif
                                 <div class="col">
                                     <div class="float-end mt-3">
-                                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('bill.link.copy',\Illuminate\Support\Facades\Crypt::encrypt($purchase->id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                                        {!! DNS2D::getBarcodeSVG(route('bill.link.copy',\Illuminate\Support\Facades\Crypt::encrypt($purchase->id)), 'QRCODE', 2, 2) !!}
                                     </div>
                                 </div>
                             </div>

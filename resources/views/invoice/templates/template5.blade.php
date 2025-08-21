@@ -202,7 +202,7 @@
                     <h3 style=" display: block; text-transform: uppercase; font-size: 30px; font-weight: bold; padding: 15px; background: {{ $color }};color:{{ $font_color }} ">{{__('INVOICE')}}</h3>
                     @if($settings['invoice_qr_display'] == 'on')
                     <div class="view-qrcode" style="margin-left: 0; margin-bottom: 15px; ">
-                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('invoice.link.copy',\Crypt::encrypt($invoice->invoice_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                        {!! DNS2D::getBarcodeSVG(route('invoice.link.copy',\Crypt::encrypt($invoice->invoice_id)), 'QRCODE', 2, 2) !!}
                     </div>
                     @endif
                     <table class="no-space">

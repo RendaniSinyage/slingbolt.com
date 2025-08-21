@@ -127,7 +127,7 @@
                                  <div class="col">
                                      <div class="float-end mt-3">
                                         @if($settings['qr_display'] == 'on')
-                                         <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('proposal.link.copy',\Illuminate\Support\Facades\Crypt::encrypt($proposal->id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                                         {!! DNS2D::getBarcodeSVG(route('proposal.link.copy',\Illuminate\Support\Facades\Crypt::encrypt($proposal->id)), 'QRCODE', 2, 2) !!}
                                         @endif
                                      </div>
                                  </div>

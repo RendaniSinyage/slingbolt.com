@@ -96,7 +96,7 @@
                                     <tr>
                                         <td colspan="2">
                                             <div class="view-qrcode">
-                                                <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('invoice.link.copy',\Crypt::encrypt($invoice->invoice_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                                                {!! DNS2D::getBarcodeSVG(route('invoice.link.copy',\Crypt::encrypt($invoice->invoice_id)), 'QRCODE', 2, 2) !!}
                                             </div>
                                         </td>
                                     </tr>

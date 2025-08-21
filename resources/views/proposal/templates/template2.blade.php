@@ -239,7 +239,7 @@
                 @if($settings['qr_display'] == 'on')
                 <td>
                     <div class="view-qrcode">
-                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('proposal.link.copy',\Crypt::encrypt($proposal->proposal_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
+                        {!! DNS2D::getBarcodeSVG(route('proposal.link.copy',\Crypt::encrypt($proposal->proposal_id)), 'QRCODE', 2, 2) !!}
 
                     </div>
                 </td>
