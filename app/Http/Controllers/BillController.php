@@ -1304,7 +1304,7 @@ class BillController extends Controller
             $font_color = Utility::getFontColor($color);
 
             $html = view('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'))->render();
-            $pdf = Browsershot::html($html)->pdf();
+            $pdf = Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->pdf();
 
             return response($pdf, 200, [
                 'Content-Type' => 'application/pdf',

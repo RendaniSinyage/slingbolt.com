@@ -245,19 +245,3 @@
     </div>
 </div>
 
-<script>
-
-    var filename = $('#filename').val()
-
-    function saveAsPDF() {
-        var element = document.getElementById('printableArea');
-        var opt = {
-            margin: 0.1,
-            filename: filename,
-            image: {type: 'jpeg', quality: 1},
-            html2canvas: {scale: 2, dpi: 72, letterRendering: true},
-            jsPDF: {unit: 'in', format: 'A4'}
-        };
-        // html2pdf().set(opt).from(element).save();
-    }
-</script>
