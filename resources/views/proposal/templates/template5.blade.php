@@ -182,7 +182,7 @@
                     <h3 style=" display: block; text-transform: uppercase; font-size: 30px; font-weight: bold; padding: 15px; background: {{ $color }};color:{{ $font_color }} ">{{__('PROPOSAL')}}</h3>
                     @if($settings['qr_display'] == 'on')
                     <div class="view-qrcode" style="margin-left: 0; margin-bottom: 15px; ">
-                        {!! DNS2D::getBarcodeHTML(route('proposal.link.copy',\Crypt::encrypt($proposal->proposal_id)), "QRCODE",2,2) !!}
+                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('proposal.link.copy',\Crypt::encrypt($proposal->proposal_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
                     </div>
                     @endif
                     <table class="no-space">

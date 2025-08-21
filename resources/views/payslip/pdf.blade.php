@@ -7,7 +7,7 @@
     @media print {
         .card-box {
             box-shadow: none !important;
-            margin: 0 !important;
+            margin: 0 auto !important;
         }
     }
 </style>

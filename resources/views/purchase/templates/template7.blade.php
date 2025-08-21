@@ -266,7 +266,7 @@
                                         <tr>
                                             <td colspan="2">
                                                 <div class="view-qrcode">
-                                                    {!! DNS2D::getBarcodeHTML(route('purchase.link.copy', \Crypt::encrypt($purchase->purchase_id)), 'QRCODE', 2, 2) !!}
+                                                    <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('purchase.link.copy', \Crypt::encrypt($purchase->purchase_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
                                                 </div>
                                             </td>
                                         </tr>

@@ -471,12 +471,7 @@
                                 <div class="col">
                                     <div class="float-end mt-3">
                                         @if($settings['invoice_qr_display'] == 'on')
-                                        {!! DNS2D::getBarcodeHTML(
-                                            route('invoice.link.copy', \Illuminate\Support\Facades\Crypt::encrypt($invoice->id)),
-                                            'QRCODE',
-                                            2,
-                                            2,
-                                        ) !!}
+                                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('invoice.link.copy', \Illuminate\Support\Facades\Crypt::encrypt($invoice->id)), 'QRCODE', 2, 2) }}" alt="barcode" />
                                         @endif
                                     </div>
                                 </div>

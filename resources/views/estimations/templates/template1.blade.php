@@ -496,7 +496,7 @@
         @media print {
             .invoice-preview-main {
                 box-shadow: none !important;
-                margin: 0 !important;
+                margin: 0 auto !important;
             }
         }
     </style>

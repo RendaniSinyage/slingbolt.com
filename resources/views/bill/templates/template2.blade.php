@@ -242,7 +242,7 @@
                 @if($settings['bill_qr_display'] == 'on')
                 <td>
                     <div class="view-qrcode">
-                        {!! DNS2D::getBarcodeHTML(route('bill.link.copy',\Crypt::encrypt($bill->bill_id)), "QRCODE",2,2) !!}
+                        <img src="data:image/png;base64,{{ DNS2D::getBarcodePNG(route('bill.link.copy',\Crypt::encrypt($bill->bill_id)), 'QRCODE', 2, 2) }}" alt="barcode" />
 
                     </div>
                 </td>
