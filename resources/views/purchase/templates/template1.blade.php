@@ -377,7 +377,6 @@
             </tr>
             </tfoot>
         </table>
-        <div class="html2pdf__page-break"></div>
         <div class="purchase-footer">
             <b>{{$settings['footer_title']}}</b> <br>
             {!! $settings['footer_notes'] !!}

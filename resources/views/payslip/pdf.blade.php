@@ -234,7 +234,6 @@
                     </div>
                 </div>
             </div>
-            <div class="html2pdf__page-break"></div>
             <hr>
             <div class="text-md-right pb-2 text-sm">
                 <div class="float-lg-left mb-lg-0 mb-3 ">
