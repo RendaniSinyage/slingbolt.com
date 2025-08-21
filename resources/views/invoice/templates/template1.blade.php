@@ -17,7 +17,9 @@
             --black: #000000;
         }
 
+        html,
         body {
+            height: 100%;
             font-family: 'Lato', sans-serif;
         }
 
@@ -63,6 +65,16 @@
             margin: 0 auto;
             background: #ffff;
             box-shadow: 0 0 10px #ddd;
+            page-break-after: always;
+        }
+
+        .invoice-header,
+        .invoice-footer {
+            page-break-inside: avoid;
+        }
+
+        .invoice-body table tr {
+            page-break-inside: avoid !important;
         }
 
         .invoice-logo {
