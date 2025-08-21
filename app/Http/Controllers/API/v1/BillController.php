@@ -174,7 +174,12 @@ class BillController extends Controller
     private function billNumber()
     {
         $latest = Bill::where('created_by', Auth::user()->creatorId())->latest('bill_id')->first();
-        return ($latest ? $latest->bill_id : 0) + 1;
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['bill_starting_number']) ? $setting['bill_starting_number'] : 1);
+        }
+        return $latest->bill_id + 1;
     }
 
     public function createPayment(Request $request, Bill $bill)

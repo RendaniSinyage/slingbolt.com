@@ -158,6 +158,11 @@ class ProposalController extends Controller
     private function proposalNumber()
     {
         $latest = Proposal::where('created_by', Auth::user()->creatorId())->latest('proposal_id')->first();
-        return ($latest ? $latest->proposal_id : 0) + 1;
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['proposal_starting_number']) ? $setting['proposal_starting_number'] : 1);
+        }
+        return $latest->proposal_id + 1;
     }
 }

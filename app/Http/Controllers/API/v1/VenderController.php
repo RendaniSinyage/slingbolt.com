@@ -166,7 +166,8 @@ class VenderController extends Controller
         $latest = Vender::where('created_by', '=', Auth::user()->creatorId())->latest('vender_id')->first();
         if(!$latest)
         {
-            return 1;
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['vender_starting_number']) ? $setting['vender_starting_number'] : 1);
         }
 
         return $latest->vender_id + 1;

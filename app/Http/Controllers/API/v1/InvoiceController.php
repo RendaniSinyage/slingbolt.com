@@ -187,7 +187,8 @@ class InvoiceController extends Controller
     {
         $latest = Invoice::where('created_by', '=', Auth::user()->creatorId())->latest('invoice_id')->first();
         if (!$latest) {
-            return 1;
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['invoice_starting_number']) ? $setting['invoice_starting_number'] : 1);
         }
 
         return $latest->invoice_id + 1;
