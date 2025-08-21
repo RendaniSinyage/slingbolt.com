@@ -616,6 +616,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="html2pdf__page-break"></div>
                                     <div>
                                         <b>{{$settings['footer_title']}}</b>
                                         <p>{{$settings['footer_note']}}</p>

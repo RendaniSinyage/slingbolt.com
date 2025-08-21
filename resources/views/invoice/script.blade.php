@@ -13,7 +13,7 @@
             margin: [0.1, 0, 0.1, 0],
             filename: '{{Utility::customerInvoiceNumberFormat($invoice->invoice_id)}}',
             image: {type: 'jpeg', quality: 1},
-            html2canvas: {scale: 1, dpi: 72, letterRendering: true},
+            html2canvas: {scale: 2, dpi: 72, letterRendering: true},
             jsPDF: {unit: 'in', format: 'A4'}
         };
         html2pdf().set(opt).from(element).save().then(closeScript);
