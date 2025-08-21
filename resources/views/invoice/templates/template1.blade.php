@@ -60,7 +60,7 @@
         .invoice-preview-main {
             max-width: 700px;
             width: 100%;
-            margin: 0 auto;
+            margin: 2px auto;
             background: #ffff;
             box-shadow: 0 0 10px #ddd;
         }
