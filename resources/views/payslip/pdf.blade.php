@@ -3,6 +3,15 @@
     $company_logo = \App\Models\Utility::GetLogo();
 @endphp
 
+<style>
+    @media print {
+        .card-box {
+            box-shadow: none !important;
+            margin: 0 !important;
+        }
+    }
+</style>
+
 <div class="card bg-none card-box">
     <div class="card-body">
 

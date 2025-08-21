@@ -65,6 +65,13 @@
             box-shadow: 0 0 10px #ddd;
         }
 
+        @media print {
+            .invoice-preview-main {
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+        }
+
         .invoice-logo {
             max-width: 200px;
             width: 100%;

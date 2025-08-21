@@ -65,6 +65,13 @@
             box-shadow: 0 0 10px #ddd;
         }
 
+        @media print {
+            .proposal-preview-main {
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+        }
+
         .proposal-logo {
             max-width: 200px;
             width: 100%;

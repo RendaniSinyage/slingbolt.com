@@ -493,6 +493,12 @@
             /*overflow-x: hidden !important;*/
             zoom: 90%;
         }
+        @media print {
+            .invoice-preview-main {
+                box-shadow: none !important;
+                margin: 0 !important;
+            }
+        }
     </style>
  @if($SITE_RTL=='on')
         <link rel="stylesheet" href="{{ asset('css/bootstrap-rtl.css') }}">
