@@ -56,7 +56,6 @@ use App\Http\Controllers\API\v1\PromotionController;
 use App\Http\Controllers\API\v1\ProposalController;
 use App\Http\Controllers\API\v1\PurchaseController;
 use App\Http\Controllers\API\v1\QuotationController;
-use App\Http\Controllers\API\v1\QuoteController;
 use App\Http\Controllers\API\v1\ResignationController;
 use App\Http\Controllers\API\v1\RevenueController;
 use App\Http\Controllers\API\v1\RoleController;
@@ -320,9 +319,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('v1/utils/venders', [UtilityController::class, 'getVenders']);
     Route::get('v1/users/{id}/workload', [UtilityController::class, 'getWorkload']);
     Route::get('v1/me/tasks', [UtilityController::class, 'getMyOpenTasks']);
-
-    // Quotes
-    Route::apiResource('v1/quotes', QuoteController::class);
 
     // Bills
     Route::apiResource('v1/bills', BillController::class);

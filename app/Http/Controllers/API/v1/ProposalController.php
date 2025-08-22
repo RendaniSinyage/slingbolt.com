@@ -112,11 +112,11 @@ class ProposalController extends Controller
     public function update(Request $request, Proposal $proposal)
     {
         if (Auth::user()->can('edit proposal') && $proposal->created_by == Auth::user()->creatorId()) {
-             $validator = \Validator::make($request->all(), [
+            $validator = \Validator::make($request->all(), [
                 'customer_id' => 'required|exists:customers,id',
                 'issue_date' => 'required|date',
                 'category_id' => 'required|exists:product_service_categories,id',
-                'items' => 'sometimes|array',
+                'items' => 'required|array',
             ]);
 
             if ($validator->fails()) {
@@ -128,10 +128,27 @@ class ProposalController extends Controller
             $proposal->category_id = $request->category_id;
             $proposal->save();
 
-            // Note: For simplicity, this update does not handle line item updates.
-            // A full implementation would require logic to add/update/delete line items.
+            $products = $request->items;
+            $itemIds = collect($products)->pluck('id')->filter()->all();
+            ProposalProduct::where('proposal_id', $proposal->id)->whereNotIn('id', $itemIds)->delete();
 
-            return new ProposalResource($proposal);
+            for ($i = 0; $i < count($products); $i++) {
+                $proposalProduct = ProposalProduct::find($products[$i]['id'] ?? 0);
+                if ($proposalProduct == null) {
+                    $proposalProduct = new ProposalProduct();
+                    $proposalProduct->proposal_id = $proposal->id;
+                }
+
+                $proposalProduct->product_id = $products[$i]['item'];
+                $proposalProduct->quantity = $products[$i]['quantity'];
+                $proposalProduct->tax = $products[$i]['tax'] ?? null;
+                $proposalProduct->discount = $products[$i]['discount'] ?? 0;
+                $proposalProduct->price = $products[$i]['price'];
+                $proposalProduct->description = $products[$i]['description'] ?? null;
+                $proposalProduct->save();
+            }
+
+            return new ProposalResource($proposal->fresh()->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);

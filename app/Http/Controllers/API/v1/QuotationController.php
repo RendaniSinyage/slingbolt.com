@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API\v1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\QuotationResource;
 use App\Models\Quotation;
 use App\Models\QuotationProduct;
 use Illuminate\Http\Request;
@@ -29,7 +30,7 @@ class QuotationController extends Controller
             }
 
             $quotations = $query->with(['customer', 'warehouse'])->get();
-            return response()->json($quotations);
+            return QuotationResource::collection($quotations);
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -81,7 +82,7 @@ class QuotationController extends Controller
                 $quotationProduct->save();
             }
 
-            return response()->json($quotation->load('items'), 201);
+            return new QuotationResource($quotation->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -96,7 +97,7 @@ class QuotationController extends Controller
     public function show(Quotation $quotation)
     {
         if (Auth::user()->can('show quotation') && $quotation->created_by == Auth::user()->creatorId()) {
-            return response()->json($quotation->load(['items.product', 'customer', 'warehouse']));
+            return new QuotationResource($quotation->load(['items.product', 'customer', 'warehouse']));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -116,7 +117,7 @@ class QuotationController extends Controller
                 'customer_id' => 'required|exists:customers,id',
                 'warehouse_id' => 'required|exists:warehouses,id',
                 'quotation_date' => 'required|date',
-                'items' => 'sometimes|array',
+                'items' => 'required|array',
             ]);
 
             if ($validator->fails()) {
@@ -128,9 +129,27 @@ class QuotationController extends Controller
             $quotation->quotation_date = $request->quotation_date;
             $quotation->save();
 
-            // Note: For simplicity, this update does not handle line item updates.
+            $products = $request->items;
+            $itemIds = collect($products)->pluck('id')->filter()->all();
+            QuotationProduct::where('quotation_id', $quotation->id)->whereNotIn('id', $itemIds)->delete();
 
-            return response()->json($quotation);
+            for ($i = 0; $i < count($products); $i++) {
+                $quotationProduct = QuotationProduct::find($products[$i]['id'] ?? 0);
+                if ($quotationProduct == null) {
+                    $quotationProduct = new QuotationProduct();
+                    $quotationProduct->quotation_id = $quotation->id;
+                }
+
+                $quotationProduct->product_id = $products[$i]['item'];
+                $quotationProduct->quantity = $products[$i]['quantity'];
+                $quotationProduct->tax = $products[$i]['tax'] ?? null;
+                $quotationProduct->discount = $products[$i]['discount'] ?? 0;
+                $quotationProduct->price = $products[$i]['price'];
+                $quotationProduct->description = $products[$i]['description'] ?? null;
+                $quotationProduct->save();
+            }
+
+            return new QuotationResource($quotation->fresh()->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
