@@ -54,8 +54,8 @@ use App\Http\Controllers\API\v1\ProjectTaskController;
 use App\Http\Controllers\API\v1\ProjectstagesController;
 use App\Http\Controllers\API\v1\PromotionController;
 use App\Http\Controllers\API\v1\ProposalController;
+use App\Http\Controllers\API\v1\PurchaseController;
 use App\Http\Controllers\API\v1\QuotationController;
-use App\Http\Controllers\API\v1\QuoteController;
 use App\Http\Controllers\API\v1\ResignationController;
 use App\Http\Controllers\API\v1\RevenueController;
 use App\Http\Controllers\API\v1\RoleController;
@@ -151,6 +151,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/invoices', [InvoiceController::class, 'store']);
     Route::put('v1/invoices/{id}', [InvoiceController::class, 'update']);
     Route::delete('v1/invoices/{id}', [InvoiceController::class, 'destroy']);
+
+    // PDF Generation
+    Route::get('v1/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
+    Route::get('v1/proposals/{id}/pdf', [ProposalController::class, 'pdf']);
+    Route::get('v1/quotations/{id}/pdf', [QuotationController::class, 'pdf']);
+    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
+    Route::get('v1/pos/{id}/pdf', [PosApiController::class, 'pdf']);
 
     // Employees
     Route::get('v1/employees', [EmployeeController::class, 'index']);
@@ -252,7 +259,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/invoices/{invoice}/payment-reminder', [InvoiceController::class, 'paymentReminder']);
     Route::post('v1/invoices/{invoice}/sent', [InvoiceController::class, 'sent']);
     Route::post('v1/invoices/{invoice}/resent', [InvoiceController::class, 'resent']);
-    Route::get('v1/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
     Route::apiResource('v1/payments', PaymentController::class);
     Route::apiResource('v1/complaints', ComplaintController::class);
     Route::apiResource('v1/warnings', WarningController::class);
@@ -291,10 +297,10 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/revenues', RevenueController::class);
 
     // Sales
-    Route::get('v1/proposals/{id}/pdf', [ProposalController::class, 'pdf']);
     Route::apiResource('v1/proposals', ProposalController::class);
-    Route::get('v1/quotations/{id}/pdf', [QuotationController::class, 'pdf']);
+    Route::apiResource('v1/quotations', QuotationController::class);
     Route::apiResource('v1/contracts', ContractController::class);
+    Route::apiResource('v1/purchases', PurchaseController::class);
 
     // Project Management
     Route::apiResource('v1/budgets', BudgetController::class);
@@ -321,12 +327,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::get('v1/users/{id}/workload', [UtilityController::class, 'getWorkload']);
     Route::get('v1/me/tasks', [UtilityController::class, 'getMyOpenTasks']);
 
-    // Quotes
-    Route::apiResource('v1/quotes', QuoteController::class);
-
     // Bills
-    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
-    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
     Route::apiResource('v1/bills', BillController::class);
 
     // Projects
@@ -364,7 +365,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/leads/{lead}/convert-to-deal', [LeadController::class, 'convertToDeal']);
 
     // HRM - Payslip
-    Route::get('v1/payslips/{id}/pdf/{month}', [PayslipController::class, 'pdf']);
+Route::get('v1/payslips/{id}/pdf/{month}', [PayslipController::class, 'pdf']);
     Route::apiResource('v1/payslips', PayslipController::class);
 
     // HRM - Set Salary
@@ -390,7 +391,6 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/jobs', JobApiController::class);
 
     // POS
-    Route::get('v1/pos/{id}/pdf', [PosApiController::class, 'pdf']);
     Route::get('pos', [PosApiController::class, 'index'])->name('pos.index');
     Route::get('pos/products', [PosApiController::class, 'getProducts'])->name('pos.products');
     Route::post('pos', [PosApiController::class, 'store'])->name('pos.store');
