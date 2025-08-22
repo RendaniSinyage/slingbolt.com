@@ -8,6 +8,8 @@ use App\Models\Quotation;
 use App\Models\QuotationProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class QuotationController extends Controller
 {
@@ -182,5 +184,97 @@ class QuotationController extends Controller
             return (isset($setting['quotation_starting_number']) ? $setting['quotation_starting_number'] : 1);
         }
         return $latest->quotation_id + 1;
+    }
+
+    public function pdf($quotation_id)
+    {
+        $settings = \App\Models\Utility::settings();
+        $quotation = Quotation::where('id', $quotation_id)->first();
+
+        if (!$quotation) {
+            return response()->json(['error' => 'Quotation not found.'], 404);
+        }
+        if (\Illuminate\Support\Facades\Gate::denies('show quotation', $quotation)) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $data = \Illuminate\Support\Facades\DB::table('settings');
+        $data = $data->where('created_by', '=', $quotation->created_by);
+        $data1 = $data->get();
+
+        foreach ($data1 as $row) {
+            $settings[$row->name] = $row->value;
+        }
+
+        $customer = $quotation->customer;
+        $totalTaxPrice = 0;
+        $totalQuantity = 0;
+        $totalRate = 0;
+        $totalDiscount = 0;
+        $taxesData = [];
+        $items = [];
+
+        foreach ($quotation->items as $product) {
+            $item = new \stdClass();
+            $item->name = !empty($product->product()) ? $product->product()->name : '';
+            $item->quantity = $product->quantity;
+            $item->tax = $product->tax;
+            $item->discount = $product->discount;
+            $item->price = $product->price;
+            $item->description = $product->description;
+            $totalQuantity += $item->quantity;
+            $totalRate += $item->price;
+            $totalDiscount += $item->discount;
+            $taxes = \App\Models\Utility::tax($product->tax);
+            $itemTaxes = [];
+            if (!empty($item->tax)) {
+                foreach ($taxes as $tax) {
+                    $taxPrice = \App\Models\Utility::taxRate($tax->rate, $item->price, $item->quantity);
+                    $totalTaxPrice += $taxPrice;
+
+                    $itemTax['name'] = $tax->name;
+                    $itemTax['rate'] = $tax->rate . '%';
+                    $itemTax['price'] = \App\Models\Utility::priceFormat($settings, $taxPrice);
+                    $itemTaxes[] = $itemTax;
+
+                    if (array_key_exists($tax->name, $taxesData)) {
+                        $taxesData[$tax->name] = $taxesData[$tax->name] + $taxPrice;
+                    } else {
+                        $taxesData[$tax->name] = $taxPrice;
+                    }
+                }
+                $item->itemTax = $itemTaxes;
+            } else {
+                $item->itemTax = [];
+            }
+            $items[] = $item;
+        }
+
+        $quotation->itemData = $items;
+        $quotation->totalTaxPrice = $totalTaxPrice;
+        $quotation->totalQuantity = $totalQuantity;
+        $quotation->totalRate = $totalRate;
+        $quotation->totalDiscount = $totalDiscount;
+        $quotation->taxesData = $taxesData;
+
+        $logo = asset(\Illuminate\Support\Facades\Storage::url('uploads/logo/'));
+        $company_logo = \App\Models\Utility::getValByName('company_logo_dark');
+        $quotation_logo = \App\Models\Utility::getValByName('quotation_logo');
+        if (isset($quotation_logo) && !empty($quotation_logo)) {
+            $img = \App\Models\Utility::get_file('quotation_logo/') . $quotation_logo;
+        } else {
+            $img = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
+        }
+
+        $color = '#' . $settings['quotation_color'];
+        $font_color = \App\Models\Utility::getFontColor($color);
+
+        $html = view('quotation.templates.' . $settings['quotation_template'], compact('quotation', 'color', 'settings', 'customer', 'img', 'font_color'))->render();
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . \App\Models\Utility::quotationNumberFormat($settings, $quotation->quotation_id) . '.pdf"',
+        ]);
     }
 }

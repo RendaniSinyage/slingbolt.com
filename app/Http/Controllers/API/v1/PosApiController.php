@@ -9,6 +9,8 @@ use App\Models\warehouse;
 use App\Models\WarehouseProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 
 class PosApiController extends Controller
 {
@@ -206,7 +208,15 @@ class PosApiController extends Controller
     private function invoicePosNumber()
     {
         $latest = \App\Models\Pos::where('created_by', '=', \Auth::user()->creatorId())->latest('pos_id')->first();
-        return $latest ? $latest->pos_id + 1 : 1;
+
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            $pos_starting_number = isset($setting['pos_starting_number']) ? (int)$setting['pos_starting_number'] : 1;
+            return $pos_starting_number;
+        }
+
+        return $latest->pos_id + 1;
     }
 
     /**
@@ -280,5 +290,100 @@ class PosApiController extends Controller
         }
 
         return response()->json(['error' => __('Pos Not Found.')], 404);
+    }
+
+    public function pdf($pos_id)
+    {
+        $settings = \App\Models\Utility::settings();
+        $pos = \App\Models\Pos::where('id', $pos_id)->first();
+
+        if (!$pos) {
+            return response()->json(['error' => 'POS not found.'], 404);
+        }
+        if (\Illuminate\Support\Facades\Gate::denies('show pos', $pos)) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $posPayment = \App\Models\PosPayment::where('pos_id', $pos->id)->first();
+
+        $data = \Illuminate\Support\Facades\DB::table('settings');
+        $data = $data->where('created_by', '=', $pos->created_by);
+        $data1 = $data->get();
+
+        foreach ($data1 as $row) {
+            $settings[$row->name] = $row->value;
+        }
+
+        $customer = $pos->customer;
+
+        $totalTaxPrice = 0;
+        $totalQuantity = 0;
+        $totalRate = 0;
+        $totalDiscount = 0;
+        $taxesData = [];
+        $items = [];
+
+        foreach ($pos->items as $product) {
+            $item = new \stdClass();
+            $item->name = !empty($product->product()) ? $product->product()->name : '';
+            $item->quantity = $product->quantity;
+            $item->tax = $product->tax;
+            $item->discount = $product->discount;
+            $item->price = $product->price;
+            $item->description = $product->description;
+            $totalQuantity += $item->quantity;
+            $totalRate += $item->price;
+            $totalDiscount += $item->discount;
+            $taxes = \App\Models\Utility::tax($product->tax);
+            $itemTaxes = [];
+            if (!empty($item->tax)) {
+                foreach ($taxes as $tax) {
+                    $taxPrice = \App\Models\Utility::taxRate($tax->rate, $item->price, $item->quantity);
+                    $totalTaxPrice += $taxPrice;
+
+                    $itemTax['name'] = $tax->name;
+                    $itemTax['rate'] = $tax->rate . '%';
+                    $itemTax['price'] = \App\Models\Utility::priceFormat($settings, $taxPrice);
+                    $itemTaxes[] = $itemTax;
+
+                    if (array_key_exists($tax->name, $taxesData)) {
+                        $taxesData[$tax->name] = $taxesData[$tax->name] + $taxPrice;
+                    } else {
+                        $taxesData[$tax->name] = $taxPrice;
+                    }
+                }
+                $item->itemTax = $itemTaxes;
+            } else {
+                $item->itemTax = [];
+            }
+            $items[] = $item;
+        }
+
+        $pos->itemData = $items;
+        $pos->totalTaxPrice = $totalTaxPrice;
+        $pos->totalQuantity = $totalQuantity;
+        $pos->totalRate = $totalRate;
+        $pos->totalDiscount = $totalDiscount;
+        $pos->taxesData = $taxesData;
+
+        $logo = asset(\Illuminate\Support\Facades\Storage::url('uploads/logo/'));
+        $company_logo = \App\Models\Utility::getValByName('company_logo_dark');
+        $pos_logo = \App\Models\Utility::getValByName('pos_logo');
+        if (isset($pos_logo) && !empty($pos_logo)) {
+            $img = \App\Models\Utility::get_file('pos_logo/') . $pos_logo;
+        } else {
+            $img = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
+        }
+
+        $color = '#' . $settings['pos_color'];
+        $font_color = \App\Models\Utility::getFontColor($color);
+
+        $html = view('pos.templates.' . $settings['pos_template'], compact('pos', 'posPayment', 'color', 'settings', 'customer', 'img', 'font_color'))->render();
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . \Auth::user()->posNumberFormat($pos->pos_id) . '.pdf"',
+        ]);
     }
 }

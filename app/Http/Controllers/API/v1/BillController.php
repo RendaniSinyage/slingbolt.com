@@ -9,6 +9,8 @@ use App\Models\BillProduct;
 use App\Models\Utility;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class BillController extends Controller
 {
@@ -124,26 +126,47 @@ class BillController extends Controller
     {
         if (Auth::user()->can('edit bill') && $bill->created_by == Auth::user()->creatorId()) {
             $validator = \Validator::make($request->all(), [
-                'vender_id' => 'required|exists:venders,id',
-                'bill_date' => 'required|date',
-                'due_date' => 'required|date|after_or_equal:bill_date',
-                'category_id' => 'required|exists:product_service_categories,id',
+                'vender_id' => 'sometimes|required|exists:venders,id',
+                'bill_date' => 'sometimes|required|date',
+                'due_date' => 'sometimes|required|date|after_or_equal:bill_date',
+                'category_id' => 'sometimes|required|exists:product_service_categories,id',
+                'items' => 'sometimes|array|min:1',
+                'items.*.item' => 'required_with:items|exists:product_services,id',
+                'items.*.quantity' => 'required_with:items|numeric|min:1',
+                'items.*.price' => 'required_with:items|numeric|min:0',
             ]);
 
             if ($validator->fails()) {
                 return response()->json(['error' => $validator->errors()->first()], 400);
             }
 
-            $bill->vender_id = $request->vender_id;
-            $bill->bill_date = $request->bill_date;
-            $bill->due_date = $request->due_date;
-            $bill->category_id = $request->category_id;
-            $bill->order_number = $request->order_number ?? 0;
+            // Update bill fields
+            $bill->fill($request->only([
+                'vender_id', 'bill_date', 'due_date', 'category_id', 'order_number'
+            ]));
             $bill->save();
 
-            // Note: For simplicity, this update does not handle line item updates.
+            // Handle line items
+            if ($request->has('items')) {
+                // Get a list of existing item IDs from the request
+                $updatedItemIds = collect($request->items)->pluck('id')->filter()->all();
 
-            return new BillResource($bill);
+                // Delete items that are not in the request
+                $bill->items()->whereNotIn('id', $updatedItemIds)->delete();
+
+                foreach ($request->items as $itemData) {
+                    $item = $bill->items()->findOrNew($itemData['id'] ?? 0);
+                    $item->product_id = $itemData['item'];
+                    $item->quantity = $itemData['quantity'];
+                    $item->price = $itemData['price'];
+                    $item->tax = $itemData['tax'] ?? null;
+                    $item->discount = $itemData['discount'] ?? 0;
+                    $item->description = $itemData['description'] ?? null;
+                    $item->save();
+                }
+            }
+
+            return new BillResource($bill->load('items'));
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -318,5 +341,104 @@ class BillController extends Controller
         BillProduct::where('id', '=', $request->id)->delete();
 
         return response()->json(['message' => 'Bill product successfully deleted.']);
+    }
+
+    public function pdf($bill_id)
+    {
+        $settings = \App\Models\Utility::settings();
+        $bill = Bill::where('id', $bill_id)->first();
+
+        if (!$bill) {
+            return response()->json(['error' => 'Bill not found.'], 404);
+        }
+        if (\Illuminate\Support\Facades\Gate::denies('show bill', $bill)) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $data = \Illuminate\Support\Facades\DB::table('settings');
+        $data = $data->where('created_by', '=', $bill->created_by);
+        $data1 = $data->get();
+
+        foreach ($data1 as $row) {
+            $settings[$row->name] = $row->value;
+        }
+
+        $vendor = $bill->vender;
+        $totalTaxPrice = 0;
+        $totalQuantity = 0;
+        $totalRate = 0;
+        $totalDiscount = 0;
+        $taxesData = [];
+        $items = [];
+
+        foreach ($bill->items as $product) {
+            $item = new \stdClass();
+            $item->name = !empty($product->product) ? $product->product->name : '';
+            $item->quantity = $product->quantity;
+            $item->unit = !empty($product->product) ? $product->product->unit_id : '';
+            $item->tax = $product->tax;
+            $item->discount = $product->discount;
+            $item->price = $product->price;
+            $item->description = $product->description;
+
+            $totalQuantity += $item->quantity;
+            $totalRate += $item->price;
+            $totalDiscount += $item->discount;
+
+            $taxes = \App\Models\Utility::tax($product->tax);
+            $itemTaxes = [];
+            if (!empty($item->tax)) {
+                foreach ($taxes as $tax) {
+                    $taxPrice = \App\Models\Utility::taxRate($tax->rate, $item->price, $item->quantity, $item->discount);
+                    $totalTaxPrice += $taxPrice;
+
+                    $itemTax['name'] = $tax->name;
+                    $itemTax['rate'] = $tax->rate . '%';
+                    $itemTax['price'] = \App\Models\Utility::priceFormat($settings, $taxPrice);
+                    $itemTax['tax_price'] = $taxPrice;
+                    $itemTaxes[] = $itemTax;
+
+                    if (array_key_exists($tax->name, $taxesData)) {
+                        $taxesData[$tax->name] = $taxesData[$tax->name] + $taxPrice;
+                    } else {
+                        $taxesData[$tax->name] = $taxPrice;
+                    }
+                }
+                $item->itemTax = $itemTaxes;
+            } else {
+                $item->itemTax = [];
+            }
+            $items[] = $item;
+        }
+
+        $bill->itemData = $items;
+        $bill->totalTaxPrice = $totalTaxPrice;
+        $bill->totalQuantity = $totalQuantity;
+        $bill->totalRate = $totalRate;
+        $bill->totalDiscount = $totalDiscount;
+        $bill->taxesData = $taxesData;
+        $bill->customField = \App\Models\CustomField::getData($bill, 'bill');
+        $customFields = \App\Models\CustomField::where('created_by', '=', $bill->created_by)->where('module', '=', 'bill')->get();
+
+        $logo = asset(\Illuminate\Support\Facades\Storage::url('uploads/logo/'));
+        $company_logo = \App\Models\Utility::getValByName('company_logo_dark');
+        $settings_data = \App\Models\Utility::settingsById($bill->created_by);
+        $bill_logo = $settings_data['bill_logo'];
+        if (isset($bill_logo) && !empty($bill_logo)) {
+            $img = \App\Models\Utility::get_file('bill_logo/') . $bill_logo;
+        } else {
+            $img = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
+        }
+
+        $color = '#' . $settings['bill_color'];
+        $font_color = \App\Models\Utility::getFontColor($color);
+
+        $html = view('bill.templates.' . $settings['bill_template'], compact('bill', 'color', 'settings', 'vendor', 'img', 'font_color', 'customFields'))->render();
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . \App\Models\Utility::billNumberFormat($settings, $bill->bill_id) . '.pdf"',
+        ]);
     }
 }

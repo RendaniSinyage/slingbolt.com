@@ -152,6 +152,13 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::put('v1/invoices/{id}', [InvoiceController::class, 'update']);
     Route::delete('v1/invoices/{id}', [InvoiceController::class, 'destroy']);
 
+    // PDF Generation
+    Route::get('v1/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
+    Route::get('v1/proposals/{id}/pdf', [ProposalController::class, 'pdf']);
+    Route::get('v1/quotations/{id}/pdf', [QuotationController::class, 'pdf']);
+    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
+    Route::get('v1/pos/{id}/pdf', [PosApiController::class, 'pdf']);
+
     // Employees
     Route::get('v1/employees', [EmployeeController::class, 'index']);
     Route::get('v1/employees/{id}', [EmployeeController::class, 'show']);

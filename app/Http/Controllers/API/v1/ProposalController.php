@@ -8,6 +8,8 @@ use App\Models\Proposal;
 use App\Models\ProposalProduct;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class ProposalController extends Controller
 {
@@ -181,5 +183,104 @@ class ProposalController extends Controller
             return (isset($setting['proposal_starting_number']) ? $setting['proposal_starting_number'] : 1);
         }
         return $latest->proposal_id + 1;
+    }
+
+    public function pdf($proposal_id)
+    {
+        $settings = \App\Models\Utility::settings();
+        $proposal = Proposal::where('id', $proposal_id)->first();
+
+        if (!$proposal) {
+            return response()->json(['error' => 'Proposal not found.'], 404);
+        }
+        if (\Illuminate\Support\Facades\Gate::denies('show proposal', $proposal)) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $data = \Illuminate\Support\Facades\DB::table('settings');
+        $data = $data->where('created_by', '=', $proposal->created_by);
+        $data1 = $data->get();
+
+        foreach ($data1 as $row) {
+            $settings[$row->name] = $row->value;
+        }
+
+        $customer = $proposal->customer;
+        $items = [];
+        $totalTaxPrice = 0;
+        $totalQuantity = 0;
+        $totalRate = 0;
+        $totalDiscount = 0;
+        $taxesData = [];
+        foreach ($proposal->items as $product) {
+            $item = new \stdClass();
+            $item->name = !empty($product->product) ? $product->product->name : '';
+            $item->quantity = $product->quantity;
+            $item->tax = $product->tax;
+            $item->unit = !empty($product->product) ? $product->product->unit_id : '';
+            $item->discount = $product->discount;
+            $item->price = $product->price;
+            $item->description = $product->description;
+
+            $totalQuantity += $item->quantity;
+            $totalRate += $item->price;
+            $totalDiscount += $item->discount;
+
+            $taxes = \App\Models\Utility::tax($product->tax);
+
+            $itemTaxes = [];
+            if (!empty($item->tax)) {
+                foreach ($taxes as $tax) {
+                    $taxPrice = \App\Models\Utility::taxRate($tax->rate, $item->price, $item->quantity, $item->discount);
+                    $totalTaxPrice += $taxPrice;
+
+                    $itemTax['name'] = $tax->name;
+                    $itemTax['rate'] = $tax->rate . '%';
+                    $itemTax['price'] = \App\Models\Utility::priceFormat($settings, $taxPrice);
+                    $itemTax['tax_price'] = $taxPrice;
+                    $itemTaxes[] = $itemTax;
+
+                    if (array_key_exists($tax->name, $taxesData)) {
+                        $taxesData[$tax->name] = $taxesData[$tax->name] + $taxPrice;
+                    } else {
+                        $taxesData[$tax->name] = $taxPrice;
+                    }
+                }
+                $item->itemTax = $itemTaxes;
+            } else {
+                $item->itemTax = [];
+            }
+            $items[] = $item;
+        }
+
+        $proposal->itemData = $items;
+        $proposal->totalTaxPrice = $totalTaxPrice;
+        $proposal->totalQuantity = $totalQuantity;
+        $proposal->totalRate = $totalRate;
+        $proposal->totalDiscount = $totalDiscount;
+        $proposal->taxesData = $taxesData;
+        $proposal->customField = \App\Models\CustomField::getData($proposal, 'proposal');
+        $customFields = \App\Models\CustomField::where('created_by', '=', $proposal->created_by)->where('module', '=', 'proposal')->get();
+
+        $logo = asset(\Illuminate\Support\Facades\Storage::url('uploads/logo/'));
+        $settings_data = \App\Models\Utility::settingsById($proposal->created_by);
+        $company_logo = $settings_data['company_logo_dark'] ?? \App\Models\Utility::getValByName('company_logo_dark');
+        $proposal_logo = $settings_data['proposal_logo'];
+        if (isset($proposal_logo) && !empty($proposal_logo)) {
+            $img = \App\Models\Utility::get_file('proposal_logo/') . $proposal_logo;
+        } else {
+            $img = asset($logo . '/' . (isset($company_logo) && !empty($company_logo) ? $company_logo : 'logo-dark.png'));
+        }
+
+        $color = '#' . $settings['proposal_color'];
+        $font_color = \App\Models\Utility::getFontColor($color);
+
+        $html = view('proposal.templates.' . $settings['proposal_template'], compact('proposal', 'color', 'settings', 'customer', 'img', 'font_color', 'customFields'))->render();
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . \App\Models\Utility::proposalNumberFormat($settings, $proposal->proposal_id) . '.pdf"',
+        ]);
     }
 }
