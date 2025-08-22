@@ -82,6 +82,9 @@ class CustomerController extends Controller
             if($validator->fails())
             {
                 $messages = $validator->getMessageBag();
+                if ($request->ajax()) {
+                    return response()->json(['error' => $messages->first()], 422);
+                }
                 return redirect()->route('customer.index')->with('error', $messages->first());
             }
 
@@ -140,11 +143,24 @@ class CustomerController extends Controller
                 Utility::send_twilio_msg($request->contact,'new_customer', $customerNotificationArr);
             }
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Customer successfully created.'),
+                    'data' => [
+                        'id' => $customer->id,
+                        'name' => $customer->name,
+                    ]
+                ]);
+            }
 
             return redirect()->route('customer.index')->with('success', __('Customer successfully created.'));
         }
         else
         {
+            if ($request->ajax()) {
+                return response()->json(['error' => __('Permission denied.')], 403);
+            }
             return redirect()->back()->with('error', __('Permission denied.'));
         }
     }
@@ -259,10 +275,13 @@ class CustomerController extends Controller
 
     function customerNumber()
     {
+        $settings = Utility::settings();
+        $customer_starting_number = isset($settings['customer_starting_number']) ? (int)$settings['customer_starting_number'] : 1;
+
         $latest = Customer::where('created_by', '=', \Auth::user()->creatorId())->latest('customer_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $customer_starting_number;
         }
 
         return $latest->customer_id + 1;

@@ -22,7 +22,19 @@ $(document).on('submit', 'form[data-ajax-form="true"]', function(e) {
 
                 if (select_id && response.data) {
                     var newOption = new Option(response.data.name, response.data.id, true, true);
-                    $('#' + select_id).append(newOption).trigger('change');
+                    var target_select;
+
+                    if (select_id.startsWith('.')) {
+                        // It's a class, target the last element in the repeater
+                        target_select = $('[data-repeater-list]').find(select_id).last();
+                    } else {
+                        // It's an ID
+                        target_select = $('#' + select_id);
+                    }
+
+                    if(target_select.length > 0){
+                        target_select.append(newOption).trigger('change');
+                    }
                 }
             } else {
                 show_toastr('Error', response.error || 'An unknown error occurred.', 'error');

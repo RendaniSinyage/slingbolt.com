@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use App\Http\Resources\InvoiceResource;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class InvoiceController extends Controller
 {
@@ -128,15 +130,13 @@ class InvoiceController extends Controller
             return response()->json(['error' => 'Permission denied.'], 403);
         }
 
-        $validator = \Validator::make(
-            $request->all(), [
-                'customer_id' => 'sometimes|required|exists:customers,id',
-                'issue_date' => 'sometimes|required|date',
-                'due_date' => 'sometimes|required|date',
-                'category_id' => 'sometimes|required|exists:product_service_categories,id',
-                'items' => 'sometimes|array',
-            ]
-        );
+        $validator = \Validator::make($request->all(), [
+            'customer_id' => 'sometimes|required|exists:customers,id',
+            'issue_date' => 'sometimes|required|date',
+            'due_date' => 'sometimes|required|date',
+            'category_id' => 'sometimes|required|exists:product_service_categories,id',
+            'items' => 'sometimes|array',
+        ]);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
@@ -145,21 +145,28 @@ class InvoiceController extends Controller
         $invoice->update($request->all());
 
         if ($request->has('items')) {
-            InvoiceProduct::where('invoice_id', $invoice->id)->delete();
-            foreach ($request->items as $item) {
-                $invoiceProduct = new InvoiceProduct();
-                $invoiceProduct->invoice_id = $invoice->id;
-                $invoiceProduct->product_id = $item['item'];
-                $invoiceProduct->quantity = $item['quantity'];
-                $invoiceProduct->tax = $item['tax'] ?? null;
-                $invoiceProduct->discount = $item['discount'] ?? 0;
-                $invoiceProduct->price = $item['price'];
-                $invoiceProduct->description = $item['description'] ?? null;
+            $products = $request->items;
+            $itemIds = collect($products)->pluck('id')->filter()->all();
+            InvoiceProduct::where('invoice_id', $invoice->id)->whereNotIn('id', $itemIds)->delete();
+
+            for ($i = 0; $i < count($products); $i++) {
+                $invoiceProduct = InvoiceProduct::find($products[$i]['id'] ?? 0);
+                if ($invoiceProduct == null) {
+                    $invoiceProduct = new InvoiceProduct();
+                    $invoiceProduct->invoice_id = $invoice->id;
+                }
+
+                $invoiceProduct->product_id = $products[$i]['item'];
+                $invoiceProduct->quantity = $products[$i]['quantity'];
+                $invoiceProduct->tax = $products[$i]['tax'] ?? null;
+                $invoiceProduct->discount = $products[$i]['discount'] ?? 0;
+                $invoiceProduct->price = $products[$i]['price'];
+                $invoiceProduct->description = $products[$i]['description'] ?? null;
                 $invoiceProduct->save();
             }
         }
 
-        return (new InvoiceResource($invoice->load('items')))->additional(['message' => 'Invoice successfully updated.']);
+        return (new InvoiceResource($invoice->fresh()->load('items')))->additional(['message' => 'Invoice successfully updated.']);
     }
 
     /**
@@ -187,7 +194,8 @@ class InvoiceController extends Controller
     {
         $latest = Invoice::where('created_by', '=', Auth::user()->creatorId())->latest('invoice_id')->first();
         if (!$latest) {
-            return 1;
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['invoice_starting_number']) ? $setting['invoice_starting_number'] : 1);
         }
 
         return $latest->invoice_id + 1;

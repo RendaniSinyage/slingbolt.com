@@ -55,6 +55,7 @@ class ContractController extends Controller
             }
 
             $contract = new Contract();
+            $contract->contract_id = $this->contractNumber();
             $contract->client_name = $request->client_name;
             $contract->subject = $request->subject;
             $contract->project_id = $request->project_id;
@@ -137,5 +138,17 @@ class ContractController extends Controller
         }
 
         return response()->json(['error' => __('Permission denied.')], 403);
+    }
+
+    function contractNumber()
+    {
+        $latest = Contract::where('created_by', '=', Auth::user()->creatorId())->latest('contract_id')->first();
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['contract_starting_number']) ? $setting['contract_starting_number'] : 1);
+        }
+
+        return $latest->contract_id + 1;
     }
 }

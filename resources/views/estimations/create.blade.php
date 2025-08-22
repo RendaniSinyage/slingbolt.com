@@ -14,7 +14,7 @@
             {{ Form::select('tax_id', $taxes,null, array('class' => 'form-control select2','required'=>'required')) }}
             @if(count($taxes) <= 0)
                 <div class="text-muted text-xs">
-                    {{__('Please create new Tax')}} <a href="{{route('taxes.index')}}">{{__('here')}}</a>.
+                    {{__('Please create new Tax')}} <a href="#" data-url="{{ route('taxes.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Tax')}}">{{__('here')}}</a>.
                 </div>
             @endif
         </div>

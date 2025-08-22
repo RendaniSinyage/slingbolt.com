@@ -1,4 +1,4 @@
-{{Form::open(array('url'=>'vender','method'=>'post', 'class'=>'needs-validation', 'novalidate', 'id'=>'ajax-vender-form'))}}
+{{Form::open(array('url'=>'vender','method'=>'post', 'class'=>'needs-validation', 'novalidate', 'id'=>'ajax-vender-form', 'data-ajax-form' => 'true', 'data-select-id' => 'vender_id'))}}
 <div class="modal-body">
 
     <h5 class="sub-title mb-3">{{__('Basic Info')}}</h5>

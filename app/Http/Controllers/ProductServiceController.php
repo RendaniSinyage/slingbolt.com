@@ -230,6 +230,17 @@ class ProductServiceController extends Controller
             $productService->save();
             CustomField::saveData($productService, $request->customField);
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Product successfully created.'),
+                    'data' => [
+                        'id' => $productService->id,
+                        'name' => $productService->name,
+                    ]
+                ]);
+            }
+
             return redirect()->route('productservice.index')->with('success', __('Product successfully created.'));
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));

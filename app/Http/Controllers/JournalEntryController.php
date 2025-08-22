@@ -397,9 +397,12 @@ class JournalEntryController extends Controller
 
     public function journalNumber()
     {
+        $settings = Utility::settings();
+        $journal_starting_number = isset($settings['journal_starting_number']) ? (int)$settings['journal_starting_number'] : 1;
+
         $latest = JournalEntry::where('created_by', '=', \Auth::user()->creatorId())->latest('journal_id')->first();
         if (!$latest) {
-            return 1;
+            return $journal_starting_number;
         }
 
         return $latest->journal_id + 1;

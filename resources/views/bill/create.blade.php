@@ -532,7 +532,7 @@
                                 {{ Form::label('vender_id', __('Vendor'),['class'=>'form-label']) }}<x-required></x-required>
                                 {{ Form::select('vender_id', $venders,$vendorId, array('class' => 'form-control select','id'=>'vender','data-url'=>route('bill.vender'),'required'=>'required')) }}
                                 <div class="text-xs mt-1">
-                                    {{ __('Create vendor here.') }} <a href="{{ route('vender.index') }}"><b>{{ __('Create vendor') }}</b></a>
+                                    {{ __('Create vendor here.') }} <a href="#" data-url="{{ route('vender.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Vendor')}}"><b>{{ __('Create vendor') }}</b></a>
                                 </div>
                             </div>
                             <div id="vender_detail" class="d-none">
@@ -590,6 +590,9 @@
                     <div class="row justify-content-between align-items-center">
                         <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
                             <div class="all-button-box me-2">
+                                <a href="#" data-url="{{ route('productservice.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Item')}}" class="btn btn-primary">
+                                    <i class="ti ti-plus"></i> {{__('Create Item')}}
+                                </a>
                                 <a href="#" data-repeater-create="" class="btn btn-primary" data-bs-toggle="modal" data-target="#add-bank">
                                     <i class="ti ti-plus"></i> {{__('Add Item')}}
                                 </a>

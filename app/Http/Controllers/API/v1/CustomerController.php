@@ -168,7 +168,8 @@ class CustomerController extends Controller
         $latest = Customer::where('created_by', '=', Auth::user()->creatorId())->latest('customer_id')->first();
         if(!$latest)
         {
-            return 1;
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['customer_starting_number']) ? $setting['customer_starting_number'] : 1);
         }
 
         return $latest->customer_id + 1;

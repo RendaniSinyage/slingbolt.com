@@ -440,10 +440,13 @@ class EmployeeController extends Controller
 
     function employeeNumber()
     {
+        $settings = Utility::settings();
+        $employee_starting_number = isset($settings['employee_starting_number']) ? (int)$settings['employee_starting_number'] : 1;
+
         $latest = Employee::where('created_by', '=', \Auth::user()->creatorId())->latest('employee_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $employee_starting_number;
         }
 
         return $latest->employee_id + 1;

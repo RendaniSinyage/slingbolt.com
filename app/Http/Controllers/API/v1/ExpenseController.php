@@ -127,6 +127,67 @@ class ExpenseController extends Controller
     }
 
     /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function update(Request $request, $id)
+    {
+        if (Auth::user()->can('edit bill')) {
+            $expense = Bill::find($id);
+            if ($expense && $expense->created_by == Auth::user()->creatorId()) {
+
+                $validator = \Validator::make($request->all(), [
+                    'payment_date' => 'required',
+                    'items' => 'required|array',
+                ]);
+                if ($validator->fails()) {
+                    return response()->json(['error' => $validator->errors()->first()], 400);
+                }
+
+                if ($request->type == 'employee') {
+                    $expense->vender_id = $request->employee_id;
+                } elseif ($request->type == 'customer') {
+                    $expense->vender_id = $request->customer_id;
+                } else {
+                    $expense->vender_id = $request->vender_id;
+                }
+
+                $expense->bill_date = $request->payment_date;
+                $expense->due_date = $request->payment_date;
+                $expense->category_id = $request->category_id;
+                $expense->save();
+
+                $products = $request->items;
+                $itemIds = collect($products)->pluck('id')->filter()->all();
+                BillProduct::where('bill_id', $expense->id)->whereNotIn('id', $itemIds)->delete();
+
+                for ($i = 0; $i < count($products); $i++) {
+                    $expenseProduct = BillProduct::find($products[$i]['id'] ?? 0);
+                    if ($expenseProduct == null) {
+                        $expenseProduct = new BillProduct();
+                        $expenseProduct->bill_id = $expense->id;
+                    }
+                    $expenseProduct->product_id = $products[$i]['item'];
+                    $expenseProduct->quantity = $products[$i]['quantity'];
+                    $expenseProduct->tax = $products[$i]['tax'] ?? null;
+                    $expenseProduct->discount = $products[$i]['discount'] ?? 0;
+                    $expenseProduct->price = $products[$i]['price'];
+                    $expenseProduct->description = $products[$i]['description'] ?? null;
+                    $expenseProduct->save();
+                }
+
+                return new BillResource($expense->fresh()->load('items'));
+            }
+            return response()->json(['error' => __('Permission denied.')], 403);
+        }
+        return response()->json(['error' => __('Permission denied.')], 403);
+    }
+
+
+    /**
      * Remove the specified resource from storage.
      *
      * @param  int  $id
@@ -152,6 +213,11 @@ class ExpenseController extends Controller
     private function expenseNumber()
     {
         $latest = Bill::where('created_by', Auth::user()->creatorId())->where('type', 'Expense')->latest('bill_id')->first();
-        return ($latest ? $latest->bill_id : 0) + 1;
+        if(!$latest)
+        {
+            $setting = \App\Models\Utility::settings();
+            return (isset($setting['expense_starting_number']) ? $setting['expense_starting_number'] : 1);
+        }
+        return $latest->bill_id + 1;
     }
 }

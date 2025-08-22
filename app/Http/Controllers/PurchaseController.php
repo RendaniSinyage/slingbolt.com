@@ -401,10 +401,13 @@ class PurchaseController extends Controller
 
     function purchaseNumber()
     {
+        $settings = Utility::settings();
+        $purchase_starting_number = isset($settings['purchase_starting_number']) ? (int)$settings['purchase_starting_number'] : 1;
+
         $latest = Purchase::where('created_by', '=', \Auth::user()->creatorId())->latest('purchase_id')->first();
         if(!$latest)
         {
-            return 1;
+            return $purchase_starting_number;
         }
 
         return $latest->purchase_id + 1;

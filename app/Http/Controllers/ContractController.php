@@ -120,6 +120,7 @@ class ContractController extends Controller
             $contract->value       = $request->value;
             $contract->start_date  = $request->start_date;
             $contract->end_date    = $request->end_date;
+            $contract->contract_id = $this->contractNumber();
             $contract->description = $request->description;
             $contract->created_by  = \Auth::user()->creatorId();
             $contract->save();

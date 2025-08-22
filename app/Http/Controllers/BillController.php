@@ -511,10 +511,14 @@ class BillController extends Controller
 
     function billNumber()
     {
+        $settings = Utility::settings();
+        $bill_starting_number = isset($settings['bill_starting_number']) ? (int)$settings['bill_starting_number'] : 1;
+
         $latest = Bill::where('created_by', '=', \Auth::user()->creatorId())->latest('bill_id')->first();
+
         if(!$latest)
         {
-            return 1;
+            return $bill_starting_number;
         }
 
         return $latest->bill_id + 1;
