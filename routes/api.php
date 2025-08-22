@@ -54,6 +54,7 @@ use App\Http\Controllers\API\v1\ProjectTaskController;
 use App\Http\Controllers\API\v1\ProjectstagesController;
 use App\Http\Controllers\API\v1\PromotionController;
 use App\Http\Controllers\API\v1\ProposalController;
+use App\Http\Controllers\API\v1\PurchaseController;
 use App\Http\Controllers\API\v1\QuotationController;
 use App\Http\Controllers\API\v1\QuoteController;
 use App\Http\Controllers\API\v1\ResignationController;
@@ -293,6 +294,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/proposals', ProposalController::class);
     Route::apiResource('v1/quotations', QuotationController::class);
     Route::apiResource('v1/contracts', ContractController::class);
+    Route::apiResource('v1/purchases', PurchaseController::class);
 
     // Project Management
     Route::apiResource('v1/budgets', BudgetController::class);
