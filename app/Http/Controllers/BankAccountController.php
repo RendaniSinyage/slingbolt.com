@@ -138,6 +138,17 @@ class BankAccountController extends Controller
             $account->save();
             CustomField::saveData($account, $request->customField);
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Account successfully created.'),
+                    'data' => [
+                        'id' => $account->id,
+                        'name' => $account->holder_name,
+                    ]
+                ]);
+            }
+
             return redirect()->route('bank-account.index')->with('success', __('Account successfully created.'));
         }
         else
