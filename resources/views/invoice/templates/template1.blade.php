@@ -382,6 +382,45 @@
                 @endforeach
             @else
             @endif
+            <tr>
+                <td colspan="4"></td>
+                <td colspan="2" class="sub-total">
+                    <table class="total-table">
+                        @if($invoice->getTotalDiscount())
+                        <tr>
+                            <td>{{__('Discount')}}:</td>
+                            <td>{{Utility::priceFormat($settings,$invoice->getTotalDiscount())}}</td>
+                        </tr>
+                        @endif
+                        @if(!empty($invoice->taxesData))
+                            @foreach($invoice->taxesData as $taxName => $taxPrice)
+                            <tr>
+                                <td>{{$taxName}} :</td>
+                                <td>{{ Utility::priceFormat($settings,$taxPrice)  }}</td>
+                            </tr>
+                            @endforeach
+                        @endif
+                        <tr>
+                            <td>{{__('Total')}}:</td>
+                            <td>{{Utility::priceFormat($settings,$invoice->getSubTotal()-$invoice->getTotalDiscount()+$invoice->getTotalTax())}}</td>
+                        </tr>
+                        <tr>
+                            <td>{{__('Paid')}}:</td>
+                            <td>{{Utility::priceFormat($settings,($invoice->getTotal()-$invoice->getDue())-($invoice->invoiceTotalCreditNote()))}}</td>
+                        </tr>
+                        @if($invoice->invoiceTotalCreditNote())
+                        <tr>
+                            <td>{{__('Credit Note')}}:</td>
+                            <td>{{Utility::priceFormat($settings,($invoice->invoiceTotalCreditNote()))}}</td>
+                        </tr>
+                        @endif
+                        <tr>
+                            <td>{{__('Due Amount')}}:</td>
+                            <td>{{Utility::priceFormat($settings,$invoice->getDue())}}</td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
             </tbody>
             <tfoot>
                 <tr>
@@ -396,47 +435,6 @@
                     </td>
                 </tr>
             </tfoot>
-        </table>
-        <table class="add-border invoice-summary">
-            <tbody>
-                <tr>
-                    <td colspan="4"></td>
-                    <td colspan="2" class="sub-total">
-                        <table class="total-table">
-                            @if($invoice->getTotalDiscount())
-                            <tr>
-                                <td>{{__('Discount')}}:</td>
-                                <td>{{Utility::priceFormat($settings,$invoice->getTotalDiscount())}}</td>
-                            </tr>
-                            @endif
-                            @if(!empty($invoice->taxesData))
-                                @foreach($invoice->taxesData as $taxName => $taxPrice)
-                                <tr>
-                                    <td>{{$taxName}} :</td>
-                                    <td>{{ Utility::priceFormat($settings,$taxPrice)  }}</td>
-                                </tr>
-                                @endforeach
-                            @endif
-                            <tr>
-                                <td>{{__('Total')}}:</td>
-                                <td>{{Utility::priceFormat($settings,$invoice->getSubTotal()-$invoice->getTotalDiscount()+$invoice->getTotalTax())}}</td>
-                            </tr>
-                            <tr>
-                                <td>{{__('Paid')}}:</td>
-                                <td>{{Utility::priceFormat($settings,($invoice->getTotal()-$invoice->getDue())-($invoice->invoiceTotalCreditNote()))}}</td>
-                            </tr>
-                            <tr>
-                                <td>{{__('Credit Note')}}:</td>
-                                <td>{{Utility::priceFormat($settings,($invoice->invoiceTotalCreditNote()))}}</td>
-                            </tr>
-                            <tr>
-                                <td>{{__('Due Amount')}}:</td>
-                                <td>{{Utility::priceFormat($settings,$invoice->getDue())}}</td>
-                            </tr>
-                        </table>
-                    </td>
-                </tr>
-            </tbody>
         </table>
         <div class="invoice-footer">
             <b>{{$settings['footer_title']}}</b> <br>
