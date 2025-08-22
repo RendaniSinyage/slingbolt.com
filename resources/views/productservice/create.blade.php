@@ -99,7 +99,7 @@
             {{ Form::label('tax_id', __('Tax'),['class'=>'form-label']) }}
             {{ Form::select('tax_id[]', $tax,null, array('class' => 'form-control select2','id'=>'choices-multiple1','multiple')) }}
             <div class=" text-xs mt-1">
-                {{__('Create tax here. ')}}<a href="{{route('taxes.index')}}"><b>{{__('Create tax')}}</b></a>
+                {{__('Create tax here. ')}}<a href="#" data-url="{{ route('taxes.create') }}" data-ajax-popup-over="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Tax')}}"><b>{{__('Create tax')}}</b></a>
             </div>
         </div>
         <div class="form-group col-md-6">
@@ -107,14 +107,14 @@
             {{ Form::select('category_id', $category,null, array('class' => 'form-control select','required'=>'required')) }}
 
             <div class=" text-xs mt-1">
-                {{__('Create category here. ')}}<a href="{{route('product-category.index')}}"><b>{{__('Create Category')}}</b></a>
+                {{__('Create category here. ')}}<a href="#" data-url="{{ route('product-category.create') }}" data-ajax-popup-over="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Category')}}"><b>{{__('Create Category')}}</b></a>
             </div>
         </div>
         <div class="form-group col-md-6">
             {{ Form::label('unit_id', __('Unit'),['class'=>'form-label']) }}<x-required></x-required>
             {{ Form::select('unit_id', $unit,null, array('class' => 'form-control select','required'=>'required')) }}
             <div class=" text-xs mt-1">
-                {{__('Create unit here. ')}}<a href="{{route('product-unit.index')}}"><b>{{__('Create unit')}}</b></a>
+                {{__('Create unit here. ')}}<a href="#" data-url="{{ route('product-unit.create') }}" data-ajax-popup-over="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Unit')}}"><b>{{__('Create unit')}}</b></a>
             </div>
         </div>
         <div class="col-md-6 form-group">
