@@ -64,6 +64,17 @@ class TaxController extends Controller
             $tax->created_by = \Auth::user()->creatorId();
             $tax->save();
 
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Tax rate successfully created.'),
+                    'data' => [
+                        'id' => $tax->id,
+                        'name' => $tax->name,
+                    ]
+                ]);
+            }
+
             return redirect()->route('taxes.index')->with('success', __('Tax rate successfully created.'));
         }
         else

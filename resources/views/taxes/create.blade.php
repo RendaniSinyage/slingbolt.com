@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'taxes', 'class'=>'needs-validation', 'novalidate')) }}
+{{ Form::open(array('url' => 'taxes', 'class'=>'needs-validation', 'novalidate', 'data-ajax-form' => 'true', 'data-select-id' => 'tax_id')) }}
 <div class="modal-body">
     <div class="row">
         <div class="form-group col-md-6">
