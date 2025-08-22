@@ -477,6 +477,9 @@
                     <div class="row justify-content-between align-items-center">
                         <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
                             <div class="all-button-box me-2">
+                                <a href="#" data-url="{{ route('productservice.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Item')}}" class="btn btn-primary">
+                                    <i class="ti ti-plus"></i> {{__('Create Item')}}
+                                </a>
                                 <a href="#" data-repeater-create="" class="btn btn-primary" data-bs-toggle="modal" data-target="#add-bank">
                                     <i class="ti ti-plus"></i> {{__('Add item')}}
                                 </a>

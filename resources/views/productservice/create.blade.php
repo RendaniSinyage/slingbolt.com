@@ -1,4 +1,4 @@
-{{ Form::open(array('url' => 'productservice','enctype' => "multipart/form-data", 'class'=>'needs-validation', 'novalidate')) }}
+{{ Form::open(array('url' => 'productservice','enctype' => "multipart/form-data", 'class'=>'needs-validation', 'novalidate', 'data-ajax-form' => 'true', 'data-select-id' => '.item')) }}
 <div class="modal-body">
     {{-- start for ai module--}}
     @php
