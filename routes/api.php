@@ -252,6 +252,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/invoices/{invoice}/payment-reminder', [InvoiceController::class, 'paymentReminder']);
     Route::post('v1/invoices/{invoice}/sent', [InvoiceController::class, 'sent']);
     Route::post('v1/invoices/{invoice}/resent', [InvoiceController::class, 'resent']);
+    Route::get('v1/invoices/{id}/pdf', [InvoiceController::class, 'pdf']);
     Route::apiResource('v1/payments', PaymentController::class);
     Route::apiResource('v1/complaints', ComplaintController::class);
     Route::apiResource('v1/warnings', WarningController::class);
@@ -290,8 +291,9 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/revenues', RevenueController::class);
 
     // Sales
+    Route::get('v1/proposals/{id}/pdf', [ProposalController::class, 'pdf']);
     Route::apiResource('v1/proposals', ProposalController::class);
-    Route::apiResource('v1/quotations', QuotationController::class);
+    Route::get('v1/quotations/{id}/pdf', [QuotationController::class, 'pdf']);
     Route::apiResource('v1/contracts', ContractController::class);
 
     // Project Management
@@ -323,6 +325,8 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/quotes', QuoteController::class);
 
     // Bills
+    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
+    Route::get('v1/bills/{id}/pdf', [BillController::class, 'pdf']);
     Route::apiResource('v1/bills', BillController::class);
 
     // Projects
@@ -385,6 +389,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::apiResource('v1/jobs', JobApiController::class);
 
     // POS
+    Route::get('v1/pos/{id}/pdf', [PosApiController::class, 'pdf']);
     Route::get('pos', [PosApiController::class, 'index'])->name('pos.index');
     Route::get('pos/products', [PosApiController::class, 'getProducts'])->name('pos.products');
     Route::post('pos', [PosApiController::class, 'store'])->name('pos.store');

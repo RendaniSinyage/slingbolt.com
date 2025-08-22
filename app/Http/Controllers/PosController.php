@@ -555,7 +555,13 @@ class PosController extends Controller
             $color = '#' . $settings['pos_color'];
             $font_color = Utility::getFontColor($color);
 
-            return view('pos.templates.' . $settings['pos_template'], compact('pos', 'posPayment', 'color', 'settings', 'customer', 'img', 'font_color'));
+            $html = view('pos.templates.' . $settings['pos_template'], compact('pos', 'posPayment', 'color', 'settings', 'customer', 'img', 'font_color'))->render();
+            $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+            return response($pdf, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . \Auth::user()->posNumberFormat($pos->pos_id) . '.pdf"',
+            ]);
         } else {
             return redirect()->back()->with('error', __('Permission denied.'));
         }
