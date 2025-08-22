@@ -73,7 +73,7 @@ class ProductServiceCategoryController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => __('Category successfully created.'),
-                    'category' => [
+                    'data' => [
                         'id' => $category->id,
                         'name' => $category->name,
                     ]

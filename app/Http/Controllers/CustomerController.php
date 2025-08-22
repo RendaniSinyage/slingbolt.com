@@ -147,7 +147,7 @@ class CustomerController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => __('Customer successfully created.'),
-                    'customer' => [
+                    'data' => [
                         'id' => $customer->id,
                         'name' => $customer->name,
                     ]
