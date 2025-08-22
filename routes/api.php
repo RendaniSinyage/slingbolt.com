@@ -364,6 +364,7 @@ Route::group(['middleware' => ['auth:sanctum']], function () {
     Route::post('v1/leads/{lead}/convert-to-deal', [LeadController::class, 'convertToDeal']);
 
     // HRM - Payslip
+    Route::get('v1/payslips/{id}/pdf/{month}', [PayslipController::class, 'pdf']);
     Route::apiResource('v1/payslips', PayslipController::class);
 
     // HRM - Set Salary

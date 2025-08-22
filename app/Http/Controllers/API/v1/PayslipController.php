@@ -147,4 +147,28 @@ class PayslipController extends Controller
 
         return response()->json(['message' => 'Payslip successfully deleted.']);
     }
+
+    public function pdf($id, $month)
+    {
+        $payslip  = PaySlip::where('employee_id', $id)->where('salary_month', $month)->where('created_by', Auth::user()->creatorId())->first();
+        if (!$payslip) {
+            return response()->json(['error' => 'Payslip not found.'], 404);
+        }
+
+        $employee = Employee::find($payslip->employee_id);
+
+        if (Gate::denies('show pay slip', $payslip)) {
+            return response()->json(['error' => 'Permission denied.'], 403);
+        }
+
+        $payslipDetail = \App\Models\Utility::employeePayslipDetail($id, $month);
+
+        $html = view('payslip.pdf', compact('payslip', 'employee', 'payslipDetail'))->render();
+        $pdf = \Spatie\Browsershot\Browsershot::html($html)->setChromeExecutablePath(config('browsershot.chrome_executable_path'))->margins(0, 0, 0, 0)->pdf();
+
+        return response($pdf, 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'inline; filename="' . $employee->name . ' ' . $month . '.pdf"',
+        ]);
+    }
 }
