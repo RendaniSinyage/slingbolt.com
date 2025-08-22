@@ -563,7 +563,7 @@
                                         {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
                                         {{ Form::select('category_id', $category,null, array('class' => 'form-control select', 'required'=>'required')) }}
                                         <div class="text-xs mt-1">
-                                            {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
+                                            {{__('Create category here.')}} <a href="#" data-url="{{ route('product-category.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Category')}}"><b>{{__('Create Category')}}</b></a>
                                         </div>
                                     </div>
                                 </div>

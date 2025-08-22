@@ -390,6 +390,8 @@
             $('#customer').val(customerId).change();
         }
 
+
+
     </script>
 
 @endpush
@@ -406,7 +408,7 @@
                                 {{ Form::label('customer_id', __('Customer'),['class'=>'form-label']) }}<x-required></x-required>
                                 {{ Form::select('customer_id', $customers,$customerId, array('class' => 'form-control select','id'=>'customer','data-url'=>route('invoice.customer'),'required'=>'required')) }}
                                 <div class="text-xs mt-1">
-                                    {{ __('Create customer here.') }} <a href="{{ route('customer.index') }}"><b>{{ __('Create customer') }}</b></a>
+                                    {{__('Create customer here.')}} <a href="#" data-url="{{ route('customer.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Customer')}}"><b>{{__('Create Customer')}}</b></a>
                                 </div>
                             </div>
 
@@ -446,7 +448,7 @@
                                         {{ Form::label('category_id', __('Category'),['class'=>'form-label']) }}<x-required></x-required>
                                         {{ Form::select('category_id', $category,null, array('class' => 'form-control select','required'=>'required')) }}
                                         <div class="text-xs mt-1">
-                                            {{ __('Create category here.') }} <a href="{{ route('product-category.index') }}"><b>{{ __('Create category') }}</b></a>
+                                            {{__('Create category here.')}} <a href="#" data-url="{{ route('product-category.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Category')}}"><b>{{__('Create Category')}}</b></a>
                                         </div>
                                     </div>
                                 </div>
