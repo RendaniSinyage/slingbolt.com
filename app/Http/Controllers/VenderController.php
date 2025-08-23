@@ -143,7 +143,7 @@ class VenderController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => __('Vendor successfully created.'),
-                    'vender' => [
+                    'data' => [
                         'id' => $vender->id,
                         'name' => $vender->name,
                     ]
