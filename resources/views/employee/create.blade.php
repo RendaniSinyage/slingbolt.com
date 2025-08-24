@@ -13,7 +13,7 @@
 
 @section('content')
 <div class="row">
-    {{ Form::open(['route' => ['employee.store'], 'method' => 'post', 'enctype' => 'multipart/form-data', 'class'=>'needs-validation', 'novalidate']) }}
+    {{ Form::open(['route' => ['employee.store'], 'method' => 'post', 'enctype' => 'multipart/form-data', 'class'=>'needs-validation', 'novalidate', 'data-ajax-form' => 'true', 'data-select-id' => 'employee_id']) }}
     <div class="">
         <div class="">
             <div class="row">

@@ -576,7 +576,7 @@
                                     {{ Form::label('employee_id', __('Payee'),['class'=>'form-label']) }}<x-required></x-required>
                                     {{ Form::select('employee_id', $employees,null, array('class' => 'form-control select','id'=>'employee','data-url'=>route('expense.employee'), 'required' => true)) }}
                                     <div class="text-xs mt-1">
-                                        {{ __('Create employee here.') }} <a href="{{ route('employee.index') }}"><b>{{ __('Create employee') }}</b></a>
+                                        {{ __('Create employee here.') }} <a href="#" data-url="{{ route('employee.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Employee')}}"><b>{{ __('Create employee') }}</b></a>
                                     </div>
                                 </div>
                                 <div id="employee_detail" class="d-none">
@@ -587,7 +587,7 @@
                                     {{ Form::label('customer_id', __('Payee'),['class'=>'form-label']) }}<x-required></x-required>
                                     {{ Form::select('customer_id', $customers,null, array('class' => 'form-control select','id'=>'customer','data-url'=>route('expense.customer'))) }}
                                     <div class="text-xs mt-1">
-                                        {{ __('Create customer here.') }} <a href="{{ route('customer.index') }}"><b>{{ __('Create customer') }}</b></a>
+                                        {{ __('Create customer here.') }} <a href="#" data-url="{{ route('customer.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Customer')}}"><b>{{ __('Create customer') }}</b></a>
                                     </div>
                                 </div>
                                 <div id="customer_detail" class="d-none">
@@ -598,7 +598,7 @@
                                     {{ Form::label('vender_id', __('Payee'),['class'=>'form-label']) }}<x-required></x-required>
                                     {{ Form::select('vender_id', $venders,$Id, array('class' => 'form-control select','id'=>'vender','data-url'=>route('expense.vender'))) }}
                                     <div class="text-xs mt-1">
-                                        {{ __('Create vender here.') }} <a href="{{ route('vender.index') }}"><b>{{ __('Create vender') }}</b></a>
+                                        {{ __('Create vender here.') }} <a href="#" data-url="{{ route('vender.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Vendor')}}"><b>{{ __('Create vender') }}</b></a>
                                     </div>
                                 </div>
                                 <div id="vender_detail" class="d-none">
@@ -644,6 +644,9 @@
                     <div class="row justify-content-between align-items-center">
                         <div class="col-md-12 d-flex align-items-center justify-content-between justify-content-md-end">
                             <div class="all-button-box me-2">
+                                <a href="#" data-url="{{ route('productservice.create') }}" data-ajax-popup="true" data-bs-toggle="tooltip" title="{{__('Create')}}" data-title="{{__('Create New Item')}}" class="btn btn-primary">
+                                    <i class="ti ti-plus"></i> {{__('Create Item')}}
+                                </a>
                                 <a href="#" data-repeater-create="" class="btn btn-primary" data-bs-toggle="modal" data-target="#add-bank">
                                     <i class="ti ti-plus"></i> {{__('Add Item')}}
                                 </a>

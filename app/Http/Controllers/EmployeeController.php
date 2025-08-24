@@ -216,11 +216,20 @@ class EmployeeController extends Controller
                 ];
 
                 $resp = Utility::sendEmailTemplate('new_user', [$user->id => $user->email], $userArr);
-                return redirect()->route('employee.index')->with('success', __('Employee successfully created.') . ((!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
-
             }
 
-            return redirect()->route('employee.index')->with('success', __('Employee  successfully created.'));
+            if ($request->ajax()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => __('Employee successfully created.'),
+                    'data' => [
+                        'id' => $employee->id,
+                        'name' => $employee->name,
+                    ]
+                ]);
+            }
+
+            return redirect()->route('employee.index')->with('success', __('Employee  successfully created.') . ((!empty($resp) && $resp['is_success'] == false && !empty($resp['error'])) ? '<br> <span class="text-danger">' . $resp['error'] . '</span>' : ''));
 
         }
         else
