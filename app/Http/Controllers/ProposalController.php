@@ -3,6 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Exports\ProposalExport;
+use App\Events\ConvertToInvoice;
+use App\Events\CreateProposal;
+use App\Events\DestroyProposal;
+use App\Events\DuplicateProposal;
+use App\Events\ResentProposal;
+use App\Events\SentProposal;
+use App\Events\StatusChangeProposal;
+use App\Events\UpdateProposal;
 use App\Models\ActivityLog;
 use App\Models\Customer;
 use App\Models\CustomField;
@@ -145,6 +153,7 @@ class ProposalController extends Controller
             $proposal->category_id    = $request->category_id;
             $proposal->created_by     = \Auth::user()->creatorId();
             $proposal->save();
+            event(new CreateProposal($proposal, $request));
             CustomField::saveData($proposal, $request->customField);
             $products = $request->items;
 
@@ -250,6 +259,7 @@ class ProposalController extends Controller
                 $proposal->issue_date     = $request->issue_date;
                 $proposal->category_id    = $request->category_id;
                 $proposal->save();
+                event(new UpdateProposal($proposal, $request));
                 CustomField::saveData($proposal, $request->customField);
                 $products = $request->items;
 
@@ -344,6 +354,7 @@ class ProposalController extends Controller
         {
             if($proposal->created_by == \Auth::user()->creatorId())
             {
+                event(new DestroyProposal($proposal));
                 $proposal->delete();
                 ProposalProduct::where('proposal_id', '=', $proposal->id)->delete();
 
@@ -440,10 +451,12 @@ class ProposalController extends Controller
             $proposal->send_date = date('Y-m-d');
             $proposal->status    = 1;
             $proposal->save();
+            event(new SentProposal($proposal));
 
             $customer           = Customer::where('id', $proposal->customer_id)->first();
             $proposal->name     = !empty($customer) ? $customer->name : '';
             $proposal->proposal = \Auth::user()->proposalNumberFormat($proposal->proposal_id);
+            event(new ResentProposal($proposal));
 
             $proposalId    = Crypt::encrypt($proposal->id);
             $proposal->url = route('proposal.pdf', $proposalId);
@@ -557,6 +570,7 @@ class ProposalController extends Controller
             $duplicateProposal->status      = 0;
             $duplicateProposal->created_by  = $proposal['created_by'];
             $duplicateProposal->save();
+            event(new DuplicateProposal($duplicateProposal));
 
             if($duplicateProposal)
             {
@@ -600,6 +614,7 @@ class ProposalController extends Controller
             $convertInvoice->status      = 0;
             $convertInvoice->created_by  = $proposal['created_by'];
             $convertInvoice->save();
+            event(new ConvertToInvoice($proposal, $convertInvoice));
 
             $proposal->converted_invoice_id = $convertInvoice->id;
             $proposal->save();
@@ -649,6 +664,7 @@ class ProposalController extends Controller
         $proposal         = Proposal::find($id);
         $proposal->status = $status;
         $proposal->save();
+        event(new StatusChangeProposal($proposal));
 
         return redirect()->back()->with('success', __('Proposal status changed successfully.'));
     }

@@ -26,6 +26,7 @@ class ChartOfAccountController extends Controller
     public function store(Request $request)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\CreateChartOfAccount($request, $chartOfAccount));
     }
 
     /**
@@ -49,6 +50,7 @@ class ChartOfAccountController extends Controller
     public function update(Request $request, $id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\UpdateChartOfAccount($request, $chartOfAccount));
     }
 
     /**
@@ -60,5 +62,6 @@ class ChartOfAccountController extends Controller
     public function destroy($id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\DeleteChartOfAccount($chartOfAccount));
     }
 }

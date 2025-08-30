@@ -70,6 +70,8 @@ class AttendanceEmployeeController extends Controller
             $employeeAttendance->created_by = Auth::user()->creatorId();
             $employeeAttendance->save();
 
+            event(new \App\Events\CreateManualAttendance($request, $employeeAttendance));
+
             return new AttendanceEmployeeResource($employeeAttendance);
         }
         return response()->json(['error' => __('Permission denied.')], 403);
@@ -125,6 +127,8 @@ class AttendanceEmployeeController extends Controller
             'created_by' => Auth::user()->creatorId(),
         ]);
 
+        event(new \App\Events\EmployeeClockIn($attendance));
+
         return response()->json(['message' => 'Clocked in successfully.', 'data' => new AttendanceEmployeeResource($attendance)], 201);
     }
 
@@ -176,6 +180,8 @@ class AttendanceEmployeeController extends Controller
             'early_leaving' => $earlyLeaving,
             'overtime' => $overtime,
         ]);
+
+        event(new \App\Events\EmployeeClockOut($attendance));
 
         return response()->json(['message' => 'Clocked out successfully.', 'data' => new AttendanceEmployeeResource($attendance)]);
     }

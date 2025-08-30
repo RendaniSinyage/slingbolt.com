@@ -78,6 +78,8 @@ class AnnouncementController extends Controller
         $announcement->created_by = Auth::user()->creatorId();
         $announcement->save();
 
+        event(new \App\Events\CreateAnnouncement($request, $announcement));
+
         $employee_ids = [];
         if (in_array('0', $request->employee_id)) {
             if (in_array('0', $request->department_id)) {
@@ -157,6 +159,8 @@ class AnnouncementController extends Controller
 
         $announcement->update($request->all());
 
+        event(new \App\Events\UpdateAnnouncement($request, $announcement));
+
         return (new AnnouncementResource($announcement))->additional(['message' => 'Announcement successfully updated.']);
     }
 
@@ -176,6 +180,7 @@ class AnnouncementController extends Controller
             return response()->json(['error' => 'Permission denied.'], 403);
         }
 
+        event(new \App\Events\DeleteAnnouncement($announcement));
         $announcement->delete();
 
         return response()->json(['message' => 'Announcement successfully deleted.']);

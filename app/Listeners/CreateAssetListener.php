@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Listeners;
+
+use App\Events\CreateAsset;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Queue\InteractsWithQueue;
+
+class CreateAssetListener
+{
+    /**
+     * Create the event listener.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        //
+    }
+
+    /**
+     * Handle the event.
+     *
+     * @param  \App\Events\CreateAsset  $event
+     * @return void
+     */
+    public function handle(CreateAsset $event)
+    {
+        //
+    }
+}

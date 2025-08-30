@@ -40,6 +40,8 @@ class ComplianceSettingsController extends Controller
             $validatedData
         );
 
+        event(new \App\Events\StoreComplianceSettings($request));
+
         return new ComplianceSettingsResource($settings);
     }
 }

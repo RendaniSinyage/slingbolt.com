@@ -44,6 +44,8 @@ class CommissionController extends Controller
         $commission->created_by = Auth::user()->creatorId();
         $commission->save();
 
+        event(new \App\Events\CreateCommission($request, $commission));
+
         return new CommissionResource($commission);
     }
 
@@ -78,6 +80,8 @@ class CommissionController extends Controller
         $commission->amount = $request->amount;
         $commission->save();
 
+        event(new \App\Events\UpdateCommission($request, $commission));
+
         return new CommissionResource($commission);
     }
 
@@ -88,6 +92,7 @@ class CommissionController extends Controller
             return response()->json(['error' => 'Commission not found.'], 404);
         }
 
+        event(new \App\Events\DeleteCommission($commission));
         $commission->delete();
         return response()->json(['message' => 'Commission successfully deleted.']);
     }

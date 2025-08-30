@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\Events\CreateDeal;
+use App\Events\UpdateDeal;
 use App\Http\Controllers\Controller;
 use App\Models\Deal;
 use App\Models\Pipeline;
@@ -107,6 +109,7 @@ class DealController extends Controller
         $deal->status = 'Active';
         $deal->created_by = $user->ownerId();
         $deal->save();
+        event(new CreateDeal($deal, $request));
 
         foreach ($request->clients as $client_id) {
             ClientDeal::create([
@@ -190,6 +193,7 @@ class DealController extends Controller
         }
 
         $deal->save();
+        event(new UpdateDeal($deal, $request));
 
         return (new DealResource($deal->load('pipeline', 'stage', 'users', 'clients')))->additional(['message' => 'Deal successfully updated.']);
     }

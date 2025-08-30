@@ -86,6 +86,8 @@ class ComplaintController extends Controller
         $complaint->created_by = Auth::user()->creatorId();
         $complaint->save();
 
+        event(new \App\Events\CreateComplaint($request, $complaint));
+
         return (new ComplaintResource($complaint->load(['complaintFrom', 'complaintAgainst'])))->additional(['message' => 'Complaint successfully created.']);
     }
 
@@ -139,6 +141,8 @@ class ComplaintController extends Controller
 
         $complaint->update($request->all());
 
+        event(new \App\Events\UpdateComplaint($request, $complaint));
+
         return (new ComplaintResource($complaint->load(['complaintFrom', 'complaintAgainst'])))->additional(['message' => 'Complaint successfully updated.']);
     }
 
@@ -158,6 +162,7 @@ class ComplaintController extends Controller
             return response()->json(['error' => 'Permission denied.'], 403);
         }
 
+        event(new \App\Events\DeleteComplaint($complaint));
         $complaint->delete();
 
         return response()->json(['message' => 'Complaint successfully deleted.']);

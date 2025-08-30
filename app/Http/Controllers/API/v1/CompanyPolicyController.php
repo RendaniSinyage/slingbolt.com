@@ -68,6 +68,8 @@ class CompanyPolicyController extends Controller
 
         $policy->save();
 
+        event(new \App\Events\CreateCompanyPolicy($request, $policy));
+
         return (new CompanyPolicyResource($policy->load('branches')))->additional(['message' => 'Company policy successfully created.']);
     }
 
@@ -131,6 +133,8 @@ class CompanyPolicyController extends Controller
             $companyPolicy->save();
         }
 
+        event(new \App\Events\UpdateCompanyPolicy($request, $companyPolicy));
+
         return (new CompanyPolicyResource($companyPolicy->load('branches')))->additional(['message' => 'Company policy successfully updated.']);
     }
 
@@ -150,6 +154,8 @@ class CompanyPolicyController extends Controller
             return response()->json(['error' => 'Permission denied.'], 403);
         }
 
+        event(new \App\Events\DeleteCompanyPolicy($policy));
+        event(new \App\Events\DeleteCompanyPolicy($companyPolicy));
         $companyPolicy->delete();
 
         return response()->json(['message' => 'Company policy successfully deleted.']);

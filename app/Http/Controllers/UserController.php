@@ -24,6 +24,9 @@ use Spatie\Permission\Models\Role;
 use App\Models\ReferralTransaction;
 use App\Models\ReferralSetting;
 use Illuminate\Validation\Rule;
+use App\Events\CreateUser;
+use App\Events\DeleteUser;
+use App\Events\UpdateUser;
 use App\Services\CompanyCleanupService;
 
 use Illuminate\Support\Facades\Schema;
@@ -171,6 +174,7 @@ class UserController extends Controller
                 $user['user_agent'] = $request->userAgent();
 
                 $user->save();
+                event(new CreateUser($user, $request));
                 $role_r = Role::findByName('company');
                 $user->assignRole($role_r);
 
@@ -227,6 +231,7 @@ class UserController extends Controller
                     $request['user_agent'] = $request->userAgent();
 
                     $user = User::create($request->all());
+                    event(new CreateUser($user, $request));
                     $user->assignRole($role_r);
                     if ($request['type'] != 'client') {
                         \App\Models\Utility::employeeDetails($user->id, \Auth::user()->creatorId());
@@ -322,6 +327,7 @@ class UserController extends Controller
                 $input['type'] = $role->name;
 
                 $user->fill($input)->save();
+                event(new UpdateUser($user, $request));
                 CustomField::saveData($user, $request->customField);
 
                 $roles[] = $role->id;
@@ -348,6 +354,7 @@ class UserController extends Controller
                 $input = $request->all();
                 $input['type'] = $role->name;
                 $user->fill($input)->save();
+                event(new UpdateUser($user, $request));
                 Utility::employeeDetailsUpdate($user->id, \Auth::user()->creatorId());
                 CustomField::saveData($user, $request->customField);
 
@@ -380,6 +387,7 @@ class UserController extends Controller
 
             if (\Auth::user()->type == 'super admin') {
                 try {
+                    event(new DeleteUser($user));
                     DB::transaction(function () use ($id, $user) {
                         // Use the service instead of local method
                         CompanyCleanupService::cascadeDeleteCompanyData($id);
@@ -400,6 +408,7 @@ class UserController extends Controller
             if (\Auth::user()->type == 'company') {
                 $delete_user = User::where(['id' => $user->id])->first();
                 if ($delete_user) {
+                    event(new DeleteUser($delete_user));
                     $employee = Employee::where(['user_id' => $user->id])->delete();
                     $delete_user->delete();
 

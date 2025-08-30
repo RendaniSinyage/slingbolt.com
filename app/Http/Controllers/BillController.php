@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateBill;
+use App\Events\DeleteBill;
+use App\Events\UpdateBill;
 use App\Exports\BillExport;
 use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
@@ -135,6 +138,7 @@ class BillController extends Controller
             $bill->order_number   = !empty($request->order_number) ? $request->order_number : 0;
             $bill->created_by     = \Auth::user()->creatorId();
             $bill->save();
+            event(new CreateBill($bill, $request));
 
             CustomField::saveData($bill, $request->customField);
             $products = $request->items;
@@ -356,6 +360,7 @@ class BillController extends Controller
                 $bill->order_number   = $request->order_number;
                 $bill->category_id    = $request->category_id;
                 $bill->save();
+                event(new UpdateBill($bill, $request));
                 CustomField::saveData($bill, $request->customField);
                 $products = $request->items;
                 $total_amount=0;
@@ -492,7 +497,7 @@ class BillController extends Controller
                     $this->updateDebitNoteStatus($debitNote , 'delete');
                     $debitNote->delete();
                 }
-
+                event(new DeleteBill($bill));
                 $bill->delete();
 
                 return redirect()->route('bill.index')->with('success', __('Bill successfully deleted.'));
@@ -1423,4 +1428,3 @@ class BillController extends Controller
     }
 
 }
-

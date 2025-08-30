@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Plan;
 use App\Models\Utility;
+use App\Events\CreateUser;
 use App\Traits\ApiResponser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -94,6 +95,7 @@ class RegisterController extends Controller
             'user_agent' => $request->userAgent(),
             'referral_code'=> $code,
         ]);
+        event(new CreateUser($user, $request));
 
         $role_r = Role::findByName('company');
         $user->assignRole($role_r);

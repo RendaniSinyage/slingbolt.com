@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateDeal;
 use App\Mail\SendDealEmail;
 use App\Models\ActivityLog;
+use App\Events\UpdateDeal;
 use App\Models\ClientDeal;
 use App\Models\ClientPermission;
 use App\Models\CustomField;
@@ -238,6 +240,7 @@ class DealController extends Controller
                 $deal->status      = 'Active';
                 $deal->created_by  = $usr->ownerId();
                 $deal->save();
+                event(new CreateDeal($deal, $request));
 
                 //send email
                 $clients = User::whereIN('id', array_filter($request->clients))->get()->pluck('email', 'id')->toArray();
@@ -468,6 +471,7 @@ class DealController extends Controller
                 $deal->products    = implode(",", array_filter($request->products));
                 $deal->notes       = $request->notes;
                 $deal->save();
+                event(new UpdateDeal($deal, $request));
 
                 CustomField::saveData($deal, $request->customField);
 

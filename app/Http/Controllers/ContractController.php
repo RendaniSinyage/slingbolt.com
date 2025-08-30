@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateContract;
+use App\Events\DeleteContract;
+use App\Events\UpdateContract;
 use App\Models\Client;
 use App\Models\Contract;
 use App\Models\Contract_attachment;
@@ -124,6 +127,7 @@ class ContractController extends Controller
             $contract->description = $request->description;
             $contract->created_by  = \Auth::user()->creatorId();
             $contract->save();
+            event(new CreateContract($contract, $request));
 
             //Send Email
             $setings = Utility::settings();
@@ -260,6 +264,7 @@ class ContractController extends Controller
             $contract->description = $request->description;
 
             $contract->save();
+            event(new UpdateContract($contract, $request));
 
             return redirect()->route('contract.index')->with('success', __('Contract successfully updated.'));
         }
@@ -274,6 +279,7 @@ class ContractController extends Controller
     {
         if(\Auth::user()->can('delete contract'))
         {
+            event(new DeleteContract($contract));
             $contract->delete();
 
             return redirect()->route('contract.index')->with('success', __('Contract successfully deleted.'));

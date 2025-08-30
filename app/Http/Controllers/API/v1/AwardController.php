@@ -62,6 +62,8 @@ class AwardController extends Controller
             $award->created_by = Auth::user()->creatorId();
             $award->save();
 
+            event(new \App\Events\CreateAward($request, $award));
+
             return new AwardResource($award);
         }
 
@@ -112,6 +114,8 @@ class AwardController extends Controller
             $award->description = $request->description;
             $award->save();
 
+            event(new \App\Events\UpdateAward($request, $award));
+
             return new AwardResource($award);
         }
 
@@ -127,6 +131,7 @@ class AwardController extends Controller
     public function destroy(Award $award)
     {
         if (Auth::user()->can('delete award') && $award->created_by == Auth::user()->creatorId()) {
+            event(new \App\Events\DeleteAward($award));
             $award->delete();
             return response()->json(null, 204);
         }

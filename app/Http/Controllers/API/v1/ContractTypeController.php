@@ -26,6 +26,7 @@ class ContractTypeController extends Controller
     public function store(Request $request)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\CreateContractType($request, $contractType));
     }
 
     /**
@@ -49,6 +50,7 @@ class ContractTypeController extends Controller
     public function update(Request $request, $id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\UpdateContractType($request, $contractType));
     }
 
     /**
@@ -60,5 +62,6 @@ class ContractTypeController extends Controller
     public function destroy($id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\DeleteContractType($contractType));
     }
 }

@@ -37,6 +37,8 @@ class BugStatusController extends Controller
         $status->order = (!empty($all_status) ? ($all_status->order + 1) : 0);
         $status->save();
 
+        event(new \App\Events\CreateBugStatus($request, $status));
+
         return new BugStatusResource($status);
     }
 
@@ -70,6 +72,8 @@ class BugStatusController extends Controller
         $bugstatus->title = $request->title;
         $bugstatus->save();
 
+        event(new \App\Events\UpdateBugStatus($request, $bugstatus));
+
         return new BugStatusResource($bugstatus);
     }
 
@@ -80,6 +84,7 @@ class BugStatusController extends Controller
             return response()->json(['error' => __('Permission denied.')], 403);
         }
 
+        event(new \App\Events\DeleteBugStatus($bugstatus));
         $bugstatus->delete();
 
         return response()->json(null, 204);
@@ -103,6 +108,8 @@ class BugStatusController extends Controller
                 $status->save();
             }
         }
+
+        event(new \App\Events\OrderBugStatus($request));
 
         return response()->json(['message' => 'Order updated successfully.']);
     }

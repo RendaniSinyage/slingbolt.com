@@ -55,6 +55,8 @@ class BudgetController extends Controller
             $budget->created_by = Auth::user()->creatorId();
             $budget->save();
 
+            event(new \App\Events\CreateBudget($request, $budget));
+
             return new BudgetResource($budget);
         }
 
@@ -105,6 +107,8 @@ class BudgetController extends Controller
             $budget->expense_data = json_encode($request->expense_data ?? []);
             $budget->save();
 
+            event(new \App\Events\UpdateBudget($request, $budget));
+
             return new BudgetResource($budget);
         }
 
@@ -120,6 +124,7 @@ class BudgetController extends Controller
     public function destroy(Budget $budget)
     {
         if (Auth::user()->can('delete budget plan') && $budget->created_by == Auth::user()->creatorId()) {
+            event(new \App\Events\DeleteBudget($budget));
             $budget->delete();
             return response()->json(null, 204);
         }

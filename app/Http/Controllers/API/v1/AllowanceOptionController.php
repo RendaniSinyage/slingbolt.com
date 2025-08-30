@@ -45,6 +45,8 @@ class AllowanceOptionController extends Controller
             $allowanceoption->created_by = Auth::user()->creatorId();
             $allowanceoption->save();
 
+            event(new \App\Events\CreateAllowanceOption($request, $allowanceoption));
+
             return new AllowanceOptionResource($allowanceoption);
         }
 
@@ -85,6 +87,8 @@ class AllowanceOptionController extends Controller
             $allowanceoption->name = $request->name;
             $allowanceoption->save();
 
+            event(new \App\Events\UpdateAllowanceOption($request, $allowanceoption));
+
             return new AllowanceOptionResource($allowanceoption);
         }
 
@@ -100,6 +104,7 @@ class AllowanceOptionController extends Controller
     public function destroy(AllowanceOption $allowanceoption)
     {
         if (Auth::user()->can('delete allowance option') && $allowanceoption->created_by == Auth::user()->creatorId()) {
+            event(new \App\Events\DeleteAllowanceOption($allowanceoption));
             $allowanceoption->delete();
             return response()->json(null, 204);
         }

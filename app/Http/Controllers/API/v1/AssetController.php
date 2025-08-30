@@ -26,6 +26,7 @@ class AssetController extends Controller
     public function store(Request $request)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\CreateAsset($request, $asset));
     }
 
     /**
@@ -49,6 +50,7 @@ class AssetController extends Controller
     public function update(Request $request, $id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\UpdateAsset($request, $asset));
     }
 
     /**
@@ -60,5 +62,6 @@ class AssetController extends Controller
     public function destroy($id)
     {
         // TODO: Add implementation logic
+        // event(new \App\Events\DeleteAsset($asset));
     }
 }

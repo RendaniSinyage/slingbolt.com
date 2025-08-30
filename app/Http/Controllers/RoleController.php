@@ -2,6 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateRole;
+use App\Events\DeleteRole;
+use App\Events\UpdateRole;
+use App\Events\CreateRole;
+use App\Events\DeleteRole;
+use App\Events\UpdateRole;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Spatie\Permission\Models\Permission;
@@ -81,6 +87,7 @@ class RoleController extends Controller
             $role->created_by = \Auth::user()->creatorId();
             $permissions      = $request['permissions'];
             $role->save();
+            event(new CreateRole($role, $request));
 
             foreach($permissions as $permission)
             {

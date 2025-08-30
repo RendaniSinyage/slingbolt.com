@@ -45,6 +45,8 @@ class AwardTypeController extends Controller
             $awardtype->created_by = Auth::user()->creatorId();
             $awardtype->save();
 
+            event(new \App\Events\CreateAwardType($request, $awardtype));
+
             return new AwardTypeResource($awardtype);
         }
 
@@ -85,6 +87,8 @@ class AwardTypeController extends Controller
             $awardtype->name = $request->name;
             $awardtype->save();
 
+            event(new \App\Events\UpdateAwardType($request, $awardtype));
+
             return new AwardTypeResource($awardtype);
         }
 
@@ -100,6 +104,7 @@ class AwardTypeController extends Controller
     public function destroy(AwardType $awardtype)
     {
         if (Auth::user()->can('delete award type') && $awardtype->created_by == Auth::user()->creatorId()) {
+            event(new \App\Events\DeleteAwardType($awardtype));
             $awardtype->delete();
             return response()->json(null, 204);
         }

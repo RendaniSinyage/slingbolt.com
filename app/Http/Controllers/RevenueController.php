@@ -152,6 +152,8 @@ class RevenueController extends Controller
             $revenue->created_by     = \Auth::user()->creatorId();
             $revenue->save();
 
+            event(new \App\Events\CreateRevenue($request, $revenue));
+
             $category            = ProductServiceCategory::where('id', $request->category_id)->first();
             $revenue->payment_id = $revenue->id;
             $revenue->type       = 'Revenue';

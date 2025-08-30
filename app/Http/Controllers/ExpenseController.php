@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateExpense;
 use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
 use App\Models\Bill;
@@ -247,6 +248,7 @@ class ExpenseController extends Controller
             $expensePayment->description = 'NULL';
             $expensePayment->add_receipt = 'NULL';
             $expensePayment->save();
+            event(new CreateExpense($expense, $expensePayment, $request));
 
             if ($request->type == 'customer') {
                 Utility::updateUserBalance('customer', $expense->vender_id, $request->totalAmount, 'credit');

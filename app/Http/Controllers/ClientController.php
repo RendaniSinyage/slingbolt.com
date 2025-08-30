@@ -8,7 +8,9 @@ use App\Models\Contract;
 use App\Models\CustomField;
 use App\Models\Estimation;
 use App\Models\Invoice;
+use App\Events\UpdateClient;
 use App\Models\Plan;
+use App\Events\CreateClient;
 use App\Models\User;
 use App\Models\Utility;
 use http\Client;
@@ -131,6 +133,7 @@ class ClientController extends Controller
                         'is_enable_login' => $enableLogin,
                     ]
                 );
+                event(new CreateClient($client, $request));
 
                 //Send Email
                 $setings = Utility::settings();
@@ -280,6 +283,7 @@ class ClientController extends Controller
                 $post['email'] = $request->email;
 
                 $client->update($post);
+                event(new UpdateClient($client, $request));
 
                 CustomField::saveData($client, $request->customField);
 

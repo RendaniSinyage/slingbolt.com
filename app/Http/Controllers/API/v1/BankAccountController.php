@@ -66,6 +66,8 @@ class BankAccountController extends Controller
             $account->created_by = Auth::user()->creatorId();
             $account->save();
 
+            event(new \App\Events\CreateBankAccount($request, $account));
+
             return new BankAccountResource($account);
         }
 
@@ -114,6 +116,8 @@ class BankAccountController extends Controller
 
             $bankAccount->update($request->all());
 
+            event(new \App\Events\UpdateBankAccount($request, $bankAccount));
+
             return new BankAccountResource($bankAccount);
         }
 
@@ -140,6 +144,8 @@ class BankAccountController extends Controller
             }
 
             TransactionLines::where('reference_id', $bankAccount->id)->where('reference', 'Bank Account')->delete();
+
+            event(new \App\Events\DeleteBankAccount($bankAccount));
             $bankAccount->delete();
 
             return response()->json(null, 204);

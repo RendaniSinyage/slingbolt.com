@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\API\v1;
 
+use App\Events\CreateClient;
+use App\Events\UpdateClient;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ClientResource;
 use App\Models\User;
@@ -59,6 +61,7 @@ class ClientController extends Controller
                     'email_verified_at' => date('Y-m-d H:i:s'),
                     'is_enable_login' => 1,
                 ]);
+                event(new CreateClient($client, $request));
                 $client->assignRole($role);
 
                 // Send Email
@@ -110,6 +113,7 @@ class ClientController extends Controller
                 $client->password = Hash::make($request->password);
             }
             $client->save();
+            event(new UpdateClient($client, $request));
 
             return new ClientResource($client);
         } else {

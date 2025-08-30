@@ -86,7 +86,7 @@ class BankAccountController extends Controller
 
                 $chartAccounts[$type->name] = $temp;
             }
-            
+
             $payments = BankAccount::payments();
             $customFields = CustomField::where('created_by', '=', \Auth::user()->creatorId())->where('module', '=', 'account')->get();
 
@@ -138,16 +138,17 @@ class BankAccountController extends Controller
             $account->save();
             CustomField::saveData($account, $request->customField);
 
+            event(new \App\Events\CreateBankAccount($request, $account));
             if ($request->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => __('Account successfully created.'),
-                    'data' => [
-                        'id' => $account->id,
-                        'name' => $account->holder_name,
-                    ]
-                ]);
-            }
+                            return response()->json([
+                                'success' => true,
+                                'message' => __('Account successfully created.'),
+                                'data' => [
+                                    'id' => $account->id,
+                                    'name' => $account->holder_name,
+                                ]
+                            ]);
+                        }
 
             return redirect()->route('bank-account.index')->with('success', __('Account successfully created.'));
         }
@@ -172,24 +173,24 @@ class BankAccountController extends Controller
                 $accountTypes = ChartOfAccountType::where('created_by', '=', \Auth::user()->creatorId())->get();
 
                 $chartAccounts = [];
-    
+
                 foreach ($accountTypes as $type) {
                     $accountTypes = ChartOfAccountSubType::where('type', $type->id)
                         ->where('created_by', '=', \Auth::user()->creatorId())
                         ->whereNotIn('name', ['Accounts Receivable' , 'Accounts Payable'])
                         ->get();
-    
+
                     $temp = [];
-    
+
                     foreach ($accountTypes as $accountType) {
                         $chartOfAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '=', 0)
                             ->where('created_by', '=', \Auth::user()->creatorId())
                             ->get();
-    
+
                         $incomeSubAccounts = ChartOfAccount::where('sub_type', $accountType->id)->where('parent', '!=', 0)
                         ->where('created_by', '=', \Auth::user()->creatorId())
                         ->get();
-    
+
                         $tempData = [
                             'account_name'      => $accountType->name,
                             'chart_of_accounts' => [],
@@ -202,7 +203,7 @@ class BankAccountController extends Controller
                                 'account_name'   => $chartOfAccount->name,
                             ];
                         }
-    
+
                         foreach ($incomeSubAccounts as $chartOfAccount) {
                             $tempData['subAccounts'][] = [
                                 'id'             => $chartOfAccount->id,
@@ -214,7 +215,7 @@ class BankAccountController extends Controller
                         }
                         $temp[$accountType->id] = $tempData;
                     }
-    
+
                     $chartAccounts[$type->name] = $temp;
                 }
 
@@ -275,6 +276,8 @@ class BankAccountController extends Controller
             $bankAccount->save();
             CustomField::saveData($bankAccount, $request->customField);
 
+            event(new \App\Events\UpdateBankAccount($request, $bankAccount));
+
             return redirect()->route('bank-account.index')->with('success', __('Account successfully updated.'));
         }
         else
@@ -304,6 +307,7 @@ class BankAccountController extends Controller
                 }
                 else
                 {
+                    event(new \App\Events\DeleteBankAccount($bankAccount));
                     $bankAccount->delete();
 
                     return redirect()->route('bank-account.index')->with('success', __('Account successfully deleted.'));

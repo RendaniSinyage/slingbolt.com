@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateEmployee;
+use App\Events\DeleteEmployee;
+use App\Events\UpdateEmployee;
 use App\Exports\CustomerExport;
 use App\Exports\EmployeeExport;
 use App\Imports\EmployeesImport;
@@ -170,6 +173,7 @@ class EmployeeController extends Controller
                     'created_by' => \Auth::user()->creatorId(),
                 ]
             );
+            event(new CreateEmployee($employee, $request));
             if($request->hasFile('document'))
             {
                 foreach($request->document as $key => $document)
@@ -339,6 +343,7 @@ class EmployeeController extends Controller
             $employee = Employee::findOrFail($id);
             $input    = $request->all();
             $employee->fill($input)->save();
+            event(new UpdateEmployee($employee, $request));
             $employee = Employee::find($id);
             $user = User::where('id',$employee->user_id)->first();
             if(!empty($user)){
@@ -373,6 +378,7 @@ class EmployeeController extends Controller
         if(Auth::user()->can('delete employee'))
         {
             $employee      = Employee::findOrFail($id);
+            event(new DeleteEmployee($employee));
             $user          = User::where('id', '=', $employee->user_id)->first();
             $emp_documents = EmployeeDocument::where('employee_id', $employee->employee_id)->get();
             $pay_slips     = PaySlip::where('employee_id', $employee->id)->get();

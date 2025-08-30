@@ -66,6 +66,8 @@ class AppraisalController extends Controller
         $appraisal->created_by = Auth::user()->creatorId();
         $appraisal->save();
 
+        event(new \App\Events\CreateAppraisal($request, $appraisal));
+
         return (new AppraisalResource($appraisal->load(['employees', 'branches'])))->additional(['message' => 'Appraisal successfully created.']);
     }
 
@@ -119,6 +121,8 @@ class AppraisalController extends Controller
 
         $appraisal->update($request->all());
 
+        event(new \App\Events\UpdateAppraisal($request, $appraisal));
+
         return (new AppraisalResource($appraisal->load(['employees', 'branches'])))->additional(['message' => 'Appraisal successfully updated.']);
     }
 
@@ -138,6 +142,7 @@ class AppraisalController extends Controller
             return response()->json(['error' => 'Permission denied.'], 403);
         }
 
+        event(new \App\Events\DeleteAppraisal($appraisal));
         $appraisal->delete();
 
         return response()->json(['message' => 'Appraisal successfully deleted.']);

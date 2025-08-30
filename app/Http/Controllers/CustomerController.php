@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateCustomer;
+use App\Events\DeleteCustomer;
+use App\Events\UpdateCustomer;
 use App\Exports\CustomerExport;
 use App\Imports\CustomerImport;
 use App\Models\Customer;
@@ -122,6 +125,7 @@ class CustomerController extends Controller
                 $customer->lang = !empty($default_language) ? $default_language->value : '';
 
                 $customer->save();
+                event(new CreateCustomer($customer, $request));
                 CustomField::saveData($customer, $request->customField);
             }
             else
@@ -240,6 +244,7 @@ class CustomerController extends Controller
             $customer->shipping_address = $request->shipping_address;
             $customer->balance          = $request->balance ?? 0;
             $customer->save();
+            event(new UpdateCustomer($customer, $request));
 
             CustomField::saveData($customer, $request->customField);
 
@@ -258,6 +263,7 @@ class CustomerController extends Controller
         {
             if($customer->created_by == \Auth::user()->creatorId())
             {
+                event(new DeleteCustomer($customer));
                 $customer->delete();
 
                 return redirect()->route('customer.index')->with('success', __('Customer successfully deleted.'));

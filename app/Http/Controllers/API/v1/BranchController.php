@@ -48,6 +48,8 @@ class BranchController extends Controller
             $branch->created_by = Auth::user()->creatorId();
             $branch->save();
 
+            event(new \App\Events\CreateBranch($request, $branch));
+
             return new BranchResource($branch);
         }
 
@@ -88,6 +90,8 @@ class BranchController extends Controller
             $branch->name = $request->name;
             $branch->save();
 
+            event(new \App\Events\UpdateBranch($request, $branch));
+
             return new BranchResource($branch);
         }
 
@@ -114,6 +118,7 @@ class BranchController extends Controller
                 $department->delete();
             }
 
+            event(new \App\Events\DeleteBranch($branch));
             $branch->delete();
 
             return response()->json(null, 204);

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Events\VerifyReCaptchaToken;
+use App\Events\CreateUser;
 use App\Http\Controllers\Controller;
 use App\Models\ExperienceCertificate;
 use App\Models\GenerateOfferLetter;
@@ -203,6 +204,7 @@ class RegisteredUserController extends Controller
                  'registration_ip' => $request->ip(),
                  'user_agent' => $request->userAgent(),
              ]);
+             event(new CreateUser($user, $request));
 
              \Log::info("New user registration", [
                  'user_id' => $user->id,

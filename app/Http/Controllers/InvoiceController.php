@@ -6,8 +6,15 @@ use App\Exports\InvoiceExport;
 use App\Models\AddTransactionLine;
 use App\Models\BankAccount;
 use App\Models\ChartOfAccount;
+use App\Events\DeleteInvoice;
+use App\Events\PaymentReminderInvoice;
+use App\Events\CreatePaymentInvoice;
+use App\Events\ResentInvoice;
+use App\Events\SentInvoice;
 use App\Models\CreditNote;
+use App\Events\UpdateInvoice;
 use App\Models\Customer;
+use App\Events\CreateInvoice;
 use App\Models\CustomerCreditNotes;
 use App\Models\CustomField;
 use App\Models\Invoice;
@@ -130,6 +137,7 @@ class InvoiceController extends Controller
 //            $invoice->discount_apply = isset($request->discount_apply) ? 1 : 0;
             $invoice->created_by = \Auth::user()->creatorId();
             $invoice->save();
+            event(new CreateInvoice($invoice, $request));
             CustomField::saveData($invoice, $request->customField);
             $products = $request->items;
 
@@ -263,6 +271,7 @@ class InvoiceController extends Controller
                 }
                 
                 $invoice->save();
+                event(new UpdateInvoice($invoice, $request));
 
                 Utility::starting_number($invoice->invoice_id + 1, 'invoice');
                 CustomField::saveData($invoice, $request->customField);
@@ -439,6 +448,7 @@ class InvoiceController extends Controller
                     $creditNote->delete();
                 }
 
+                event(new DeleteInvoice($invoice));
                 InvoiceProduct::where('invoice_id', '=', $invoice->id)->delete();
                 $invoice->delete();
                 return redirect()->route('invoice.index')->with('success', __('Invoice successfully deleted.'));
@@ -528,6 +538,7 @@ class InvoiceController extends Controller
                 $invoice->send_date = date('Y-m-d');
                 $invoice->status = 1;
                 $invoice->save();
+                event(new SentInvoice($invoice));
 
                 $customer = Customer::where('id', $invoice->customer_id)->first();
                 $invoice->name = !empty($customer) ? $customer->name : '';
@@ -620,6 +631,7 @@ class InvoiceController extends Controller
             $settings = Utility::settings();
             $color      = '#' . $settings['invoice_color'];
             $font_color = Utility::getFontColor($color);
+            event(new ResentInvoice($invoice));
             $logo         = asset(Storage::url('uploads/logo/'));
             $company_logo = Utility::getValByName('company_logo_dark');
             $settings_data = \App\Models\Utility::settingsById($invoice->created_by);
@@ -702,6 +714,7 @@ class InvoiceController extends Controller
             }
 
             $invoicePayment->save();
+            event(new CreatePaymentInvoice($invoice, $invoicePayment, $request));
 
             $invoice = Invoice::where('id', $invoice_id)->first();
             $due = $invoice->getDue();
@@ -854,6 +867,7 @@ class InvoiceController extends Controller
         $invoice->name = $customer['name'];
         $invoice->date = \Auth::user()->dateFormat($invoice->send_date);
         $invoice->invoice = \Auth::user()->invoiceNumberFormat($invoice->invoice_id);
+        event(new PaymentReminderInvoice($invoice));
 
         //For Notification
         $setting = Utility::settings(\Auth::user()->creatorId());

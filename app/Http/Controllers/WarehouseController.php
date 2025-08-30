@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CreateWarehouse;
+use App\Events\DeleteWarehouse;
+use App\Events\UpdateWarehouse;
 use App\Models\Utility;
 use App\Models\warehouse;
 use App\Models\WarehouseProduct;
@@ -64,6 +67,7 @@ class WarehouseController extends Controller
             $warehouse->city_zip   = $request->city_zip;
             $warehouse->created_by = \Auth::user()->creatorId();
             $warehouse->save();
+            event(new CreateWarehouse($warehouse, $request));
 
             return redirect()->route('warehouse.index')->with('success', __('Warehouse successfully created.'));
         }
@@ -160,6 +164,7 @@ class WarehouseController extends Controller
                 $warehouse->city       = $request->city;
                 $warehouse->city_zip   = $request->city_zip;
                 $warehouse->save();
+                event(new UpdateWarehouse($warehouse, $request));
 
                 return redirect()->route('warehouse.index')->with('success', __('Warehouse successfully updated.'));
             }
@@ -186,6 +191,7 @@ class WarehouseController extends Controller
         {
             if($warehouse->created_by == \Auth::user()->creatorId())
             {
+                event(new DeleteWarehouse($warehouse));
                 $warehouse->delete();
 
 
