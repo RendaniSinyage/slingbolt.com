@@ -87,11 +87,22 @@
                     @endif
 
                     <div class="d-flex align-items-center gap-2">
-                            @if ($user->email_verified_at)
-                                <span class="badge bg-primary text-white p-1 px-2">
-                                    {{ __('VERIFIED') }}
-                                </span>
-                            @endif
+                        @php
+                            $currencySymbol = \DB::table('settings')
+                                ->where('created_by', $user->id)
+                                ->where('name', 'site_currency_symbol')
+                                ->value('value');
+                        @endphp
+                        @if($currencySymbol)
+                            <span class="badge bg-secondary text-white p-1 px-2">
+                                {{ $currencySymbol }}
+                            </span>
+                        @endif
+                        @if ($user->email_verified_at)
+                            <span class="badge bg-primary text-white p-1 px-2">
+                                {{ __('VERIFIED') }}
+                            </span>
+                        @endif
                     @if (Gate::check('edit user') || Gate::check('delete user'))
                         <div class="btn-group card-option">
                             @if ($user->is_active == 1 && $user->is_disable == 1)
