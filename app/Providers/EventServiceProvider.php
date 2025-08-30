@@ -116,7 +116,7 @@ use App\Listeners\DeleteInvoice as DeleteInvoiceListener;
 use App\Listeners\SentInvoice as SentInvoiceListener;
 use App\Listeners\ResentInvoice as ResentInvoiceListener;
 use App\Listeners\PaymentReminderInvoice as PaymentReminderInvoiceListener;
-use App\Listeners\CreateProposal as CreateProposalListener;
+use App\Listeners\CreateProposalListener;
 use App\Listeners\UpdateProposalListener;
 use App\Listeners\DestroyProposal as DestroyProposalListener;
 use App\Listeners\SentProposal as SentProposalListener;
