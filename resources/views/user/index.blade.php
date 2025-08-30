@@ -94,7 +94,7 @@
                                 ->value('value');
                         @endphp
                         @if($currency)
-                            <span class="badge bg-dark text-white p-1 px-2">
+                            <span class="badge bg-warning text-white p-1 px-2">
                                 {{ $currency }}
                             </span>
                         @endif
