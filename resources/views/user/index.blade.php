@@ -88,14 +88,14 @@
 
                     <div class="d-flex align-items-center gap-2">
                         @php
-                            $currencySymbol = \DB::table('settings')
+                            $currency = \DB::table('settings')
                                 ->where('created_by', $user->id)
-                                ->where('name', 'site_currency_symbol')
+                                ->where('name', 'currency')
                                 ->value('value');
                         @endphp
-                        @if($currencySymbol)
-                            <span class="badge bg-secondary text-white p-1 px-2">
-                                {{ $currencySymbol }}
+                        @if($currency)
+                            <span class="badge text-dark p-1 px-2">
+                                {{ $currency }}
                             </span>
                         @endif
                         @if ($user->email_verified_at)
