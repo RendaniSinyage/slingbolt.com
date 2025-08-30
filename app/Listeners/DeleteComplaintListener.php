@@ -6,7 +6,7 @@ use App\Events\DeleteComplaint;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteComplaintListener
+class DeleteComplaintListenerListener
 {
     /**
      * Create the event listener.

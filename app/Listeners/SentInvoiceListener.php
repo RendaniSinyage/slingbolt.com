@@ -6,7 +6,7 @@ use App\Events\SentInvoice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class SentInvoice
+class SentInvoiceListener
 {
     /**
      * Create the event listener.

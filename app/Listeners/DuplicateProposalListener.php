@@ -6,7 +6,7 @@ use App\Events\DuplicateProposal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DuplicateProposal
+class DuplicateProposalListener
 {
     /**
      * Create the event listener.

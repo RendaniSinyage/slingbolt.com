@@ -6,7 +6,7 @@ use App\Events\StoreComplianceSettings;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class StoreComplianceSettingsListener
+class StoreComplianceSettingsListenerListener
 {
     /**
      * Create the event listener.

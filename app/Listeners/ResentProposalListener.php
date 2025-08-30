@@ -6,7 +6,7 @@ use App\Events\ResentProposal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class ResentProposal
+class ResentProposalListener
 {
     /**
      * Create the event listener.

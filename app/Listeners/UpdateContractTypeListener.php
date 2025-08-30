@@ -6,7 +6,7 @@ use App\Events\UpdateContractType;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateContractTypeListener
+class UpdateContractTypeListenerListener
 {
     /**
      * Create the event listener.

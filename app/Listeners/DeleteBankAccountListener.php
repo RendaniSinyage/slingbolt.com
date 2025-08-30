@@ -6,7 +6,7 @@ use App\Events\DeleteBankAccount;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteBankAccountListener
+class DeleteBankAccountListenerListener
 {
     /**
      * Create the event listener.

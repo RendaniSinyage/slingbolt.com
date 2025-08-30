@@ -6,7 +6,7 @@ use App\Events\DeleteWarehouse;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteWarehouse
+class DeleteWarehouseListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\CreateCustomer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateCustomer
+class CreateCustomerListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\CreateUser;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UserCreate
+class UserCreateListener
 {
     /**
      * Create the event listener.

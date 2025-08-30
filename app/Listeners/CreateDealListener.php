@@ -6,7 +6,7 @@ use App\Events\CreateDeal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateDeal
+class CreateDealListener
 {
     /**
      * Create the event listener.

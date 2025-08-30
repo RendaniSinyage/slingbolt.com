@@ -6,7 +6,7 @@ use App\Events\DeleteUser;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteUser
+class DeleteUserListener
 {
     /**
      * Create the event listener.

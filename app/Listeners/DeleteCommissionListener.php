@@ -6,7 +6,7 @@ use App\Events\DeleteCommission;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteCommissionListener
+class DeleteCommissionListenerListener
 {
     /**
      * Create the event listener.

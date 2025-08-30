@@ -6,7 +6,7 @@ use App\Events\DeleteBill;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteBill
+class DeleteBillListener
 {
     /**
      * Create the event listener.

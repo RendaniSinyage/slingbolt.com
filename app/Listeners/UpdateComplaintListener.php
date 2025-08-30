@@ -6,7 +6,7 @@ use App\Events\UpdateComplaint;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateComplaintListener
+class UpdateComplaintListenerListener
 {
     /**
      * Create the event listener.

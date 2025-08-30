@@ -6,7 +6,7 @@ use App\Events\EmployeeClockOut;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class EmployeeClockOutListener
+class EmployeeClockOutListenerListener
 {
     /**
      * Create the event listener.

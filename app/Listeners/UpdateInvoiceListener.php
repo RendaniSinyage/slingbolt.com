@@ -6,7 +6,7 @@ use App\Events\UpdateInvoice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateInvoice
+class UpdateInvoiceListener
 {
     /**
      * Create the event listener.

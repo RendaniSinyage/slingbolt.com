@@ -6,7 +6,7 @@ use App\Events\DeleteBranch;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteBranchListener
+class DeleteBranchListenerListener
 {
     /**
      * Create the event listener.

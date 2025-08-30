@@ -6,7 +6,7 @@ use App\Events\CreateManualAttendance;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateManualAttendanceListener
+class CreateManualAttendanceListenerListener
 {
     /**
      * Create the event listener.

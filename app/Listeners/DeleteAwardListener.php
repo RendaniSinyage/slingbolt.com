@@ -6,7 +6,7 @@ use App\Events\DeleteAward;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteAwardListener
+class DeleteAwardListenerListener
 {
     /**
      * Create the event listener.

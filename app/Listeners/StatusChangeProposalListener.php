@@ -6,7 +6,7 @@ use App\Events\StatusChangeProposal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class StatusChangeProposal
+class StatusChangeProposalListener
 {
     /**
      * Create the event listener.

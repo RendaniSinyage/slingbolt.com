@@ -6,7 +6,7 @@ use App\Events\DeleteCompetencies;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteCompetenciesListener
+class DeleteCompetenciesListenerListener
 {
     /**
      * Create the event listener.

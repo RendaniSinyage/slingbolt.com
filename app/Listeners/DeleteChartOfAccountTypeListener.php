@@ -6,7 +6,7 @@ use App\Events\DeleteChartOfAccountType;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteChartOfAccountTypeListener
+class DeleteChartOfAccountTypeListenerListener
 {
     /**
      * Create the event listener.

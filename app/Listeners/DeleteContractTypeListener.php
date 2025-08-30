@@ -6,7 +6,7 @@ use App\Events\DeleteContractType;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteContractTypeListener
+class DeleteContractTypeListenerListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\UpdateProposal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateProposal
+class UpdateProposalListener
 {
     /**
      * Create the event listener.

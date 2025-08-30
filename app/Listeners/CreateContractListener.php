@@ -6,7 +6,7 @@ use App\Events\CreateContract;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateContract
+class CreateContractListener
 {
     /**
      * Create the event listener.

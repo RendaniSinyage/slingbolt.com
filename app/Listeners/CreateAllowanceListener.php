@@ -6,7 +6,7 @@ use App\Events\CreateAllowance;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateAllowanceListener
+class CreateAllowanceListenerListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\DeleteRole;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteRole
+class DeleteRoleListener
 {
     /**
      * Create the event listener.

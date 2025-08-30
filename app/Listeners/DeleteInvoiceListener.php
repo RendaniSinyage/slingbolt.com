@@ -6,7 +6,7 @@ use App\Events\DeleteInvoice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteInvoice
+class DeleteInvoiceListener
 {
     /**
      * Create the event listener.

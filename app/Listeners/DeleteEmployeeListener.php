@@ -6,7 +6,7 @@ use App\Events\DeleteEmployee;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteEmployee
+class DeleteEmployeeListener
 {
     /**
      * Create the event listener.

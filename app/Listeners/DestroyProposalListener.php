@@ -6,7 +6,7 @@ use App\Events\DestroyProposal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DestroyProposal
+class DestroyProposalListener
 {
     /**
      * Create the event listener.

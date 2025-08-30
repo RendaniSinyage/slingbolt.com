@@ -6,7 +6,7 @@ use App\Events\CreateExpense;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateExpense
+class CreateExpenseListener
 {
     /**
      * Create the event listener.

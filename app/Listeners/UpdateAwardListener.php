@@ -6,7 +6,7 @@ use App\Events\UpdateAward;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateAwardListener
+class UpdateAwardListenerListener
 {
     /**
      * Create the event listener.

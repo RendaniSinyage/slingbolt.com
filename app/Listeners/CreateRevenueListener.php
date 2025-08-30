@@ -6,7 +6,7 @@ use App\Events\CreateRevenue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateRevenueListener
+class CreateRevenueListenerListener
 {
     /**
      * Create the event listener.

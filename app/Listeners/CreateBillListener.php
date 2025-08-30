@@ -6,7 +6,7 @@ use App\Events\CreateBill;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateBill
+class CreateBillListener
 {
     /**
      * Create the event listener.

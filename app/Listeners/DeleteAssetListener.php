@@ -6,7 +6,7 @@ use App\Events\DeleteAsset;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteAssetListener
+class DeleteAssetListenerListener
 {
     /**
      * Create the event listener.

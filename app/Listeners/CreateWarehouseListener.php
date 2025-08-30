@@ -6,7 +6,7 @@ use App\Events\CreateWarehouse;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateWarehouse
+class CreateWarehouseListener
 {
     /**
      * Create the event listener.

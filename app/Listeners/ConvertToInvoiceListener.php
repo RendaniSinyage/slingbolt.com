@@ -6,7 +6,7 @@ use App\Events\ConvertToInvoice;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class ConvertToInvoice
+class ConvertToInvoiceListener
 {
     /**
      * Create the event listener.

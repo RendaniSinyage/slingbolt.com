@@ -6,7 +6,7 @@ use App\Events\UpdateCustomer;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateCustomer
+class UpdateCustomerListener
 {
     /**
      * Create the event listener.

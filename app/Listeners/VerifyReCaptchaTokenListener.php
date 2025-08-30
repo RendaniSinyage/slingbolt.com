@@ -6,7 +6,7 @@ use App\Events\VerifyReCaptchaToken;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class VerifyReCaptchaTokenLis
+class VerifyReCaptchaTokenListenerLis
 {
     /**
      * Create the event listener.
