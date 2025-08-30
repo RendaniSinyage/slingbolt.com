@@ -90,7 +90,7 @@
                         @php
                             $currency = \DB::table('settings')
                                 ->where('created_by', $user->id)
-                                ->where('name', 'currency')
+                                ->where('name', 'site_currency')
                                 ->value('value');
                         @endphp
                         @if($currency)
