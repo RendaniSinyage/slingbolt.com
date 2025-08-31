@@ -57,11 +57,11 @@ The following is a list of controllers that still need to have `Create`, `Update
 *   [x] `DepartmentController`
 *   [x] `DesignationController`
 *   [x] `DucumentUploadController`
-*   [ ] `EventController`
-*   [ ] `FormBuilderController`
-*   [ ] `GoalController`
-*   [ ] `GoalTypeController`
-*   [ ] `HolidayController`
+*   [x] `EventController`
+*   [x] `FormBuilderController`
+*   [x] `GoalController`
+*   [x] `GoalTypeController`
+*   [x] `HolidayController`
 *   [ ] `HomeController`
 *   [ ] `IndicatorController`
 *   [ ] `IpRestrictController`

@@ -75,6 +75,8 @@ class HolidayController extends Controller
             $holiday->created_by = \Auth::user()->creatorId();
             $holiday->save();
 
+            event(new \App\Events\CreateHoliday($holiday, $request));
+
             //For Notification
             $setting  = Utility::settings(\Auth::user()->creatorId());
             $holidayNotificationArr = [
@@ -175,6 +177,8 @@ class HolidayController extends Controller
             $holiday->occasion = $request->occasion;
             $holiday->save();
 
+            event(new \App\Events\UpdateHoliday($holiday, $request));
+
             return redirect()->route('holiday.index')->with('success', 'Holiday successfully updated.');
         }
         else
@@ -189,6 +193,8 @@ class HolidayController extends Controller
     {
         if(\Auth::user()->can('delete holiday'))
         {
+            event(new \App\Events\DeleteHoliday($holiday));
+
             $holiday->delete();
 
             return redirect()->route('holiday.index')->with('success', 'Holiday successfully deleted.');

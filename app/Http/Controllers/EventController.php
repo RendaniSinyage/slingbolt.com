@@ -103,6 +103,8 @@ class EventController extends Controller
             $event->description   = $request->description;
             $event->created_by    = \Auth::user()->creatorId();
             $event->save();
+
+            event(new \App\Events\CreateEvent($event, $request));
             
             if(in_array('0', $request->employee_id))
             {
@@ -248,6 +250,8 @@ class EventController extends Controller
                 $event->description = $request->description;
                 $event->save();
 
+                event(new \App\Events\UpdateEvent($event, $request));
+
                 return redirect()->route('event.index')->with('success', __('Event successfully updated.'));
             }
             else
@@ -269,6 +273,8 @@ class EventController extends Controller
         {
             if($event->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteEvent($event));
+
                 $event->delete();
 
                 return redirect()->route('event.index')->with('success', __('Event successfully deleted.'));

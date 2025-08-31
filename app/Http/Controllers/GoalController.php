@@ -67,6 +67,8 @@ class GoalController extends Controller
             $goal->created_by = \Auth::user()->creatorId();
             $goal->save();
 
+            event(new \App\Events\CreateGoal($goal, $request));
+
             return redirect()->route('goal.index')->with('success', __('Goal successfully created.'));
         }
         else
@@ -127,6 +129,8 @@ class GoalController extends Controller
                 $goal->is_display = isset($request->is_display) ? 1 : 0;
                 $goal->save();
 
+                event(new \App\Events\UpdateGoal($goal, $request));
+
                 return redirect()->route('goal.index')->with('success', __('Goal successfully updated.'));
             }
             else
@@ -147,6 +151,8 @@ class GoalController extends Controller
         {
             if($goal->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteGoal($goal));
+
                 $goal->delete();
 
                 return redirect()->route('goal.index')->with('success', __('Goal successfully deleted.'));

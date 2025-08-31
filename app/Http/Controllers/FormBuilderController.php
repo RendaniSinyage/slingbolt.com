@@ -61,6 +61,8 @@ class FormBuilderController extends Controller
             $form_builder->created_by = \Auth::user()->creatorId();
             $form_builder->save();
 
+            event(new \App\Events\CreateFormBuilder($form_builder, $request));
+
             return redirect()->route('form_builder.index')->with('success', __('Form successfully created.'));
         }
         else
@@ -134,6 +136,8 @@ class FormBuilderController extends Controller
                 $formBuilder->is_lead_active = 0;
                 $formBuilder->save();
 
+                event(new \App\Events\UpdateFormBuilder($formBuilder, $request));
+
                 return redirect()->route('form_builder.index')->with('success', __('Form successfully updated.'));
             }
             else
@@ -157,6 +161,8 @@ class FormBuilderController extends Controller
                 FormField::where('form_id', '=', $formBuilder->id)->delete();
                 FormFieldResponse::where('form_id', '=', $formBuilder->id)->delete();
                 FormResponse::where('form_id', '=', $formBuilder->id)->delete();
+
+                event(new \App\Events\DeleteFormBuilder($formBuilder));
 
                 $formBuilder->delete();
 
@@ -213,7 +219,7 @@ class FormBuilderController extends Controller
                     if(!empty($value))
                     {
                         // create form field
-                        FormField::create(
+                        $formField = FormField::create(
                             [
                                 'form_id' => $formbuilder->id,
                                 'name' => $value,
@@ -221,6 +227,7 @@ class FormBuilderController extends Controller
                                 'created_by' => $usr->creatorId(),
                             ]
                         );
+                        event(new \App\Events\CreateFormField($formField, $request));
                     }
                 }
 
@@ -297,6 +304,8 @@ class FormBuilderController extends Controller
                     ]
                 );
 
+                event(new \App\Events\UpdateFormField($field, $request));
+
                 return redirect()->back()->with('success', __('Form successfully updated.'));
             }
             else
@@ -329,6 +338,7 @@ class FormBuilderController extends Controller
                     $form_field = FormField::find($field_id);
                     if(!empty($form_field))
                     {
+                        event(new \App\Events\DeleteFormField($form_field));
                         $form_field->delete();
                     }
                     else
@@ -450,12 +460,13 @@ class FormBuilderController extends Controller
             }
 
             // store response
-            FormResponse::create(
+            $formResponse = FormResponse::create(
                 [
                     'form_id' => $form->id,
                     'response' => json_encode($arrFieldResp),
                 ]
             );
+            event(new \App\Events\CreateFormResponse($formResponse, $request));
 
             // in form convert lead is active then creat lead
             if($form->is_lead_active == 1)
@@ -556,6 +567,8 @@ class FormBuilderController extends Controller
             $form                 = FormBuilder::find($id);
             $form->is_lead_active = $request->is_lead_active;
             $form->save();
+
+            event(new \App\Events\UpdateFormLeadConversion($form, $request));
 
             if($form->created_by == $usr->creatorId())
             {

@@ -137,6 +137,26 @@ use App\Events\DeleteDesignation;
 use App\Events\CreateDucumentUpload;
 use App\Events\UpdateDucumentUpload;
 use App\Events\DeleteDucumentUpload;
+use App\Events\CreateEvent;
+use App\Events\UpdateEvent;
+use App\Events\DeleteEvent;
+use App\Events\CreateFormBuilder;
+use App\Events\UpdateFormBuilder;
+use App\Events\DeleteFormBuilder;
+use App\Events\CreateFormField;
+use App\Events\UpdateFormField;
+use App\Events\DeleteFormField;
+use App\Events\CreateFormResponse;
+use App\Events\UpdateFormLeadConversion;
+use App\Events\CreateGoal;
+use App\Events\UpdateGoal;
+use App\Events\DeleteGoal;
+use App\Events\CreateGoalType;
+use App\Events\UpdateGoalType;
+use App\Events\DeleteGoalType;
+use App\Events\CreateHoliday;
+use App\Events\UpdateHoliday;
+use App\Events\DeleteHoliday;
 use App\Listeners\CreateClientListener;
 use App\Listeners\CreateDealListener;
 use App\Listeners\CreateInvoiceListener;
@@ -270,6 +290,26 @@ use App\Listeners\DeleteDesignationListener;
 use App\Listeners\CreateDucumentUploadListener;
 use App\Listeners\UpdateDucumentUploadListener;
 use App\Listeners\DeleteDucumentUploadListener;
+use App\Listeners\CreateEventListener;
+use App\Listeners\UpdateEventListener;
+use App\Listeners\DeleteEventListener;
+use App\Listeners\CreateFormBuilderListener;
+use App\Listeners\UpdateFormBuilderListener;
+use App\Listeners\DeleteFormBuilderListener;
+use App\Listeners\CreateFormFieldListener;
+use App\Listeners\UpdateFormFieldListener;
+use App\Listeners\DeleteFormFieldListener;
+use App\Listeners\CreateFormResponseListener;
+use App\Listeners\UpdateFormLeadConversionListener;
+use App\Listeners\CreateGoalListener;
+use App\Listeners\UpdateGoalListener;
+use App\Listeners\DeleteGoalListener;
+use App\Listeners\CreateGoalTypeListener;
+use App\Listeners\UpdateGoalTypeListener;
+use App\Listeners\DeleteGoalTypeListener;
+use App\Listeners\CreateHolidayListener;
+use App\Listeners\UpdateHolidayListener;
+use App\Listeners\DeleteHolidayListener;
 use App\Listeners\UserCreate;
 use App\Listeners\VerifyReCaptchaTokenLis;
 use Illuminate\Auth\Events\Registered;
@@ -692,6 +732,66 @@ class EventServiceProvider extends ServiceProvider
         ],
         DeleteDucumentUpload::class => [
             DeleteDucumentUploadListener::class,
+        ],
+        CreateEvent::class => [
+            CreateEventListener::class,
+        ],
+        UpdateEvent::class => [
+            UpdateEventListener::class,
+        ],
+        DeleteEvent::class => [
+            DeleteEventListener::class,
+        ],
+        CreateFormBuilder::class => [
+            CreateFormBuilderListener::class,
+        ],
+        UpdateFormBuilder::class => [
+            UpdateFormBuilderListener::class,
+        ],
+        DeleteFormBuilder::class => [
+            DeleteFormBuilderListener::class,
+        ],
+        CreateFormField::class => [
+            CreateFormFieldListener::class,
+        ],
+        UpdateFormField::class => [
+            UpdateFormFieldListener::class,
+        ],
+        DeleteFormField::class => [
+            DeleteFormFieldListener::class,
+        ],
+        CreateFormResponse::class => [
+            CreateFormResponseListener::class,
+        ],
+        UpdateFormLeadConversion::class => [
+            UpdateFormLeadConversionListener::class,
+        ],
+        CreateGoal::class => [
+            CreateGoalListener::class,
+        ],
+        UpdateGoal::class => [
+            UpdateGoalListener::class,
+        ],
+        DeleteGoal::class => [
+            DeleteGoalListener::class,
+        ],
+        CreateGoalType::class => [
+            CreateGoalTypeListener::class,
+        ],
+        UpdateGoalType::class => [
+            UpdateGoalTypeListener::class,
+        ],
+        DeleteGoalType::class => [
+            DeleteGoalTypeListener::class,
+        ],
+        CreateHoliday::class => [
+            CreateHolidayListener::class,
+        ],
+        UpdateHoliday::class => [
+            UpdateHolidayListener::class,
+        ],
+        DeleteHoliday::class => [
+            DeleteHolidayListener::class,
         ],
     ];
 

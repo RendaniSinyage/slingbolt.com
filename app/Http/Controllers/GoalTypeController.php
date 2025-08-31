@@ -57,6 +57,8 @@ class GoalTypeController extends Controller
             $goaltype->created_by = \Auth::user()->creatorId();
             $goaltype->save();
 
+            event(new \App\Events\CreateGoalType($goaltype, $request));
+
             return redirect()->route('goaltype.index')->with('success', __('GoalType  successfully created.'));
         }
         else
@@ -107,6 +109,8 @@ class GoalTypeController extends Controller
             $goalType->name = $request->name;
             $goalType->save();
 
+            event(new \App\Events\UpdateGoalType($goalType, $request));
+
             return redirect()->route('goaltype.index')->with('success', __('GoalType successfully updated.'));
         }
         else
@@ -123,6 +127,8 @@ class GoalTypeController extends Controller
             $goalType = GoalType::find($id);
             if($goalType->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteGoalType($goalType));
+
                 $goalType->delete();
 
                 return redirect()->route('goaltype.index')->with('success', __('GoalType successfully deleted.'));
