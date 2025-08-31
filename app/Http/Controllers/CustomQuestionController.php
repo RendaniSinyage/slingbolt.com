@@ -51,6 +51,8 @@ class CustomQuestionController extends Controller
             $question->created_by  = \Auth::user()->creatorId();
             $question->save();
 
+            event(new \App\Events\CreateCustomQuestion($question, $request));
+
             return redirect()->back()->with('success', __('Question successfully created.'));
         }
         else
@@ -90,6 +92,8 @@ class CustomQuestionController extends Controller
             $customQuestion->is_required = $request->is_required;
             $customQuestion->save();
 
+            event(new \App\Events\UpdateCustomQuestion($customQuestion, $request));
+
             return redirect()->back()->with('success', __('Question successfully updated.'));
         }
         else
@@ -102,6 +106,8 @@ class CustomQuestionController extends Controller
     {
         if(\Auth::user()->can('delete custom question'))
         {
+            event(new \App\Events\DeleteCustomQuestion($customQuestion));
+
             $customQuestion->delete();
 
             return redirect()->back()->with('success', __('Question successfully deleted.'));

@@ -113,6 +113,8 @@ class CustomerDebitNotesController extends Controller
                     ];
                     Utility::addTransactionLines($data);
 
+                    event(new \App\Events\CreateCustomerDebitNote($debit, $request));
+
                 return redirect()->back()->with('success', __('Debit Note successfully created.'));
             }else{
                 return redirect()->back()->with('error', __('The bill field is required.'));
@@ -204,6 +206,8 @@ class CustomerDebitNotesController extends Controller
             ];
             Utility::addTransactionLines($data , 'edit');
 
+            event(new \App\Events\UpdateCustomerDebitNote($debit, $request));
+
             return redirect()->back()->with('success', __('The debit note details are updated successfully.'));
         }
         else
@@ -221,6 +225,8 @@ class CustomerDebitNotesController extends Controller
             if($debitNote->status == 0)
             {
                 AddTransactionLine::where('reference_id',$debitNote->id)->where('reference_sub_id',$debitNote->bill)->where('reference', 'Debit Note')->delete();
+
+                event(new \App\Events\DeleteCustomerDebitNote($debitNote));
 
                 $debitNote->delete();
 

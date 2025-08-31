@@ -47,11 +47,11 @@ The following is a list of controllers that still need to have `Create`, `Update
 *   [x] `ComplianceSettingsController`
 *   [x] `ContractTypeController` (stub)
 *   [x] `CouponController`
-*   [ ] `CreditNoteController`
-*   [ ] `CustomFieldController`
-*   [ ] `CustomQuestionController`
-*   [ ] `CustomerCreditNotesController`
-*   [ ] `CustomerDebitNotesController`
+*   [x] `CreditNoteController`
+*   [x] `CustomFieldController`
+*   [x] `CustomQuestionController`
+*   [x] `CustomerCreditNotesController`
+*   [x] `CustomerDebitNotesController`
 *   [ ] `DebitNoteController`
 *   [ ] `DeductionOptionController`
 *   [ ] `DepartmentController`

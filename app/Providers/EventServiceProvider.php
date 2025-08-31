@@ -107,6 +107,21 @@ use App\Events\VerifyReCaptchaToken;
 use App\Events\CreateCoupon;
 use App\Events\UpdateCoupon;
 use App\Events\DeleteCoupon;
+use App\Events\CreateCreditNote;
+use App\Events\UpdateCreditNote;
+use App\Events\DeleteCreditNote;
+use App\Events\CreateCustomField;
+use App\Events\UpdateCustomField;
+use App\Events\DeleteCustomField;
+use App\Events\CreateCustomQuestion;
+use App\Events\UpdateCustomQuestion;
+use App\Events\DeleteCustomQuestion;
+use App\Events\CreateCustomerCreditNote;
+use App\Events\UpdateCustomerCreditNote;
+use App\Events\DeleteCustomerCreditNote;
+use App\Events\CreateCustomerDebitNote;
+use App\Events\UpdateCustomerDebitNote;
+use App\Events\DeleteCustomerDebitNote;
 use App\Listeners\CreateClientListener;
 use App\Listeners\CreateDealListener;
 use App\Listeners\CreateInvoiceListener;
@@ -210,6 +225,21 @@ use App\Listeners\DeleteContractTypeListener;
 use App\Listeners\CreateCouponListener;
 use App\Listeners\UpdateCouponListener;
 use App\Listeners\DeleteCouponListener;
+use App\Listeners\CreateCreditNoteListener;
+use App\Listeners\UpdateCreditNoteListener;
+use App\Listeners\DeleteCreditNoteListener;
+use App\Listeners\CreateCustomFieldListener;
+use App\Listeners\UpdateCustomFieldListener;
+use App\Listeners\DeleteCustomFieldListener;
+use App\Listeners\CreateCustomQuestionListener;
+use App\Listeners\UpdateCustomQuestionListener;
+use App\Listeners\DeleteCustomQuestionListener;
+use App\Listeners\CreateCustomerCreditNoteListener;
+use App\Listeners\UpdateCustomerCreditNoteListener;
+use App\Listeners\DeleteCustomerCreditNoteListener;
+use App\Listeners\CreateCustomerDebitNoteListener;
+use App\Listeners\UpdateCustomerDebitNoteListener;
+use App\Listeners\DeleteCustomerDebitNoteListener;
 use App\Listeners\UserCreate;
 use App\Listeners\VerifyReCaptchaTokenLis;
 use Illuminate\Auth\Events\Registered;
@@ -542,6 +572,51 @@ class EventServiceProvider extends ServiceProvider
         ],
         DeleteCoupon::class => [
             DeleteCouponListener::class,
+        ],
+        CreateCreditNote::class => [
+            CreateCreditNoteListener::class,
+        ],
+        UpdateCreditNote::class => [
+            UpdateCreditNoteListener::class,
+        ],
+        DeleteCreditNote::class => [
+            DeleteCreditNoteListener::class,
+        ],
+        CreateCustomField::class => [
+            CreateCustomFieldListener::class,
+        ],
+        UpdateCustomField::class => [
+            UpdateCustomFieldListener::class,
+        ],
+        DeleteCustomField::class => [
+            DeleteCustomFieldListener::class,
+        ],
+        CreateCustomQuestion::class => [
+            CreateCustomQuestionListener::class,
+        ],
+        UpdateCustomQuestion::class => [
+            UpdateCustomQuestionListener::class,
+        ],
+        DeleteCustomQuestion::class => [
+            DeleteCustomQuestionListener::class,
+        ],
+        CreateCustomerCreditNote::class => [
+            CreateCustomerCreditNoteListener::class,
+        ],
+        UpdateCustomerCreditNote::class => [
+            UpdateCustomerCreditNoteListener::class,
+        ],
+        DeleteCustomerCreditNote::class => [
+            DeleteCustomerCreditNoteListener::class,
+        ],
+        CreateCustomerDebitNote::class => [
+            CreateCustomerDebitNoteListener::class,
+        ],
+        UpdateCustomerDebitNote::class => [
+            UpdateCustomerDebitNoteListener::class,
+        ],
+        DeleteCustomerDebitNote::class => [
+            DeleteCustomerDebitNoteListener::class,
         ],
     ];
 

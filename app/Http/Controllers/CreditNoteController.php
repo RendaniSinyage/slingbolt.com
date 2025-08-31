@@ -83,6 +83,8 @@ class CreditNoteController extends Controller
             
             $this->updateCreditNoteStatus($credit);
 
+            event(new \App\Events\CreateCreditNote($credit, $request));
+
             return redirect()->back()->with('success', __('The credit note has been created successfully.'));
         }
         else
@@ -145,6 +147,8 @@ class CreditNoteController extends Controller
 
             $this->updateCreditNoteStatus($credit);
 
+            event(new \App\Events\UpdateCreditNote($credit, $request));
+
             return redirect()->back()->with('success', __('The credit note details are updated successfully.'));
         }
         else
@@ -172,6 +176,9 @@ class CreditNoteController extends Controller
                 $invoice->save();
 
                 $this->updateCreditNoteStatus($creditNote , 'delete');
+
+                event(new \App\Events\DeleteCreditNote($creditNote));
+
                 $creditNote->delete();
 
                 return redirect()->back()->with('success', __('The credit note has been deleted.'));

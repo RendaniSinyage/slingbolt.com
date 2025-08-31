@@ -70,6 +70,8 @@ class CustomFieldController extends Controller
             $custom_field->created_by = \Auth::user()->creatorId();
             $custom_field->save();
 
+            event(new \App\Events\CreateCustomField($custom_field, $request));
+
             return redirect()->route('custom-field.index')->with('success', __('Custom Field successfully created!'));
         }
         else
@@ -131,6 +133,8 @@ class CustomFieldController extends Controller
                 $customField->name = $request->name;
                 $customField->save();
 
+                event(new \App\Events\UpdateCustomField($customField, $request));
+
                 return redirect()->route('custom-field.index')->with('success', __('Custom Field successfully updated!'));
             }
             else
@@ -151,6 +155,8 @@ class CustomFieldController extends Controller
         {
             if($customField->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteCustomField($customField));
+
                 $customField->delete();
 
                 return redirect()->route('custom-field.index')->with('success', __('Custom Field successfully deleted!'));

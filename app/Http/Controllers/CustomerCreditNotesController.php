@@ -113,6 +113,8 @@ class CustomerCreditNotesController extends Controller
                     ];
                     Utility::addTransactionLines($data);
 
+                    event(new \App\Events\CreateCustomerCreditNote($credit, $request));
+
                 return redirect()->back()->with('success', __('Credit Note successfully created.'));
             }else{
                 return redirect()->back()->with('error', __('The invoice field is required.'));
@@ -204,6 +206,8 @@ class CustomerCreditNotesController extends Controller
             ];
             Utility::addTransactionLines($data , 'edit');
 
+            event(new \App\Events\UpdateCustomerCreditNote($credit, $request));
+
             return redirect()->back()->with('success', __('The credit note details are updated successfully.'));
         }
         else
@@ -221,6 +225,8 @@ class CustomerCreditNotesController extends Controller
             if($creditNote->status == 0)
             {
                 AddTransactionLine::where('reference_id',$creditNote->id)->where('reference_sub_id',$creditNote->invoice)->where('reference', 'Credit Note')->delete();
+
+                event(new \App\Events\DeleteCustomerCreditNote($creditNote));
 
                 $creditNote->delete();
 
