@@ -104,6 +104,9 @@ use App\Events\CreateContractType;
 use App\Events\UpdateContractType;
 use App\Events\DeleteContractType;
 use App\Events\VerifyReCaptchaToken;
+use App\Events\CreateCoupon;
+use App\Events\UpdateCoupon;
+use App\Events\DeleteCoupon;
 use App\Listeners\CreateClientListener;
 use App\Listeners\CreateDealListener;
 use App\Listeners\CreateInvoiceListener;
@@ -204,6 +207,9 @@ use App\Listeners\StoreComplianceSettingsListener;
 use App\Listeners\CreateContractTypeListener;
 use App\Listeners\UpdateContractTypeListener;
 use App\Listeners\DeleteContractTypeListener;
+use App\Listeners\CreateCouponListener;
+use App\Listeners\UpdateCouponListener;
+use App\Listeners\DeleteCouponListener;
 use App\Listeners\UserCreate;
 use App\Listeners\VerifyReCaptchaTokenLis;
 use Illuminate\Auth\Events\Registered;
@@ -527,6 +533,15 @@ class EventServiceProvider extends ServiceProvider
         ],
         DeleteContractType::class => [
             DeleteContractTypeListener::class,
+        ],
+        CreateCoupon::class => [
+            CreateCouponListener::class,
+        ],
+        UpdateCoupon::class => [
+            UpdateCouponListener::class,
+        ],
+        DeleteCoupon::class => [
+            DeleteCouponListener::class,
         ],
     ];
 

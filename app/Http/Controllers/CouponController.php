@@ -85,6 +85,8 @@ class CouponController extends Controller
 
             $coupon->save();
 
+            event(new \App\Events\CreateCoupon($coupon, $request));
+
             return redirect()->route('coupons.index')->with('success', __('Coupon successfully created.'));
         }
         else
@@ -142,6 +144,8 @@ class CouponController extends Controller
 
             $coupon->save();
 
+            event(new \App\Events\UpdateCoupon($coupon, $request));
+
             return redirect()->route('coupons.index')->with('success', __('Coupon successfully updated.'));
         }
         else
@@ -156,6 +160,8 @@ class CouponController extends Controller
         if(\Auth::user()->can('delete coupon'))
         {
             $coupon->delete();
+
+            event(new \App\Events\DeleteCoupon($coupon));
 
             return redirect()->route('coupons.index')->with('success', __('Coupon successfully deleted.'));
         }
