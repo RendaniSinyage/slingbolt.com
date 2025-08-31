@@ -2,7 +2,7 @@
 
 namespace App\Listeners;
 
-use App\Events\UpdateProposal;
+use App\Events\UpdateProposal as UpdateProposalEvent;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
@@ -24,7 +24,7 @@ class UpdateProposal
      * @param  \App\Events\UpdateProposal  $event
      * @return void
      */
-    public function handle(UpdateProposal $event)
+    public function handle(UpdateProposalEvent $event)
     {
         //
     }
