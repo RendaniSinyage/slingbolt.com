@@ -6,7 +6,7 @@ use App\Events\CreateCompanyPolicy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateCompanyPolicyListenerListener
+class CreateCompanyPolicyListener
 {
     /**
      * Create the event listener.

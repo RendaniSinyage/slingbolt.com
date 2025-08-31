@@ -6,7 +6,7 @@ use App\Events\UpdateBudget;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateBudgetListenerListener
+class UpdateBudgetListener
 {
     /**
      * Create the event listener.

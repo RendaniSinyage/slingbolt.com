@@ -6,7 +6,7 @@ use App\Events\CreateBranch;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateBranchListenerListener
+class CreateBranchListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\UpdateBugStatus;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateBugStatusListenerListener
+class UpdateBugStatusListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\DeleteAllowanceOption;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteAllowanceOptionListenerListener
+class DeleteAllowanceOptionListener
 {
     /**
      * Create the event listener.

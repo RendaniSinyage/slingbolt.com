@@ -6,7 +6,7 @@ use App\Events\DeleteBudget;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteBudgetListenerListener
+class DeleteBudgetListener
 {
     /**
      * Create the event listener.

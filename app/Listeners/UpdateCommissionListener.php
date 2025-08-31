@@ -6,7 +6,7 @@ use App\Events\UpdateCommission;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateCommissionListenerListener
+class UpdateCommissionListener
 {
     /**
      * Create the event listener.

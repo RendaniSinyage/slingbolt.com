@@ -6,7 +6,7 @@ use App\Events\OrderBugStatus;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class OrderBugStatusListenerListener
+class OrderBugStatusListener
 {
     /**
      * Create the event listener.

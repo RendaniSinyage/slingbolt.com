@@ -6,7 +6,7 @@ use App\Events\UpdateAllowanceOption;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateAllowanceOptionListenerListener
+class UpdateAllowanceOptionListener
 {
     /**
      * Create the event listener.

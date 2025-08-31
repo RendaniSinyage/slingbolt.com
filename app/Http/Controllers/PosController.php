@@ -44,20 +44,48 @@ class PosController extends Controller
             ];
 
             if ($id != 0) {
-
+                session()->forget('pos');
                 $quotation = Quotation::find($id);
 
-                $customerId = $quotation->customer_id;
-                $customerId = Customer::find($customerId);
-                $customer = $customerId->name;
+                if ($quotation) {
+                    $customerObj = Customer::find($quotation->customer_id);
+                    $customer = $customerObj ? $customerObj->name : '';
+                    $warehouseId = $quotation->warehouse_id;
 
-                $warehouseId = $quotation->warehouse_id;
+                    $pos_cart = [];
+                    $quotationProducts = QuotationProduct::where('quotation_id', $id)->get();
 
-                $quotationProduct = QuotationProduct::where('quotation_id', $id)->get();
+                    foreach ($quotationProducts as $quotationProduct) {
+                        $product = ProductService::find($quotationProduct->product_id);
+                        if ($product) {
+                            $tax_rate = 0;
+                            if($quotationProduct->tax)
+                            {
+                                $tax = Utility::tax($quotationProduct->tax);
+                                if($tax) {
+                                    $tax_rate = $tax->rate;
+                                }
+                            }
 
-                foreach ($quotationProduct as $value) {
-                    $products = Quotation::quotationProduct($value);
+                            $pos_cart[$product->id] = [
+                                'id' => $product->id,
+                                'name' => $product->name,
+                                'price' => (float)$quotationProduct->price,
+                                'quantity' => (int)$quotationProduct->quantity,
+                                'tax' => (float)$tax_rate,
+                                'subtotal' => $quotationProduct->price * $quotationProduct->quantity,
+                                'product_tax' => $quotationProduct->tax,
+                            ];
+                        }
+                    }
+                    session(['pos' => $pos_cart]);
+
+                } else {
+                    // Quotation not found, clear variables
+                    $customer = '';
+                    $warehouseId = '';
                 }
+
             } else {
                 $customer = '';
                 $warehouseId = '';

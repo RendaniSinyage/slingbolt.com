@@ -6,7 +6,7 @@ use App\Events\UpdateAppraisal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateAppraisalListenerListener
+class UpdateAppraisalListener
 {
     /**
      * Create the event listener.

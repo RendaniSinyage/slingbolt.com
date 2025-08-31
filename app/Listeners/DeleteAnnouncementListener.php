@@ -6,7 +6,7 @@ use App\Events\DeleteAnnouncement;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteAnnouncementListenerListener
+class DeleteAnnouncementListener
 {
     /**
      * Create the event listener.

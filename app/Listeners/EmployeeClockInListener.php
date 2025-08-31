@@ -6,7 +6,7 @@ use App\Events\EmployeeClockIn;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class EmployeeClockInListenerListener
+class EmployeeClockInListener
 {
     /**
      * Create the event listener.

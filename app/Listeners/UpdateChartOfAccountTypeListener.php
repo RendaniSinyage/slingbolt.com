@@ -6,7 +6,7 @@ use App\Events\UpdateChartOfAccountType;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class UpdateChartOfAccountTypeListenerListener
+class UpdateChartOfAccountTypeListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\CreateBankAccount;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateBankAccountListenerListener
+class CreateBankAccountListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\DeleteAppraisal;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteAppraisalListenerListener
+class DeleteAppraisalListener
 {
     /**
      * Create the event listener.

@@ -6,7 +6,7 @@ use App\Events\DeleteBugStatus;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteBugStatusListenerListener
+class DeleteBugStatusListener
 {
     /**
      * Create the event listener.

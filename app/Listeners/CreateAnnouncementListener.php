@@ -6,7 +6,7 @@ use App\Events\CreateAnnouncement;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateAnnouncementListenerListener
+class CreateAnnouncementListener
 {
     /**
      * Create the event listener.

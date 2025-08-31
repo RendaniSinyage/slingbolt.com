@@ -6,7 +6,7 @@ use App\Events\CreateAsset;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class CreateAssetListenerListener
+class CreateAssetListener
 {
     /**
      * Create the event listener.

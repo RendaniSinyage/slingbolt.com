@@ -6,7 +6,7 @@ use App\Events\DeleteCompanyPolicy;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 
-class DeleteCompanyPolicyListenerListener
+class DeleteCompanyPolicyListener
 {
     /**
      * Create the event listener.
