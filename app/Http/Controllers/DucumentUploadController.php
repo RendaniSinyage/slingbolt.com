@@ -88,6 +88,8 @@ class DucumentUploadController extends Controller
             $document->created_by  = \Auth::user()->creatorId();
             $document->save();
 
+            event(new \App\Events\CreateDucumentUpload($document, $request));
+
             return redirect()->route('document-upload.index')->with('success', __('Document successfully uploaded.'));
         }
         else
@@ -163,6 +165,8 @@ class DucumentUploadController extends Controller
             }
             $document->save();
 
+            event(new \App\Events\UpdateDucumentUpload($document, $request));
+
             return redirect()->route('document-upload.index')->with('success', __('Document successfully uploaded.'));
         }
         else
@@ -179,6 +183,8 @@ class DucumentUploadController extends Controller
             $document = DucumentUpload::find($id);
             if($document->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteDucumentUpload($document));
+
                 $document->delete();
 
                 $dir = storage_path('uploads/documentUpload/');

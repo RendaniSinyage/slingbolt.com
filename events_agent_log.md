@@ -52,11 +52,11 @@ The following is a list of controllers that still need to have `Create`, `Update
 *   [x] `CustomQuestionController`
 *   [x] `CustomerCreditNotesController`
 *   [x] `CustomerDebitNotesController`
-*   [ ] `DebitNoteController`
-*   [ ] `DeductionOptionController`
-*   [ ] `DepartmentController`
-*   [ ] `DesignationController`
-*   [ ] `DucumentUploadController`
+*   [x] `DebitNoteController`
+*   [x] `DeductionOptionController`
+*   [x] `DepartmentController`
+*   [x] `DesignationController`
+*   [x] `DucumentUploadController`
 *   [ ] `EventController`
 *   [ ] `FormBuilderController`
 *   [ ] `GoalController`

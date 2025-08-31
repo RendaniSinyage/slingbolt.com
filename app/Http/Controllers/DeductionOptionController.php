@@ -55,6 +55,8 @@ class DeductionOptionController extends Controller
             $deductionoption->created_by = \Auth::user()->creatorId();
             $deductionoption->save();
 
+            event(new \App\Events\CreateDeductionOption($deductionoption, $request));
+
             return redirect()->route('deductionoption.index')->with('success', __('DeductionOption  successfully created.'));
         }
         else
@@ -111,6 +113,8 @@ class DeductionOptionController extends Controller
                 $deductionoption->name = $request->name;
                 $deductionoption->save();
 
+                event(new \App\Events\UpdateDeductionOption($deductionoption, $request));
+
                 return redirect()->route('deductionoption.index')->with('success', __('DeductionOption successfully updated.'));
             }
             else
@@ -130,6 +134,8 @@ class DeductionOptionController extends Controller
         {
             if($deductionoption->created_by == \Auth::user()->creatorId())
             {
+                event(new \App\Events\DeleteDeductionOption($deductionoption));
+
                 $deductionoption->delete();
 
                 return redirect()->route('deductionoption.index')->with('success', __('DeductionOption successfully deleted.'));

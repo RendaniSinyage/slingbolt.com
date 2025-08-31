@@ -81,6 +81,8 @@ class DebitNoteController extends Controller
             
             $this->updateDebitNoteStatus($debit);
 
+            event(new \App\Events\CreateDebitNote($debit, $request));
+
             return redirect()->back()->with('success', __('The debit note has been created successfully.'));
         }
         else
@@ -143,6 +145,8 @@ class DebitNoteController extends Controller
 
             $this->updateDebitNoteStatus($debit);
 
+            event(new \App\Events\UpdateDebitNote($debit, $request));
+
             return redirect()->back()->with('success', __('The debit note details are updated successfully.'));
         }
         else
@@ -170,6 +174,9 @@ class DebitNoteController extends Controller
                 $bill->save();
 
                 $this->updateDebitNoteStatus($debitNote , 'delete');
+
+                event(new \App\Events\DeleteDebitNote($debitNote));
+
                 $debitNote->delete();
 
                 return redirect()->back()->with('success', __('The debit note has been deleted.'));

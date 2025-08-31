@@ -69,6 +69,8 @@ class DesignationController extends Controller
 
             $designation->save();
 
+            event(new \App\Events\CreateDesignation($designation, $request));
+
             return redirect()->route('designation.index')->with('success', __('Designation  successfully created.'));
         }
         else
@@ -139,6 +141,8 @@ class DesignationController extends Controller
                 $designation->department_id = $request->department_id;
                 $designation->save();
 
+                event(new \App\Events\UpdateDesignation($designation, $request));
+
                 return redirect()->route('designation.index')->with('success', __('Designation  successfully updated.'));
             }
             else
@@ -160,6 +164,7 @@ class DesignationController extends Controller
             {
                 $employee     = Employee::where('designation_id', $designation->id)->get();
                 if (count($employee) == 0) {
+                    event(new \App\Events\DeleteDesignation($designation));
                     $designation->delete();
 
                     return redirect()->route('designation.index')->with('success', __('Designation successfully deleted.'));

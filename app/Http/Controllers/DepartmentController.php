@@ -62,6 +62,8 @@ class DepartmentController extends Controller
             $department->created_by = \Auth::user()->creatorId();
             $department->save();
 
+            event(new \App\Events\CreateDepartment($department, $request));
+
             return redirect()->route('department.index')->with('success', __('Department  successfully created.'));
         }
         else
@@ -119,6 +121,8 @@ class DepartmentController extends Controller
                 $department->name      = $request->name;
                 $department->save();
 
+                event(new \App\Events\UpdateDepartment($department, $request));
+
                 return redirect()->route('department.index')->with('success', __('Department successfully updated.'));
             }
             else
@@ -141,6 +145,9 @@ class DepartmentController extends Controller
                 $employee     = Employee::where('department_id', $department->id)->get();
                 if (count($employee) == 0) {
                     Designation::where('department_id', $department->id)->delete();
+
+                    event(new \App\Events\DeleteDepartment($department));
+
                     $department->delete();
                 } else {
                     return redirect()->route('department.index')->with('error', __('This department has employees. Please remove the employee from this department.'));

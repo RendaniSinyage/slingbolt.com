@@ -122,6 +122,21 @@ use App\Events\DeleteCustomerCreditNote;
 use App\Events\CreateCustomerDebitNote;
 use App\Events\UpdateCustomerDebitNote;
 use App\Events\DeleteCustomerDebitNote;
+use App\Events\CreateDebitNote;
+use App\Events\UpdateDebitNote;
+use App\Events\DeleteDebitNote;
+use App\Events\CreateDeductionOption;
+use App\Events\UpdateDeductionOption;
+use App\Events\DeleteDeductionOption;
+use App\Events\CreateDepartment;
+use App\Events\UpdateDepartment;
+use App\Events\DeleteDepartment;
+use App\Events\CreateDesignation;
+use App\Events\UpdateDesignation;
+use App\Events\DeleteDesignation;
+use App\Events\CreateDucumentUpload;
+use App\Events\UpdateDucumentUpload;
+use App\Events\DeleteDucumentUpload;
 use App\Listeners\CreateClientListener;
 use App\Listeners\CreateDealListener;
 use App\Listeners\CreateInvoiceListener;
@@ -240,6 +255,21 @@ use App\Listeners\DeleteCustomerCreditNoteListener;
 use App\Listeners\CreateCustomerDebitNoteListener;
 use App\Listeners\UpdateCustomerDebitNoteListener;
 use App\Listeners\DeleteCustomerDebitNoteListener;
+use App\Listeners\CreateDebitNoteListener;
+use App\Listeners\UpdateDebitNoteListener;
+use App\Listeners\DeleteDebitNoteListener;
+use App\Listeners\CreateDeductionOptionListener;
+use App\Listeners\UpdateDeductionOptionListener;
+use App\Listeners\DeleteDeductionOptionListener;
+use App\Listeners\CreateDepartmentListener;
+use App\Listeners\UpdateDepartmentListener;
+use App\Listeners\DeleteDepartmentListener;
+use App\Listeners\CreateDesignationListener;
+use App\Listeners\UpdateDesignationListener;
+use App\Listeners\DeleteDesignationListener;
+use App\Listeners\CreateDucumentUploadListener;
+use App\Listeners\UpdateDucumentUploadListener;
+use App\Listeners\DeleteDucumentUploadListener;
 use App\Listeners\UserCreate;
 use App\Listeners\VerifyReCaptchaTokenLis;
 use Illuminate\Auth\Events\Registered;
@@ -617,6 +647,51 @@ class EventServiceProvider extends ServiceProvider
         ],
         DeleteCustomerDebitNote::class => [
             DeleteCustomerDebitNoteListener::class,
+        ],
+        CreateDebitNote::class => [
+            CreateDebitNoteListener::class,
+        ],
+        UpdateDebitNote::class => [
+            UpdateDebitNoteListener::class,
+        ],
+        DeleteDebitNote::class => [
+            DeleteDebitNoteListener::class,
+        ],
+        CreateDeductionOption::class => [
+            CreateDeductionOptionListener::class,
+        ],
+        UpdateDeductionOption::class => [
+            UpdateDeductionOptionListener::class,
+        ],
+        DeleteDeductionOption::class => [
+            DeleteDeductionOptionListener::class,
+        ],
+        CreateDepartment::class => [
+            CreateDepartmentListener::class,
+        ],
+        UpdateDepartment::class => [
+            UpdateDepartmentListener::class,
+        ],
+        DeleteDepartment::class => [
+            DeleteDepartmentListener::class,
+        ],
+        CreateDesignation::class => [
+            CreateDesignationListener::class,
+        ],
+        UpdateDesignation::class => [
+            UpdateDesignationListener::class,
+        ],
+        DeleteDesignation::class => [
+            DeleteDesignationListener::class,
+        ],
+        CreateDucumentUpload::class => [
+            CreateDucumentUploadListener::class,
+        ],
+        UpdateDucumentUpload::class => [
+            UpdateDucumentUploadListener::class,
+        ],
+        DeleteDucumentUpload::class => [
+            DeleteDucumentUploadListener::class,
         ],
     ];
 
